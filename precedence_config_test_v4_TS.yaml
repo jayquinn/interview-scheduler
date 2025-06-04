@@ -1,0 +1,46 @@
+# ── 0) 재사용용 앵커(Anchor) ──────────────────────────
+#     같은 리스트를 여러 코드에 붙여넣지 않기 위해 한 번만 정의
+A_SEQ: &A_SEQ               # A-branch 전형 순서
+  - {predecessor: 인성검사,  successor: 발표준비, min_gap_min: 5}
+  - {predecessor: 발표준비, successor: 발표면접, min_gap_min: 5}
+  - {predecessor: 발표면접, successor: 토론면접, min_gap_min: 5}
+
+B_SEQ: &B_SEQ               # B-branch 전형 순서
+  - {predecessor: 인성검사,  successor: 토론면접, min_gap_min: 5}
+  - {predecessor: 토론면접, successor: 발표준비, min_gap_min: 5}
+  - {predecessor: 발표준비, successor: 발표면접, min_gap_min: 5}
+
+# ── 1) 공통 규칙 (전 코드 공통) ────────────────────────
+common:
+  - {predecessor: 발표준비, successor: 발표면접, min_gap_min: 5}
+
+# ── 2) 코드별 / 브랜치별 규칙 ──────────────────────────
+by_code:
+  # ── 경력직: 토론 없음, branch 없음 ──
+  M01:
+    default:
+      - {predecessor: 인성검사, successor: 발표준비, min_gap_min: 5}
+  M02:
+    default:
+      - {predecessor: 인성검사, successor: 발표준비, min_gap_min: 5}
+  M03:
+    default:
+      - {predecessor: 인성검사, successor: 발표준비, min_gap_min: 5}
+  M04:
+    default:
+      - {predecessor: 인성검사, successor: 발표준비, min_gap_min: 5}
+
+  # ── 나머지(토론 有) : 모두 A/B branch ──
+  #    • 앵커 &A_SEQ / &B_SEQ 를 재사용해 중복 제거
+  M05: {A: *A_SEQ, B: *B_SEQ}
+  M06: {A: *A_SEQ, B: *B_SEQ}
+  M07: {A: *A_SEQ, B: *B_SEQ}
+  M08: {A: *A_SEQ, B: *B_SEQ}
+  M11: {A: *A_SEQ, B: *B_SEQ}
+  M12: {A: *A_SEQ, B: *B_SEQ}
+  M13: {A: *A_SEQ, B: *B_SEQ}
+  M14: {A: *A_SEQ, B: *B_SEQ}
+  M15: {A: *A_SEQ, B: *B_SEQ}
+  M16: {A: *A_SEQ, B: *B_SEQ}
+  M18: {A: *A_SEQ, B: *B_SEQ}
+  M20: {A: *A_SEQ, B: *B_SEQ}
