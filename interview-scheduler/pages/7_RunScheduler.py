@@ -1,6 +1,9 @@
 # pages/7_RunScheduler.py  –  최상위 session_state + len(None) 패치
 import streamlit as st
 import core
+import pandas as pd
+import os
+from pathlib import Path
 
 st.header("⑦ Run Scheduler")
 
@@ -56,3 +59,35 @@ if status == "OK":
 
 elif status is not None:   # 실행은 했지만 실패
     st.error(f"Solver status: {status}")
+
+# ─────────────────────────────
+# 4) Advanced Optimizer (CP-SAT)
+# ─────────────────────────────
+ROOT_DIR = Path(__file__).resolve().parents[2]
+out_csv = ROOT_DIR / "schedule_wide_test_v4_HF.csv"
+
+if st.button("Run Advanced Optimizer"):
+    with st.spinner("Solving with CP-SAT…"):
+        os.chdir(ROOT_DIR)
+        import interview_opt_test_v4 as opt
+        opt.main()
+        opt.export_schedule_view()
+
+    if out_csv.exists():
+        st.session_state["adv_result"] = pd.read_csv(out_csv, encoding="utf-8-sig")
+        st.success("Optimization complete")
+    else:
+        st.session_state["adv_result"] = None
+        st.error("Failed to produce schedule")
+
+adv_result = st.session_state.get("adv_result")
+if isinstance(adv_result, pd.DataFrame):
+    st.subheader("Advanced Optimizer Output")
+    st.dataframe(adv_result, use_container_width=True)
+    st.download_button(
+        label="Download Advanced CSV",
+        data=adv_result.to_csv(index=False).encode("utf-8-sig"),
+        file_name=out_csv.name,
+        mime="text/csv",
+        key="adv_csv",
+    )
