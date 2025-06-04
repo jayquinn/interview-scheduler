@@ -1,65 +1,41 @@
 # core.py
+from io import BytesIO
 from datetime import datetime, timedelta
 import pandas as pd
-from io import BytesIO
 from openpyxl import Workbook
+import interview_opt_test_v4 as iv4
+# OR-Tools 래퍼 ───────────────────────────────────────────
+from solver.solver import solve, load_param_grid   # solve()만 쓰면 충분
+
+# ────────────────────────────────────────────────────────
+# 1) Streamlit 세션 → Solver cfg 딕셔너리
+# ────────────────────────────────────────────────────────
 def build_config(state: dict) -> dict:
-    """
-    Streamlit 세션 state 딕셔너리를
-    run_solver 에 넘길 하나의 dict로 합쳐 준다.
-    (필수 키가 없으면 기본 빈 DataFrame 넣기)
-    """
-    def _empty_df():
-        return pd.DataFrame()
+    """페이지 곳곳에 흩어진 DataFrame을 하나의 dict(cgf)로 묶는다."""
+    empty = lambda: pd.DataFrame()                 # 빈 DF 생성 헬퍼
 
     cfg = {
-        "activities"  : state.get("activities",  _empty_df()),
-        "room_plan"   : state.get("room_plan",   _empty_df()),
-        "oper_window" : state.get("oper_window", _empty_df()),
-        "precedence"  : state.get("precedence",  _empty_df()),
-        "candidates"      : state.get("candidates",      _empty_df()),
-        "candidates_exp"  : state.get("candidates_exp",  _empty_df()),
+        "activities"     : state.get("activities",     empty()),
+        "job_acts_map"   : state.get("job_acts_map",   empty()),  # ← NEW
+        "room_plan"      : state.get("room_plan",      empty()),
+        "oper_window"    : state.get("oper_window",    empty()),
+        "precedence"     : state.get("precedence",     empty()),
+        "candidates"     : state.get("candidates",     empty()),
+        "candidates_exp" : state.get("candidates_exp", empty()),
     }
     return cfg
-def run_solver(cfg: dict):
-    """
-    - 09:00 시작
-    - 활동 표(activities) 순서대로 진행
-    - 한 지원자 끝나면 다음 지원자
-    """
-    cand = cfg["candidates_exp"]
-    acts = cfg["activities"]
-    if cand is None or acts is None or cand.empty or acts.empty:
-        return "NO_DATA", None
-    cand["interview_date"] = pd.to_datetime(cand["interview_date"]).dt.date
-    acts = acts.query("use == True").reset_index(drop=True)
-    rows = []
-    t0 = datetime.combine(cand["interview_date"].min(), datetime.min.time()) + timedelta(hours=9)
 
-    for idx, (cid, grp) in enumerate(cand.groupby("id")):
-        cur = t0 + idx * timedelta(minutes=10 * len(acts))
-        for _, a in acts.iterrows():
-            start = cur
-            end   = start + timedelta(minutes=a.duration_min)
-            rows.append({
-                "id": cid,
-                "activity": a.activity,
-                "start": start,
-                "end":   end,
-                "loc": f"{a.room_type}01",
-            })
-            cur = end
+# ────────────────────────────────────────────────────────
+# 2) Solver 실행 래퍼 (UI → 여기만 부르면 됨)
+# ────────────────────────────────────────────────────────
+def run_solver(cfg: dict, params: dict | None = None, *, debug=False):
+    """UI cfg + 파라미터를 solver.solve 로 전달"""
+    return solve(cfg, params=params, debug=debug)
 
-    long = pd.DataFrame(rows)
-    wide = (long
-            .pivot(index="id", columns="activity", values=["loc","start","end"])
-            .reset_index())
-    wide.columns = ["_".join(c).strip("_") for c in wide.columns]
-    return "OK", wide
-
-def to_excel(df: pd.DataFrame) -> bytes:
-    from io import BytesIO
+# ────────────────────────────────────────────────────────
+# 3) DataFrame → Excel(bytes) 변환 (다운로드용)
+# ────────────────────────────────────────────────────────
+def to_excel(df):
     bio = BytesIO()
-    df.to_excel(bio, index=False, engine="openpyxl")
-    bio.seek(0)
+    iv4.df_to_excel(df, by_wave=True, stream=bio)  # ★ stream 인자 전달
     return bio.getvalue()

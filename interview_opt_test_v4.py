@@ -1,4 +1,3 @@
-
 # %%
 import itertools, pandas as pd
 
@@ -56,8 +55,7 @@ else:                                        # (b) 이미 있으면 빈 자리�
 # 저장
 df.to_csv("parameter_grid_test_v4.csv", index=False, encoding="utf-8-sig")
 print(f"📝 parameter_grid_test_v4.csv 생성 – {len(df)} rows")
-# %%
-!pip install tqdm
+
 # %%
 # -*- coding: utf-8 -*-
 """
@@ -302,6 +300,10 @@ def build_model(the_date: pd.Timestamp,
 
         ACT_SPACE = cfg_map.groupby("activity")["loc"].apply(list).to_dict()
         DEBATE_ROOMS = ACT_SPACE.get("토론면접", [])
+
+        if DEBUG:                        # 🐞 새 디버그 출력
+            print("[bm] ACT_SPACE keys:", list(ACT_SPACE.keys())[:5])
+
         for a in ACT_SPACE:
             ACT_SPACE[a].sort()
         def get_space(act: str):
@@ -312,7 +314,8 @@ def build_model(the_date: pd.Timestamp,
             cfg_avail["capacity_override"], errors="coerce"
         ).fillna(cfg_avail["capacity_max"]).astype(int)
         CAP = cfg_avail.set_index(["loc","date"])["capacity_effective"].to_dict()
-
+        if DEBUG:
+            print("[bm] CAP sample   :", list(CAP.items())[:5])
         # 2-3 operating window
         cfg_oper["start_dt"] = pd.to_datetime(
             cfg_oper["date"].dt.strftime("%Y-%m-%d") + " " + cfg_oper["start_time"]
@@ -366,7 +369,7 @@ def build_model(the_date: pd.Timestamp,
                     lit = model.NewBoolVar(f"PRE_{cid}_{pred}->{succ}")
                     model.AddAssumption(lit)
                     ASSUMPTIONS.append(lit)
-
+                    ASSUME_IDX[lit.Index()] = lit
                     conds = [sel[cid, pred, loc_p],
                             sel[cid, succ, loc_s],
                             lit] + extra_lits
@@ -376,6 +379,7 @@ def build_model(the_date: pd.Timestamp,
                         end[cid,   pred, loc_p] + ARR_OFF[cid] + min_gap
                     ).OnlyEnforceIf(conds)
         ASSUMPTIONS = []
+        ASSUME_IDX = {}
         model = cp_model.CpModel()
         start,end,sel,iv = {},{},{},{}
         cid_iv, loc_iv = defaultdict(list), defaultdict(list)
@@ -782,6 +786,23 @@ def build_model(the_date: pd.Timestamp,
         solver.parameters.log_search_progress = True
 
         status = solver.Solve(model)
+        # ───────────── precedence GAP 샘플 체크 ─────────────
+        if status == cp_model.INFEASIBLE:        # UNSAT 인 경우에만 찍어 보자
+            try:
+                sample = []
+                for cid in CIDS[:15]:            # 앞 15명만 샘플
+                    for lp in ACT_SPACE['발표준비']:
+                        for ls in ACT_SPACE['발표면접']:
+                            if (cid,'발표준비',lp) in start and (cid,'발표면접',ls) in start:
+                                # 아직 값이 없어도 Var 는 존재 → 최적값 대신 lower/upper bound 이용
+                                gap_lb = start[cid,'발표면접',ls].Proto().domain[0] - \
+                                        end  [cid,'발표준비',lp].Proto().domain[-1]
+                                sample.append((cid, gap_lb))
+                print("[bm] GAP lower-bounds (cid, min_gap_min 후보):", sample)
+            except Exception as e:
+                print("[bm] gap-debug failed:", e)
+        # ───────────────────────────────────────────────────
+
         ARR_OFF_VAL = {cid: solver.Value(ARR_OFF[cid]) for cid in CIDS}
         BR_OFFSET_VAL = {cid: solver.Value(BR_OFFSET[cid]) for cid in CIDS}
         # ── INFEASIBLE 처리 ─────────────────────────────────
@@ -790,6 +811,15 @@ def build_model(the_date: pd.Timestamp,
                 try:
                     core = solver.SufficientAssumptionsForInfeasibility()
                     print("❌ UNSAT core size:", len(core))
+                    for lit in core[:20]:
+                        lv   = int(lit)                         # ← ① int() 로 캐스팅
+                        sign = "¬" if lv < 0 else ""            # ← ② 이제 int 로 비교
+                        var  = ASSUME_IDX.get(abs(lv))
+                        name = var.Name() if var is not None else f"lit#{lv}"
+                        print("   ⊠", f"{sign}{name}")
+
+
+
                 except Exception as e:
                     print("[WARN] UNSAT-core fetch failed:", e)
             else:
@@ -951,8 +981,9 @@ def build_model(the_date: pd.Timestamp,
 
 
     except Exception as e:
-        print('[ERR]', e)
-        return 'ERR', None
+        import traceback, sys
+        traceback.print_exc()      # 전체 콜스택을 콘솔에 출력
+        raise                      # 예외를 다시 올려 solve() → Streamlit 까지 전달
 
 
 # ────────────────────────────────
@@ -1329,7 +1360,7 @@ def add_group_cols(df: pd.DataFrame) -> bool:
 
 
 #4. 엑셀로 저장 ─────────────────────────────────────────
-def df_to_excel(df: pd.DataFrame, by_wave: bool) -> None:
+def df_to_excel(df: pd.DataFrame, by_wave: bool, stream=None) -> None:
     wb = Workbook()
     ws = wb.active
     ws.title = 'Schedule'
@@ -1370,7 +1401,7 @@ def df_to_excel(df: pd.DataFrame, by_wave: bool) -> None:
             for i in range(2, ws.max_row + 1):
                 ws.cell(i, j).number_format = 'hh:mm'
 
-    wb.save(XLSX)
+    wb.save(stream or XLSX)
     print('✅ saved:', XLSX)
 
 
@@ -1381,10 +1412,30 @@ def export_schedule_view() -> None:
     # (A) 기본 활동 선후관계 구하기
     nodes, G  = build_graph(df)
     order_map = topo_sort(nodes, G)
+    # ── [TIE-BREAK INSERT] 득표가 동점이면 시작 median 이 빠른 활동을 우선 ──
+    def _median_start(act: str) -> pd.Timestamp:
+        col = f"start_{act}"
+        if col in df.columns:
+            ser = pd.to_datetime(df[col], errors='coerce').dropna()
+            if not ser.empty:
+                return ser.median()
+        return pd.Timestamp.max          # 시작시각 없으면 맨 뒤로
+
+    order_map = {k: r for r, k in
+                enumerate(sorted(order_map, key=lambda a: _median_start(a[0])))}
+    # ───────────────────────────────────────────────────────────────
 
     # (B) 변종(_v2 …) 이동
     detect_variants(df, order_map)
-
+    # (C) 변종 이동이 반영된 ‘최종 순서표’ ② ★ NEW ★
+    #     ‣ df 가 변종까지 반영된 상태이므로
+    #       순서표를 **다시 계산**해 줍니다.
+    nodes, G  = build_graph(df)      # df: 변종 이동 후
+    order_map = topo_sort(nodes, G)
+    # ── [TIE-BREAK INSERT – repeat] ──
+    order_map = {k: r for r, k in
+                enumerate(sorted(order_map, key=lambda a: _median_start(a[0])))}
+    # ─────────────────────────────────
     # (C) 그룹(시트)용 컬럼 확보 ― wave 가 없으면 여기서 만들어 둠
     by_wave = add_group_cols(df)
 
