@@ -56,8 +56,8 @@ else:                                        # (b) 이미 있으면 빈 자리�
 # 저장
 df.to_csv("parameter_grid_test_v4.csv", index=False, encoding="utf-8-sig")
 print(f"📝 parameter_grid_test_v4.csv 생성 – {len(df)} rows")
-
-
+# %%
+!pip install tqdm
 # %%
 # -*- coding: utf-8 -*-
 """
@@ -75,7 +75,7 @@ import sys, itertools, time
 from datetime import timedelta
 from pathlib import Path
 from collections import defaultdict
-
+import yaml
 import pandas as pd, yaml
 from pandas.api.types import is_integer_dtype
 from ortools.sat.python import cp_model
@@ -961,7 +961,7 @@ def build_model(the_date: pd.Timestamp,
 def main():
     # ── 0) 지원자 CSV 한 번만 읽기 ──────────────────────────────
     df_raw = (
-        pd.read_csv(CAND_CSV, encoding="cp949")      # 필요하면 utf-8-sig
+        pd.read_csv(CAND_CSV, encoding="utf-8-sig")      # 필요하면 utf-8-sig, cp949
           .assign(activity=lambda d: d["activity"].str.split(","))
           .explode("activity")
           .assign(activity=lambda d: d["activity"].str.strip())
