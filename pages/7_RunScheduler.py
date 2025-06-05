@@ -4,6 +4,8 @@ import core
 from solver.solver import load_param_grid      # ▶︎ NEW – CSV 로더
 import pandas as pd
 import traceback, io, sys
+import interview_opt_test_v4 as iv4
+from interview_opt_test_v4 import prepare_schedule
 st.header("⑦ Run Scheduler")
 with st.expander("🛠️ 디버그 표 보기", expanded=False):
     if st.button("표 출력"):
@@ -107,47 +109,55 @@ wide   = st.session_state.get("run_result")
 # ─────────────────────────────
 # 2) Run 버튼 → Solver
 # ─────────────────────────────
-if st.button("Run"):
-    with st.spinner("Solving…"):
-        cfg = core.build_config(st.session_state)
-        try:
-            status, wide_or_msg = core.run_solver(cfg, params=params, debug=True)
-        except Exception as e:          # solve 함수에서 raise 하는 경우 대비
-            buf = io.StringIO()
-            traceback.print_exc(file=buf)
-            st.error("‼️ Unexpected exception:\n" + buf.getvalue())
-            st.stop()
+# if st.button("Run", key="btn_run"):
+#     cfg = core.build_config(st.session_state)
 
-        if status == "ERR":
-            msg = wide_or_msg if wide_or_msg is not None else "(no detail from solver)"
-            st.error(f"❌ Solver error:\n{msg}")
-            st.stop()
-    # ── 실행 결과 세션 저장 ───────────────────────
-    st.session_state["run_status"] = status
+#     # ▷▹ Solver 진행·디버그 메시지를 한 상자에 모아보기
+#     with st.status("🔍 Solver progress", expanded=True) as box:
+#         try:
+#             status, wide_or_msg = core.run_solver(
+#                 cfg, params=params, debug=True        # 👈 debug=True 유지
+#             )
+#         except Exception:
+#             buf = io.StringIO()
+#             traceback.print_exc(file=buf)
+#             st.error("‼️ Unexpected exception:")
+#             st.code(buf.getvalue())
+#             st.stop()
 
-    if status == "OK":
-        wide = wide_or_msg          # ← 성공 시 DataFrame
-    else:
-        wide = None                 # 실패 시 None
+#         if status == "ERR":
+#             st.error(wide_or_msg or "Solver returned ERR with no detail")
+#             st.stop()
 
-    st.session_state["run_result"] = wide
-
-if st.button("🔍 Validate tables"):
+#     # ── 실행 결과를 세션에 저장
+#     st.session_state["run_status"]  = status
+#     st.session_state["run_result"]  = wide_or_msg if status == "OK" else None
+if st.button("Run", key="btn_run"):
     cfg = core.build_config(st.session_state)
-    for name, df in cfg.items():
-        if isinstance(df, pd.DataFrame):
-            n_nan = df.isna().sum().sum()
-            st.write(f"{name}: NaN {n_nan}개")
-            if n_nan:
-                st.dataframe(df[df.isna().any(axis=1)])
+
+    with st.status("🔍 Solver progress", expanded=True):
+        status, wide_or_msg = core.run_solver(cfg,
+                                              params=params,
+                                              debug=True)
+
+    # ⬇️ 세션에도 넣고 **지역 변수도 즉시 갱신** ★★
+    st.session_state["run_status"]  = status
+    st.session_state["run_result"]  = wide_or_msg if status == "OK" else None
+    wide = wide_or_msg              # ← 이 한 줄 추가
 
 # ─────────────────────────────
 # 3) 결과 표시 & 다운로드
 # ─────────────────────────────
-if status == "OK":
+if status == "OK" and wide is not None:          # ✅ wide 존재 확인
     st.success("Success!")
-    st.dataframe(wide, use_container_width=True)
 
+    # (1) 열·행 정리
+    df_view = prepare_schedule(wide)         # ✅ 이제 안전
+
+    # (2) 화면 표시
+    st.dataframe(df_view, use_container_width=True)
+
+    # (3) Excel (wide 그대로)
     st.download_button(
         "Excel",
         core.to_excel(wide),
@@ -155,12 +165,14 @@ if status == "OK":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         key="dl_xlsx"
     )
+    # (4) CSV (보기 편한 df_view)
     st.download_button(
         "CSV",
-        wide.to_csv(index=False).encode("utf-8-sig"),
+        df_view.to_csv(index=False).encode("utf-8-sig"),
         "schedule.csv",
         "text/csv",
         key="dl_csv"
     )
-elif status is not None:                        # 실패·에러
+
+elif status is not None:          # FAIL / UNSAT / RULE_VIOL / ERR
     st.error(f"Solver status: {status}")

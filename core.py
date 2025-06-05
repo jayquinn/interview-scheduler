@@ -6,7 +6,7 @@ from openpyxl import Workbook
 import interview_opt_test_v4 as iv4
 # OR-Tools 래퍼 ───────────────────────────────────────────
 from solver.solver import solve, load_param_grid   # solve()만 쓰면 충분
-
+from interview_opt_test_v4 import prepare_schedule
 # ────────────────────────────────────────────────────────
 # 1) Streamlit 세션 → Solver cfg 딕셔너리
 # ────────────────────────────────────────────────────────
@@ -35,7 +35,16 @@ def run_solver(cfg: dict, params: dict | None = None, *, debug=False):
 # ────────────────────────────────────────────────────────
 # 3) DataFrame → Excel(bytes) 변환 (다운로드용)
 # ────────────────────────────────────────────────────────
-def to_excel(df):
+from interview_opt_test_v4 import prepare_schedule   # <- 새로 import!
+
+def to_excel(df: pd.DataFrame) -> bytes:
+    """
+    Streamlit 다운로드용 바이너리 Excel 생성:
+      ① prepare_schedule 로 열·행 후처리
+      ② df_to_excel 로 컬러 포맷팅 & 저장
+    """
     bio = BytesIO()
-    iv4.df_to_excel(df, by_wave=True, stream=bio)  # ★ stream 인자 전달
+    df_final = prepare_schedule(df)                  # ★ ① 후처리
+    iv4.df_to_excel(df_final, by_wave=True, stream=bio)  # ★ ② 엑셀 작성
+    bio.seek(0)
     return bio.getvalue()

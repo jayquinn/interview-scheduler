@@ -1,4 +1,4 @@
-# app.py  –  최상위 session_state + 자동 저장·복원
+# app.py
 import streamlit as st
 import core_persist as cp
 

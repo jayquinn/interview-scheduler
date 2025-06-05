@@ -57,6 +57,7 @@ df.to_csv("parameter_grid_test_v4.csv", index=False, encoding="utf-8-sig")
 print(f"📝 parameter_grid_test_v4.csv 생성 – {len(df)} rows")
 
 # %%
+# interview_opt_test_v4.py
 # -*- coding: utf-8 -*-
 """
 ============================================================
@@ -146,6 +147,36 @@ def detect_cycle(edges):
     # 2) 미리 추출한 노드 집합으로 순환 검사
     return any(dfs(node) for node in nodes if node not in visited)
 # ───────────────────────────────────────────────
+def expand_availability(df_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    UI 에서 받은 집계형 space_availability
+      (date · *_count · *_cap · 사용여부 …)
+    → solver 가 요구하는
+      (date · loc · capacity_max/override) 행 단위 DF 로 변환
+    """
+    rows = []
+    ROOM_TYPES = [
+        ("발표면접실", "발표면접실_cap",   "발표면접실_count"),
+        ("심층면접실", "심층면접실_cap",   "심층면접실_count"),
+        ("커피챗실",   "커피챗실_cap",     "커피챗실_count"),
+        ("면접준비실", "면접준비실_cap",   "면접준비실_count"),
+    ]
+
+    for _, r in df_raw.iterrows():
+        if str(r.get("사용여부", "TRUE")).upper() == "FALSE":
+            continue                      # 사용 안 하는 날짜면 skip
+        date = pd.to_datetime(r["date"])
+        for base, cap_col, cnt_col in ROOM_TYPES:
+            n_room = int(r[cnt_col])
+            cap    = int(r[cap_col])
+            for i in range(1, n_room + 1):
+                loc = f"{base}{chr(64+i)}"        # A,B,C…
+                rows.append({
+                    "date":           date,
+                    "loc":            loc,
+                    "capacity_max":   cap,        # capacity_override 로 쓰셔도 OK
+                })
+    return pd.DataFrame(rows)
 
 # ────────────────────────────────
 # 1. 하드-룰 검증 함수 (순서 + Wave 정렬)
@@ -258,9 +289,12 @@ def build_model(the_date: pd.Timestamp,
         # ── 2-2. 짧은 별칭 ──
         cfg_duration = cfg["cfg_duration"].copy()
         cfg_avail    = cfg["cfg_avail"].copy()
+        # 집계형 테이블(date · *_count …)이면 행 단위(loc) 형태로 펼친다
+        if "loc" not in cfg_avail.columns:
+            cfg_avail = expand_availability(cfg_avail)
         cfg_map      = cfg["cfg_map"]
         cfg_oper     = cfg["cfg_oper"]
-
+        prec_yaml = cfg["prec_yaml"]
         # ───────────────────────── 모델 파라미터 ─────────────────────────
         WAVE_LEN = int(params["wave_len"])
         MAX_WAVE = int(params["max_wave"])
@@ -332,13 +366,16 @@ def build_model(the_date: pd.Timestamp,
             for (c, d), v in OPER.items()
         }
         HORIZON = max(OPER_LEN.values())
-        # ─────────── YAML 로드: 기본 branch 코드 파악 ───────────
-        prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
+        # # ─────────── YAML 로드: 기본 branch 코드 파악 ───────────
+        # prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
+        # default_codes = {
+        #     c for c, b in prec_yaml.get("by_code", {}).items()
+        #     if "default" in b and not ("A" in b or "B" in b)
+        # }
         default_codes = {
-            c for c, b in prec_yaml.get("by_code", {}).items()
-            if "default" in b and not ("A" in b or "B" in b)
+        c for c, b in prec_yaml.get("by_code", {}).items()
+        if "default" in b and not ("A" in b or "B" in b)
         }
-
         # 2-4 lookup dicts
         CIDS     = sorted(df_cand["id"].unique())
         CODE_MAP = df_cand.set_index("id")["code"].to_dict()
@@ -662,8 +699,8 @@ def build_model(the_date: pd.Timestamp,
                     print(f"CID={cid}  {code}-{branch} {p}->{s}: preds={preds}  succs={succs}")
         print("=== END DEBUG ===\n")
         # ───────── 3-3 precedence from YAML ─────────
-        prec = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
-
+        # prec = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
+        prec = prec_yaml
         # --- 사이클 검증 실행 ---
         # 1) 공통 제약 쌍 수집
         common_edges = [
@@ -967,10 +1004,8 @@ def build_model(the_date: pd.Timestamp,
         # =================================================
 
         wave_map = {cid: solver.Value(I_wave[cid]) for cid in CIDS}
-        prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
         rule_ok = verify_rules(wide, prec_yaml, params, wave_len=WAVE_LEN)
-
-        
+                
         if rule_ok:
             return 'OK', wide
         else:
@@ -1071,6 +1106,7 @@ def main():
 if __name__ == "__main__":
     main()
 # %%
+# interview_opt_test_v4.py
 # 0. import & 상수 ───────────────────────────────────────────
 import re, itertools, yaml
 from collections import Counter, defaultdict, deque
@@ -1343,6 +1379,43 @@ def reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
     new_cols   = sorted(df.columns, key=order_key_factory(order_map))
     return df.loc[:, new_cols]
 
+# ------------------------------------------------------------
+def prepare_schedule(df_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    solver 가 뱉은 wide-DF를
+    (1) 변종(_v2 …) 정리 → (2) 열 재배열 → (3) wave 컬럼/정렬까지
+    마친 최종 테이블로 변환한다.
+    """
+    df = df_raw.copy()
+
+    # A. 기본 선후관계 → order_map
+    nodes, G = build_graph(df)
+    order_map = topo_sort(nodes, G)
+
+    # B. 변종 열 이동
+    detect_variants(df, order_map)
+
+    # C. wave 등 그룹 보조 컬럼
+    add_group_cols(df)
+
+    # E. 열 순서 정리
+    new_cols = sorted(df.columns, key=order_key_factory(order_map))
+    df = df.loc[:, META + [c for c in new_cols if c not in META]]
+
+    # F. 행 정렬 (첫 start → date → wave → code)
+    start_cols = [c for c in df if c.startswith('start_')]
+    df['_sort_key'] = (df[start_cols]
+                       .apply(pd.to_datetime, errors='coerce')
+                       .min(axis=1))
+    sort_cols = ['_sort_key', 'interview_date']
+    if 'wave' in df.columns:
+        sort_cols.append('wave')
+    sort_cols.append('code')
+    return (df
+            .sort_values(sort_cols)
+            .drop(columns='_sort_key')
+            .reset_index(drop=True))
+# ------------------------------------------------------------
 
 
 #3. 집단활동/wave 보조 칼럼 ─────f────────────────────────
@@ -1412,30 +1485,10 @@ def export_schedule_view() -> None:
     # (A) 기본 활동 선후관계 구하기
     nodes, G  = build_graph(df)
     order_map = topo_sort(nodes, G)
-    # ── [TIE-BREAK INSERT] 득표가 동점이면 시작 median 이 빠른 활동을 우선 ──
-    def _median_start(act: str) -> pd.Timestamp:
-        col = f"start_{act}"
-        if col in df.columns:
-            ser = pd.to_datetime(df[col], errors='coerce').dropna()
-            if not ser.empty:
-                return ser.median()
-        return pd.Timestamp.max          # 시작시각 없으면 맨 뒤로
-
-    order_map = {k: r for r, k in
-                enumerate(sorted(order_map, key=lambda a: _median_start(a[0])))}
-    # ───────────────────────────────────────────────────────────────
 
     # (B) 변종(_v2 …) 이동
     detect_variants(df, order_map)
-    # (C) 변종 이동이 반영된 ‘최종 순서표’ ② ★ NEW ★
-    #     ‣ df 가 변종까지 반영된 상태이므로
-    #       순서표를 **다시 계산**해 줍니다.
-    nodes, G  = build_graph(df)      # df: 변종 이동 후
-    order_map = topo_sort(nodes, G)
-    # ── [TIE-BREAK INSERT – repeat] ──
-    order_map = {k: r for r, k in
-                enumerate(sorted(order_map, key=lambda a: _median_start(a[0])))}
-    # ─────────────────────────────────
+
     # (C) 그룹(시트)용 컬럼 확보 ― wave 가 없으면 여기서 만들어 둠
     by_wave = add_group_cols(df)
 

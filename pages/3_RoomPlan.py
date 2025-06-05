@@ -1,4 +1,4 @@
-# pages/3_RoomPlan.py  –  key 안정화(대안 1, 오류 수정본)
+# pages/3_RoomPlan.py
 import streamlit as st, pandas as pd
 st.header("③ Room Plan")
 def explode_room_plan(df_dates: pd.DataFrame) -> pd.DataFrame:
