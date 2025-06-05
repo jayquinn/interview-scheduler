@@ -1,64 +1,44 @@
-
 # %%
-import itertools, pandas as pd
+# ──────────────────────────────────────
+import itertools, pandas as pd        # ← import 는 그대로
 
-# ─────────────────────────────────────────
-# 1) 반드시 맨 먼저 시도할 ‘안전빵’ 세트
-#    – wave_len 30 / max_wave 16 / min_gap 5 / 넉넉한 offset
-seed_rows = [
-    dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
-         br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
-]
-
-# ─────────────────────────────────────────
-# 2) 나머지 조합 생성
-#    ※ priority = 1(높음) ~ 4(낮음) 로 부여
-grid = []
-for wl, mw, brA, brB, mg in itertools.product(
-        [35],           # wave_len
-        [18],              # max_wave
-        [-2, -1, 0, 1, 2],                 # br_offset_A
-        [-2, -1, 0, 1, 2],                 # br_offset_B
-        [5]                # min_gap
-):
-    # (a) 이미 seed 와 같은 조합이면 건너뜀
-    if wl==50 and mw==16 and brA==3 and brB==2 and mg==5:
-        continue
-
-    # (b) “SAT 가능성이 높을수록 작은 priority” 평가
-    #     기준:   짧은 wave_len  +  큰 max_wave  +  작은 min_gap
-    pr = 1                           # 기본
-    if wl > 35:      pr += 1         # 격자가 길어지면 난이도 ↑
-    if mw < 14:      pr += 1         # 회차가 줄면 난이도 ↑
-    if mg > 10:      pr += 1         # 간격이 크면 난이도 ↑
-
-    grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
-                     br_offset_A=brA, br_offset_B=brB,
-                     min_gap_min=mg, tl_sec=30))
-
-# ─────────────────────────────────────────
-# 3) 하나로 합치고, 시나리오 ID · 정렬
-df = pd.DataFrame(seed_rows + grid)
-df = (df
-      .sort_values(["priority", "wave_len", "min_gap_min", "max_wave"])
-      .reset_index(drop=True))
-
-# --- scenario_id 컬럼 처리 ---
-if "scenario_id" not in df.columns:          # (a) 컬럼이 없으면 새로 만든다
-    df.insert(0, "scenario_id",
-              [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
-else:                                        # (b) 이미 있으면 빈 자리만 채운다
-    mask = df["scenario_id"].isna() | (df["scenario_id"]=="")
-    df.loc[mask, "scenario_id"] = [
-        f"S{str(i+1).zfill(3)}" for i in range(mask.sum())
+def _build_param_grid() -> pd.DataFrame:       # ★ 새 함수
+    seed_rows = [
+        dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
+             br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
     ]
 
-# 저장
-df.to_csv("parameter_grid_test_v4.csv", index=False, encoding="utf-8-sig")
-print(f"📝 parameter_grid_test_v4.csv 생성 – {len(df)} rows")
+    grid = []
+    for wl, mw, brA, brB, mg in itertools.product(
+            [35], [18], [-2,-1,0,1,2], [-2,-1,0,1,2], [5]):
+        if wl==50 and mw==16 and brA==3 and brB==2 and mg==5:
+            continue
+        pr = 1
+        if wl > 35: pr += 1
+        if mw < 14: pr += 1
+        if mg > 10: pr += 1
+        grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
+                         br_offset_A=brA, br_offset_B=brB,
+                         min_gap_min=mg, tl_sec=30))
+
+    df = (pd.DataFrame(seed_rows + grid)
+            .sort_values(["priority","wave_len","min_gap_min","max_wave"])
+            .reset_index(drop=True))
+
+    if "scenario_id" not in df.columns:
+        df.insert(0, "scenario_id",
+                  [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
+    else:
+        mask = df["scenario_id"].isna() | (df["scenario_id"]=="")
+        df.loc[mask, "scenario_id"] = [
+            f"S{str(i+1).zfill(3)}" for i in range(mask.sum())
+        ]
+    return df
+# ──────────────────────────────────────
 
 
 # %%
+# interview_opt_test_v4.py
 # -*- coding: utf-8 -*-
 """
 ============================================================
@@ -75,7 +55,7 @@ import sys, itertools, time
 from datetime import timedelta
 from pathlib import Path
 from collections import defaultdict
-
+import yaml
 import pandas as pd, yaml
 from pandas.api.types import is_integer_dtype
 from ortools.sat.python import cp_model
@@ -148,6 +128,36 @@ def detect_cycle(edges):
     # 2) 미리 추출한 노드 집합으로 순환 검사
     return any(dfs(node) for node in nodes if node not in visited)
 # ───────────────────────────────────────────────
+def expand_availability(df_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    UI 에서 받은 집계형 space_availability
+      (date · *_count · *_cap · 사용여부 …)
+    → solver 가 요구하는
+      (date · loc · capacity_max/override) 행 단위 DF 로 변환
+    """
+    rows = []
+    ROOM_TYPES = [
+        ("발표면접실", "발표면접실_cap",   "발표면접실_count"),
+        ("심층면접실", "심층면접실_cap",   "심층면접실_count"),
+        ("커피챗실",   "커피챗실_cap",     "커피챗실_count"),
+        ("면접준비실", "면접준비실_cap",   "면접준비실_count"),
+    ]
+
+    for _, r in df_raw.iterrows():
+        if str(r.get("사용여부", "TRUE")).upper() == "FALSE":
+            continue                      # 사용 안 하는 날짜면 skip
+        date = pd.to_datetime(r["date"])
+        for base, cap_col, cnt_col in ROOM_TYPES:
+            n_room = int(r[cnt_col])
+            cap    = int(r[cap_col])
+            for i in range(1, n_room + 1):
+                loc = f"{base}{chr(64+i)}"        # A,B,C…
+                rows.append({
+                    "date":           date,
+                    "loc":            loc,
+                    "capacity_max":   cap,        # capacity_override 로 쓰셔도 OK
+                })
+    return pd.DataFrame(rows)
 
 # ────────────────────────────────
 # 1. 하드-룰 검증 함수 (순서 + Wave 정렬)
@@ -260,9 +270,12 @@ def build_model(the_date: pd.Timestamp,
         # ── 2-2. 짧은 별칭 ──
         cfg_duration = cfg["cfg_duration"].copy()
         cfg_avail    = cfg["cfg_avail"].copy()
+        # 집계형 테이블(date · *_count …)이면 행 단위(loc) 형태로 펼친다
+        if "loc" not in cfg_avail.columns:
+            cfg_avail = expand_availability(cfg_avail)
         cfg_map      = cfg["cfg_map"]
         cfg_oper     = cfg["cfg_oper"]
-
+        prec_yaml = cfg["prec_yaml"]
         # ───────────────────────── 모델 파라미터 ─────────────────────────
         WAVE_LEN = int(params["wave_len"])
         MAX_WAVE = int(params["max_wave"])
@@ -302,6 +315,10 @@ def build_model(the_date: pd.Timestamp,
 
         ACT_SPACE = cfg_map.groupby("activity")["loc"].apply(list).to_dict()
         DEBATE_ROOMS = ACT_SPACE.get("토론면접", [])
+
+        if DEBUG:                        # 🐞 새 디버그 출력
+            print("[bm] ACT_SPACE keys:", list(ACT_SPACE.keys())[:5])
+
         for a in ACT_SPACE:
             ACT_SPACE[a].sort()
         def get_space(act: str):
@@ -312,7 +329,8 @@ def build_model(the_date: pd.Timestamp,
             cfg_avail["capacity_override"], errors="coerce"
         ).fillna(cfg_avail["capacity_max"]).astype(int)
         CAP = cfg_avail.set_index(["loc","date"])["capacity_effective"].to_dict()
-
+        if DEBUG:
+            print("[bm] CAP sample   :", list(CAP.items())[:5])
         # 2-3 operating window
         cfg_oper["start_dt"] = pd.to_datetime(
             cfg_oper["date"].dt.strftime("%Y-%m-%d") + " " + cfg_oper["start_time"]
@@ -329,13 +347,16 @@ def build_model(the_date: pd.Timestamp,
             for (c, d), v in OPER.items()
         }
         HORIZON = max(OPER_LEN.values())
-        # ─────────── YAML 로드: 기본 branch 코드 파악 ───────────
-        prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
+        # # ─────────── YAML 로드: 기본 branch 코드 파악 ───────────
+        # prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
+        # default_codes = {
+        #     c for c, b in prec_yaml.get("by_code", {}).items()
+        #     if "default" in b and not ("A" in b or "B" in b)
+        # }
         default_codes = {
-            c for c, b in prec_yaml.get("by_code", {}).items()
-            if "default" in b and not ("A" in b or "B" in b)
+        c for c, b in prec_yaml.get("by_code", {}).items()
+        if "default" in b and not ("A" in b or "B" in b)
         }
-
         # 2-4 lookup dicts
         CIDS     = sorted(df_cand["id"].unique())
         CODE_MAP = df_cand.set_index("id")["code"].to_dict()
@@ -366,7 +387,7 @@ def build_model(the_date: pd.Timestamp,
                     lit = model.NewBoolVar(f"PRE_{cid}_{pred}->{succ}")
                     model.AddAssumption(lit)
                     ASSUMPTIONS.append(lit)
-
+                    ASSUME_IDX[lit.Index()] = lit
                     conds = [sel[cid, pred, loc_p],
                             sel[cid, succ, loc_s],
                             lit] + extra_lits
@@ -376,6 +397,7 @@ def build_model(the_date: pd.Timestamp,
                         end[cid,   pred, loc_p] + ARR_OFF[cid] + min_gap
                     ).OnlyEnforceIf(conds)
         ASSUMPTIONS = []
+        ASSUME_IDX = {}
         model = cp_model.CpModel()
         start,end,sel,iv = {},{},{},{}
         cid_iv, loc_iv = defaultdict(list), defaultdict(list)
@@ -658,8 +680,8 @@ def build_model(the_date: pd.Timestamp,
                     print(f"CID={cid}  {code}-{branch} {p}->{s}: preds={preds}  succs={succs}")
         print("=== END DEBUG ===\n")
         # ───────── 3-3 precedence from YAML ─────────
-        prec = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
-
+        # prec = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
+        prec = prec_yaml
         # --- 사이클 검증 실행 ---
         # 1) 공통 제약 쌍 수집
         common_edges = [
@@ -782,6 +804,23 @@ def build_model(the_date: pd.Timestamp,
         solver.parameters.log_search_progress = True
 
         status = solver.Solve(model)
+        # ───────────── precedence GAP 샘플 체크 ─────────────
+        if status == cp_model.INFEASIBLE:        # UNSAT 인 경우에만 찍어 보자
+            try:
+                sample = []
+                for cid in CIDS[:15]:            # 앞 15명만 샘플
+                    for lp in ACT_SPACE['발표준비']:
+                        for ls in ACT_SPACE['발표면접']:
+                            if (cid,'발표준비',lp) in start and (cid,'발표면접',ls) in start:
+                                # 아직 값이 없어도 Var 는 존재 → 최적값 대신 lower/upper bound 이용
+                                gap_lb = start[cid,'발표면접',ls].Proto().domain[0] - \
+                                        end  [cid,'발표준비',lp].Proto().domain[-1]
+                                sample.append((cid, gap_lb))
+                print("[bm] GAP lower-bounds (cid, min_gap_min 후보):", sample)
+            except Exception as e:
+                print("[bm] gap-debug failed:", e)
+        # ───────────────────────────────────────────────────
+
         ARR_OFF_VAL = {cid: solver.Value(ARR_OFF[cid]) for cid in CIDS}
         BR_OFFSET_VAL = {cid: solver.Value(BR_OFFSET[cid]) for cid in CIDS}
         # ── INFEASIBLE 처리 ─────────────────────────────────
@@ -790,6 +829,15 @@ def build_model(the_date: pd.Timestamp,
                 try:
                     core = solver.SufficientAssumptionsForInfeasibility()
                     print("❌ UNSAT core size:", len(core))
+                    for lit in core[:20]:
+                        lv   = int(lit)                         # ← ① int() 로 캐스팅
+                        sign = "¬" if lv < 0 else ""            # ← ② 이제 int 로 비교
+                        var  = ASSUME_IDX.get(abs(lv))
+                        name = var.Name() if var is not None else f"lit#{lv}"
+                        print("   ⊠", f"{sign}{name}")
+
+
+
                 except Exception as e:
                     print("[WARN] UNSAT-core fetch failed:", e)
             else:
@@ -937,10 +985,8 @@ def build_model(the_date: pd.Timestamp,
         # =================================================
 
         wave_map = {cid: solver.Value(I_wave[cid]) for cid in CIDS}
-        prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
         rule_ok = verify_rules(wide, prec_yaml, params, wave_len=WAVE_LEN)
-
-        
+                
         if rule_ok:
             return 'OK', wide
         else:
@@ -951,8 +997,9 @@ def build_model(the_date: pd.Timestamp,
 
 
     except Exception as e:
-        print('[ERR]', e)
-        return 'ERR', None
+        import traceback, sys
+        traceback.print_exc()      # 전체 콜스택을 콘솔에 출력
+        raise                      # 예외를 다시 올려 solve() → Streamlit 까지 전달
 
 
 # ────────────────────────────────
@@ -961,7 +1008,7 @@ def build_model(the_date: pd.Timestamp,
 def main():
     # ── 0) 지원자 CSV 한 번만 읽기 ──────────────────────────────
     df_raw = (
-        pd.read_csv(CAND_CSV, encoding="cp949")      # 필요하면 utf-8-sig
+        pd.read_csv(CAND_CSV, encoding="utf-8-sig")      # 필요하면 utf-8-sig, cp949
           .assign(activity=lambda d: d["activity"].str.split(","))
           .explode("activity")
           .assign(activity=lambda d: d["activity"].str.strip())
@@ -1038,8 +1085,16 @@ def main():
 # 4. 실행
 # ────────────────────────────────
 if __name__ == "__main__":
+    # (1) 파라미터 그리드 csv 저장 – 스크립트를 직접 실행할 때만
+    _build_param_grid().to_csv(
+        "parameter_grid_test_v4.csv",
+        index=False, encoding="utf-8-sig")
+    print("📝 parameter_grid_test_v4.csv 생성 완료")
+
+    # (2) 기존 main() 호출
     main()
 # %%
+# interview_opt_test_v4.py
 # 0. import & 상수 ───────────────────────────────────────────
 import re, itertools, yaml
 from collections import Counter, defaultdict, deque
@@ -1312,6 +1367,43 @@ def reorder_columns(df: pd.DataFrame) -> pd.DataFrame:
     new_cols   = sorted(df.columns, key=order_key_factory(order_map))
     return df.loc[:, new_cols]
 
+# ------------------------------------------------------------
+def prepare_schedule(df_raw: pd.DataFrame) -> pd.DataFrame:
+    """
+    solver 가 뱉은 wide-DF를
+    (1) 변종(_v2 …) 정리 → (2) 열 재배열 → (3) wave 컬럼/정렬까지
+    마친 최종 테이블로 변환한다.
+    """
+    df = df_raw.copy()
+
+    # A. 기본 선후관계 → order_map
+    nodes, G = build_graph(df)
+    order_map = topo_sort(nodes, G)
+
+    # B. 변종 열 이동
+    detect_variants(df, order_map)
+
+    # C. wave 등 그룹 보조 컬럼
+    add_group_cols(df)
+
+    # E. 열 순서 정리
+    new_cols = sorted(df.columns, key=order_key_factory(order_map))
+    df = df.loc[:, META + [c for c in new_cols if c not in META]]
+
+    # F. 행 정렬 (첫 start → date → wave → code)
+    start_cols = [c for c in df if c.startswith('start_')]
+    df['_sort_key'] = (df[start_cols]
+                       .apply(pd.to_datetime, errors='coerce')
+                       .min(axis=1))
+    sort_cols = ['_sort_key', 'interview_date']
+    if 'wave' in df.columns:
+        sort_cols.append('wave')
+    sort_cols.append('code')
+    return (df
+            .sort_values(sort_cols)
+            .drop(columns='_sort_key')
+            .reset_index(drop=True))
+# ------------------------------------------------------------
 
 
 #3. 집단활동/wave 보조 칼럼 ─────f────────────────────────
@@ -1329,7 +1421,7 @@ def add_group_cols(df: pd.DataFrame) -> bool:
 
 
 #4. 엑셀로 저장 ─────────────────────────────────────────
-def df_to_excel(df: pd.DataFrame, by_wave: bool) -> None:
+def df_to_excel(df: pd.DataFrame, by_wave: bool, stream=None) -> None:
     wb = Workbook()
     ws = wb.active
     ws.title = 'Schedule'
@@ -1370,7 +1462,7 @@ def df_to_excel(df: pd.DataFrame, by_wave: bool) -> None:
             for i in range(2, ws.max_row + 1):
                 ws.cell(i, j).number_format = 'hh:mm'
 
-    wb.save(XLSX)
+    wb.save(stream or XLSX)
     print('✅ saved:', XLSX)
 
 

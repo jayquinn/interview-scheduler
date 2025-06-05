@@ -1,4 +1,4 @@
-# pages/5_Precedence.py  –  B-버전(처음/마지막 체크) + 활동 연동 & 클린업
+# pages/4_Precedence.py  –  B-버전(처음/마지막 체크) + 활동 연동 & 클린업
 import streamlit as st
 import pandas as pd
 
@@ -41,7 +41,7 @@ with c2:
     last_act  = st.selectbox("가장 마지막 활동",
                              ["(지정 안 함)"] + act_opts, index=0)
 
-if st.button("✔️ 체크박스 반영"):
+if st.button("➕ 규칙 추가"):
     # 기존 START/END 규칙 제거 후 새로 반영
     df = df[~df["predecessor"].isin(["__START__", "__END__"])]
     df = df[~df["successor"].isin(["__START__", "__END__"])]
@@ -95,4 +95,4 @@ st.session_state["precedence"] = edited
 
 st.divider()
 if st.button("다음 단계로 ▶"):
-    st.switch_page("pages/6_Candidates.py")
+    st.switch_page("pages/5_Candidates.py")
