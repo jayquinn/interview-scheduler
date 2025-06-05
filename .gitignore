@@ -6,6 +6,5 @@ interview-scheduler/venv/
 # ── Python 캐시 & 컴파일 파일 ─────────────
 __pycache__/
 *.py[cod]
-*.pyc
 # ── 플랫폼 우연 파일(선택) ────────────────
 .DS_Store
