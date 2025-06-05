@@ -35,6 +35,7 @@ job_df = job_df[["code", "count"] + act_list]
 
 # ── AG-Grid 옵션 ──────────────────────────────
 gb = GridOptionsBuilder.from_dataframe(job_df)
+gb.configure_selection(selection_mode="multiple", use_checkbox=True)
 gb.configure_default_column(resizable=True, editable=True)
 gb.configure_column("code",  header_name="직무 코드", width=120)
 gb.configure_column("count", header_name="인원수",
@@ -50,7 +51,7 @@ grid_ret = AgGrid(
     job_df,
     gridOptions=gb.build(),
     data_return_mode=DataReturnMode.AS_INPUT,
-    update_mode=GridUpdateMode.VALUE_CHANGED,
+    update_mode=GridUpdateMode.VALUE_CHANGED | GridUpdateMode.SELECTION_CHANGED,
     allow_unsafe_jscode=True,
     fit_columns_on_grid_load=True,
     theme="balham",
@@ -58,7 +59,13 @@ grid_ret = AgGrid(
 )
 
 edited_df = pd.DataFrame(grid_ret["data"])
-
+# 🗑️ 선택 행 삭제 버튼 ----------------------------------
+sel_rows = pd.DataFrame(grid_ret["selected_rows"])    # 사용자가 체크한 행
+if st.button("🗑️  선택 행 삭제") and not sel_rows.empty:
+    del_codes = sel_rows["code"].tolist()             # 지울 code 목록
+    edited_df = edited_df[~edited_df["code"].isin(del_codes)]
+    st.session_state["job_acts_map"] = edited_df      # 세션 갱신
+    st.rerun()                                        # 화면 새로고침
 # ★★★ 항상 세션에 저장 + 공백 제거 ─────────────────
 edited_df["code"] = edited_df["code"].astype(str).str.strip()
 edited_df["count"] = pd.to_numeric(edited_df["count"], errors="coerce").fillna(0).astype(int)

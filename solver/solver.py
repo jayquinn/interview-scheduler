@@ -119,7 +119,8 @@ def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
     return dict(cfg_duration=cfg_duration,
                 cfg_map=cfg_map,
                 cfg_avail=cfg_avail,
-                cfg_oper=cfg_oper)
+                cfg_oper=cfg_oper,
+                group_meta=cfg_ui["activities"].copy())   # ← 추가
     # ------------------------------------------------
 # ──────────────────────────────────────────────
 # ★ 빈 칼럼 자동 삭제용 헬퍼 ★
@@ -146,6 +147,23 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
     if cfg_ui["candidates_exp"].empty:
         st.error("⛔ 지원자 데이터가 없습니다.")
         return "NO_DATA", None
+    # --- NEW: room_cap vs activity.max_cap 하드-검증 -----------------
+    room_max = {}
+    for _, rp in cfg_ui["room_plan"].iterrows():
+        for rt in ("발표면접실","심층면접실","커피챗실","면접준비실"):
+            cap = int(rp.get(f"{rt}_cap", 0))
+            room_max[rt] = max(room_max.get(rt, 0), cap)
+
+    bad = [
+        (row.activity, row.max_cap, room_max.get(row.room_type, 0))
+        for _, row in cfg_ui["activities"].iterrows()
+        if row.max_cap > room_max.get(row.room_type, 0)
+    ]
+    if bad:
+        msg = ", ".join(f"{a}(max {mc}>{rc})" for a,mc,rc in bad)
+        st.error(f"⛔ room_plan cap 부족: {msg}")
+        return "ERR", None
+    # ----------------------------------------------------------------
 
     # ── 날짜 리스트 추출 (여러 날짜 한꺼번에) ──────────────────
     df_raw_all = cfg_ui["candidates_exp"].copy()

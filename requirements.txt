@@ -45,3 +45,4 @@ st-aggrid
 ortools==9.9
 pyyaml
 openpyxl
+matplotlib>=3.7

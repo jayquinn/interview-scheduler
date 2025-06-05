@@ -41,6 +41,7 @@ def build_config(state: dict) -> dict:
         "candidates"     : state.get("candidates",     empty()),
         "candidates_exp" : state.get("candidates_exp", empty()),
     }
+    cfg["group_meta"] = cfg["activities"].copy()
     return cfg
 
 # ────────────────────────────────────────────────────────

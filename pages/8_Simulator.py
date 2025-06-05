@@ -14,7 +14,7 @@ def default_activities() -> pd.DataFrame:
         "use":          [True]*5,
         "activity":     ["발표준비","발표면접","심층면접","커피챗","인성검사"],
         "duration_min": [15,15,20,5,30],
-        "room_type":    ["면접준비실","발표면접실","심층면접실","커피챗실","인성검사실"],
+        "room_type":    ["발표준비실","발표면접실","심층면접실","커피챗실","인성검사실"],
     })
 
 acts_df_orig = st.session_state.setdefault("activities", default_activities())

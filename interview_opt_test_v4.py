@@ -140,7 +140,7 @@ def expand_availability(df_raw: pd.DataFrame) -> pd.DataFrame:
         ("발표면접실", "발표면접실_cap",   "발표면접실_count"),
         ("심층면접실", "심층면접실_cap",   "심층면접실_count"),
         ("커피챗실",   "커피챗실_cap",     "커피챗실_count"),
-        ("면접준비실", "면접준비실_cap",   "면접준비실_count"),
+        ("발표준비실", "발표준비실_cap",   "발표준비실_count"),
     ]
 
     for _, r in df_raw.iterrows():
@@ -276,6 +276,18 @@ def build_model(the_date: pd.Timestamp,
         cfg_map      = cfg["cfg_map"]
         cfg_oper     = cfg["cfg_oper"]
         prec_yaml = cfg["prec_yaml"]
+        # ▶️ NEW ───────────────────────────────────────
+        group_meta      = cfg.get("group_meta", pd.DataFrame()).copy()
+        MODE            = group_meta.set_index("activity")["mode"].to_dict()
+        MIN_CAP_ACT     = group_meta.set_index("activity")["min_cap"].to_dict()
+        MAX_CAP_ACT     = group_meta.set_index("activity")["max_cap"].to_dict()
+        # ──────────────────────────────────────────────
+        # ▶️ NEW: invalid config → 즉시 예외
+        for act, md in MODE.items():
+            if md != "batched" and MAX_CAP_ACT.get(act, 1) > 1:
+                raise ValueError(f"[CONFIG] '{act}' 는 individual 인데 max_cap > 1")
+            if MIN_CAP_ACT.get(act, 1) > MAX_CAP_ACT.get(act, 1):
+                raise ValueError(f"[CONFIG] '{act}'  min_cap > max_cap")
         # ───────────────────────── 모델 파라미터 ─────────────────────────
         WAVE_LEN = int(params["wave_len"])
         MAX_WAVE = int(params["max_wave"])
@@ -448,7 +460,8 @@ def build_model(the_date: pd.Timestamp,
                 start[cid, act, loc], end[cid, act, loc], sel[cid, act, loc], iv[cid, act, loc] = (
                     s, e, x, ivar
                 )
-                cid_iv[cid].append(ivar)
+                if MODE.get(act, "individual") != "parallel":   # parallel 은 NoOverlap 대상 제외
+                    cid_iv[cid].append(ivar)
                 if dur > 0:
                     loc_iv[loc, the_date].append(ivar)
 
@@ -477,8 +490,13 @@ def build_model(the_date: pd.Timestamp,
         SLIDE_MAX  = 12           # 0‥60분
         # HAS_GROUP = bool(get_space("인성검사")) and bool(get_space("토론면접"))
         # 날짜별 지원자 목록에 토론면접이 실제로 존재하는지로 판단
-        has_debate_candidate = (df_cand["activity"] == "토론면접").any()
-        HAS_GROUP = has_debate_candidate
+        # AFTER  ── (build_model() 상단, MODE·MIN_CAP_ACT·MAX_CAP_ACT 만든 바로 아래) ──
+        BATCH_ACTS = [a for a, m in MODE.items() if m == "batched"]
+        HAS_GROUP  = df_cand["activity"].isin(BATCH_ACTS).any()
+
+        # 모든 batched 활동에 대해 {act: cap} dict 로 보관
+        GROUP_MIN = {a: MIN_CAP_ACT.get(a, 1) for a in BATCH_ACTS}
+        GROUP_MAX = {a: MAX_CAP_ACT.get(a, 999) for a in BATCH_ACTS}
         # HAS_GROUP을 계산한 **뒤**에 가중치 결정
         gap_ab_wt = 0 if not HAS_GROUP else W_GAP_AB
         slide_wt  = 0 if not HAS_GROUP else W_SLIDE
@@ -509,9 +527,13 @@ def build_model(the_date: pd.Timestamp,
                     non_empty = model.NewBoolVar(f"nonEmpty_{room}_{w}")
                     model.Add(sum(members)>0).OnlyEnforceIf(non_empty)
                     model.Add(sum(members)==0).OnlyEnforceIf(non_empty.Not())
-                    model.Add(sum(members)>=3).OnlyEnforceIf(non_empty)
-                    model.Add(sum(members)<=5).OnlyEnforceIf(non_empty)
-
+                    # model.Add(sum(members)>=3).OnlyEnforceIf(non_empty)
+                    # model.Add(sum(members)<=5).OnlyEnforceIf(non_empty)
+                    # model.Add(sum(members) >= GROUP_MIN).OnlyEnforceIf(non_empty)
+                    # model.Add(sum(members) <= GROUP_MAX).OnlyEnforceIf(non_empty)
+                    act = "인성검사"      # ← 이미 그 블록이 인성검사용이면 하드코딩 그대로 둬도 무방
+                    model.Add(sum(members) >= GROUP_MIN[act]).OnlyEnforceIf(non_empty)
+                    model.Add(sum(members) <= GROUP_MAX[act]).OnlyEnforceIf(non_empty)
             # 인성검사 종료 시각 저장
             # I_END = {}
             # for cid in CIDS:
@@ -584,11 +606,12 @@ def build_model(the_date: pd.Timestamp,
                     if not members:
                         continue
                     non_empty = model.NewBoolVar(f"deb_nonEmpty_{loc}_{abs_t}")
-                    # model.Add(sum(members) > 0).OnlyEnforceIf(non_empty)
-                    # model.Add(sum(members) == 0).OnlyEnforceIf(non_empty.Not())
-                    # model.Add(sum(members) >= 3).OnlyEnforceIf(non_empty)
-                    model.Add(sum(members) >= 3).OnlyEnforceIf(non_empty)     # 켜졌으면 ≥3
-                    model.Add(sum(members) <= 2).OnlyEnforceIf(non_empty.Not())   # 꺼졌으면 ≤2
+                    # model.Add(sum(members) >= 3).OnlyEnforceIf(non_empty)     # 켜졌으면 ≥3
+                    # model.Add(sum(members) <= 2).OnlyEnforceIf(non_empty.Not())   # 꺼졌으면 ≤2
+                    # model.Add(sum(members) <= cap).OnlyEnforceIf(non_empty)\
+                    act = "토론면접"
+                    model.Add(sum(members) >= GROUP_MIN[act]).OnlyEnforceIf(non_empty)
+                    model.Add(sum(members) <= 2).OnlyEnforceIf(non_empty.Not())       # (이 줄은 그대로)
                     model.Add(sum(members) <= cap).OnlyEnforceIf(non_empty)
             # ── δ-unit(IntVar) – wave당 하나 ─────────────────
             delta_unit = [
