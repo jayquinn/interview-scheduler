@@ -3,10 +3,28 @@ from io import BytesIO
 from datetime import datetime, timedelta
 import pandas as pd
 from openpyxl import Workbook
-import interview_opt_test_v4 as iv4
 # OR-Tools 래퍼 ───────────────────────────────────────────
 from solver.solver import solve, load_param_grid   # solve()만 쓰면 충분
 from interview_opt_test_v4 import prepare_schedule
+from io import BytesIO
+import pandas as pd
+import interview_opt_test_v4 as iv4   # prepare_schedule, df_to_excel 모두 여기 들어있음
+# core.py  ────────────────────────────────────────
+def should_use_wave(df: pd.DataFrame) -> bool:
+    """
+    ‘wave 팔레트’를 쓸지 판단한다.
+
+    * wave 컬럼이 없으면   → False
+    * 값이 전부 NaN/음수   → False
+    * 값이 단 하나(예: 모두 0) → False
+    * 그 외(두 개 이상)    → True
+    """
+    if 'wave' not in df.columns:
+        return False
+    waves = pd.to_numeric(df['wave'], errors='coerce')   # NaN·문자 제거
+    waves = waves[waves >= 0]                           # 유효 wave
+    return waves.nunique() > 1                          # **두 개 이상?**
+
 # ────────────────────────────────────────────────────────
 # 1) Streamlit 세션 → Solver cfg 딕셔너리
 # ────────────────────────────────────────────────────────
@@ -37,14 +55,13 @@ def run_solver(cfg: dict, params: dict | None = None, *, debug=False):
 # ────────────────────────────────────────────────────────
 from interview_opt_test_v4 import prepare_schedule   # <- 새로 import!
 
-def to_excel(df: pd.DataFrame) -> bytes:
-    """
-    Streamlit 다운로드용 바이너리 Excel 생성:
-      ① prepare_schedule 로 열·행 후처리
-      ② df_to_excel 로 컬러 포맷팅 & 저장
-    """
-    bio = BytesIO()
-    df_final = prepare_schedule(df)                  # ★ ① 후처리
-    iv4.df_to_excel(df_final, by_wave=True, stream=bio)  # ★ ② 엑셀 작성
-    bio.seek(0)
-    return bio.getvalue()
+def to_excel(wide_df: pd.DataFrame) -> bytes:
+    pretty = iv4.prepare_schedule(wide_df)
+
+    # 🔍 자동 판단
+    by_wave_flag = should_use_wave(pretty)
+
+    buf = BytesIO()
+    iv4.df_to_excel(pretty, by_wave=by_wave_flag, stream=buf)
+    buf.seek(0)
+    return buf.getvalue()

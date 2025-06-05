@@ -1,60 +1,41 @@
 # %%
-import itertools, pandas as pd
+# ──────────────────────────────────────
+import itertools, pandas as pd        # ← import 는 그대로
 
-# ─────────────────────────────────────────
-# 1) 반드시 맨 먼저 시도할 ‘안전빵’ 세트
-#    – wave_len 30 / max_wave 16 / min_gap 5 / 넉넉한 offset
-seed_rows = [
-    dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
-         br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
-]
-
-# ─────────────────────────────────────────
-# 2) 나머지 조합 생성
-#    ※ priority = 1(높음) ~ 4(낮음) 로 부여
-grid = []
-for wl, mw, brA, brB, mg in itertools.product(
-        [35],           # wave_len
-        [18],              # max_wave
-        [-2, -1, 0, 1, 2],                 # br_offset_A
-        [-2, -1, 0, 1, 2],                 # br_offset_B
-        [5]                # min_gap
-):
-    # (a) 이미 seed 와 같은 조합이면 건너뜀
-    if wl==50 and mw==16 and brA==3 and brB==2 and mg==5:
-        continue
-
-    # (b) “SAT 가능성이 높을수록 작은 priority” 평가
-    #     기준:   짧은 wave_len  +  큰 max_wave  +  작은 min_gap
-    pr = 1                           # 기본
-    if wl > 35:      pr += 1         # 격자가 길어지면 난이도 ↑
-    if mw < 14:      pr += 1         # 회차가 줄면 난이도 ↑
-    if mg > 10:      pr += 1         # 간격이 크면 난이도 ↑
-
-    grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
-                     br_offset_A=brA, br_offset_B=brB,
-                     min_gap_min=mg, tl_sec=30))
-
-# ─────────────────────────────────────────
-# 3) 하나로 합치고, 시나리오 ID · 정렬
-df = pd.DataFrame(seed_rows + grid)
-df = (df
-      .sort_values(["priority", "wave_len", "min_gap_min", "max_wave"])
-      .reset_index(drop=True))
-
-# --- scenario_id 컬럼 처리 ---
-if "scenario_id" not in df.columns:          # (a) 컬럼이 없으면 새로 만든다
-    df.insert(0, "scenario_id",
-              [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
-else:                                        # (b) 이미 있으면 빈 자리만 채운다
-    mask = df["scenario_id"].isna() | (df["scenario_id"]=="")
-    df.loc[mask, "scenario_id"] = [
-        f"S{str(i+1).zfill(3)}" for i in range(mask.sum())
+def _build_param_grid() -> pd.DataFrame:       # ★ 새 함수
+    seed_rows = [
+        dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
+             br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
     ]
 
-# 저장
-df.to_csv("parameter_grid_test_v4.csv", index=False, encoding="utf-8-sig")
-print(f"📝 parameter_grid_test_v4.csv 생성 – {len(df)} rows")
+    grid = []
+    for wl, mw, brA, brB, mg in itertools.product(
+            [35], [18], [-2,-1,0,1,2], [-2,-1,0,1,2], [5]):
+        if wl==50 and mw==16 and brA==3 and brB==2 and mg==5:
+            continue
+        pr = 1
+        if wl > 35: pr += 1
+        if mw < 14: pr += 1
+        if mg > 10: pr += 1
+        grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
+                         br_offset_A=brA, br_offset_B=brB,
+                         min_gap_min=mg, tl_sec=30))
+
+    df = (pd.DataFrame(seed_rows + grid)
+            .sort_values(["priority","wave_len","min_gap_min","max_wave"])
+            .reset_index(drop=True))
+
+    if "scenario_id" not in df.columns:
+        df.insert(0, "scenario_id",
+                  [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
+    else:
+        mask = df["scenario_id"].isna() | (df["scenario_id"]=="")
+        df.loc[mask, "scenario_id"] = [
+            f"S{str(i+1).zfill(3)}" for i in range(mask.sum())
+        ]
+    return df
+# ──────────────────────────────────────
+
 
 # %%
 # interview_opt_test_v4.py
@@ -1104,6 +1085,13 @@ def main():
 # 4. 실행
 # ────────────────────────────────
 if __name__ == "__main__":
+    # (1) 파라미터 그리드 csv 저장 – 스크립트를 직접 실행할 때만
+    _build_param_grid().to_csv(
+        "parameter_grid_test_v4.csv",
+        index=False, encoding="utf-8-sig")
+    print("📝 parameter_grid_test_v4.csv 생성 완료")
+
+    # (2) 기존 main() 호출
     main()
 # %%
 # interview_opt_test_v4.py
