@@ -48,7 +48,8 @@ def build_config(state: dict) -> dict:
 # ────────────────────────────────────────────────────────
 def run_solver(cfg: dict, params: dict | None = None, *, debug=False):
     """UI cfg + 파라미터를 solver.solve 로 전달"""
-    return solve(cfg, params=params, debug=debug)
+    status, wide, logs = solve(cfg, params=params, debug=debug)
+    return status, wide, logs
 
 # ────────────────────────────────────────────────────────
 # 3) DataFrame → Excel(bytes) 변환 (다운로드용)

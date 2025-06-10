@@ -18,24 +18,31 @@ def build_act_space_map(act_df, space_df):
     return pd.DataFrame(rows)
 
 
-st.header("③ 운영 공간 설정")
+st.set_page_config(layout="wide")
+st.header("③ 운영 공간 설정 (일일 템플릿)")
+st.markdown("""
+이 페이지에서는 면접을 운영할 경우, **하루에 동원 가능한 모든 공간의 종류와 수, 그리고 최대 수용 인원**을 설정합니다.
+여기서 설정한 값은 '운영일정추정' 시뮬레이션의 기본 조건(일일 템플릿)으로 사용됩니다.
+""")
 
 # ─────────────────────────────────────────────
 # 0. 활동 DF → room_types / min_cap / max_cap
 # ─────────────────────────────────────────────
 acts_df = st.session_state.get("activities")
 if acts_df is None or acts_df.empty:
-    st.error("먼저 ① Activities & Template 페이지를 완료해 주세요."); st.stop()
+    st.error("먼저 ① 면접활동정의 페이지를 완료해 주세요.")
+    st.stop()
 
 room_types = sorted(
-    acts_df.query("use == True and room_type != ''")["room_type"].unique()
+    acts_df.query("use == True and room_type != '' and room_type.notna()")["room_type"].unique()
 )
 if not room_types:
-    st.error("room_type 이 지정된 활동이 없습니다."); st.stop()
+    st.error("사용(use=True)하도록 설정된 활동 중, 'room_type'이 지정된 활동이 없습니다. '① 면접활동정의' 페이지를 확인해주세요.")
+    st.stop()
 
-min_cap = acts_df.set_index("room_type")["min_cap"].to_dict()
-max_cap = acts_df.set_index("room_type")["max_cap"].to_dict()
-# ▼▼▼  ⭐ NEW ⭐ : “활동이 요구하는 최소 cap” (req_cap) 계산
+min_cap_req = acts_df.set_index("room_type")["min_cap"].to_dict()
+max_cap_req = acts_df.set_index("room_type")["max_cap"].to_dict()
+# ▼▼▼  ⭐ NEW ⭐ : "활동이 요구하는 최소 cap" (req_cap) 계산
 req_cap = (
     acts_df.query("use == True")           # 사용 중인 활동만
            .groupby("room_type")["max_cap"]
@@ -59,206 +66,83 @@ else:
 
 # room_types 동기화
 for rt in room_types:
-    tpl_dict.setdefault(rt, {"count": 1, "cap": min_cap.get(rt, 1)})
+    tpl_dict.setdefault(rt, {"count": 1, "cap": max_cap_req.get(rt, 1)})
 for rt in list(tpl_dict):
     if rt not in room_types:
         tpl_dict.pop(rt)
 
 # ── UI : number_input 두 컬럼 ─────────────────────────
-st.subheader("① 공통 방 템플릿")
+st.subheader("하루 기준 운영 공간 설정")
+st.markdown("---")
 
 col_cnt, col_cap = st.columns(2, gap="large")
+
 with col_cnt:
     st.markdown("#### 방 개수")
     for rt in room_types:
         tpl_dict[rt]["count"] = st.number_input(
-            f"{rt} 개수", 0, 50, tpl_dict[rt]["count"], key=f"tpl_{rt}_cnt"
+            f"{rt} 개수", 
+            min_value=0, 
+            max_value=50, 
+            value=tpl_dict[rt].get("count", 1), 
+            key=f"tpl_{rt}_cnt"
         )
 
 with col_cap:
-    st.markdown("#### 최대 동시 인원(cap)")
+    st.markdown("#### 최대 동시 수용 인원")
     for rt in room_types:
-        # 👇 value 가 항상 bounds 안에 들어오도록 ‘잘라내기’
-        cap_min = min_cap.get(rt, 1)
-        cap_max = max_cap.get(rt, 50)
-        safe_val = max(cap_min, min(tpl_dict[rt]["cap"], cap_max))   # ← NEW
+        min_val = min_cap_req.get(rt, 1)
+        max_val = max_cap_req.get(rt, 50)
+        # 현재 값(value)이 min/max 범위 안에 있도록 보정
+        current_val = tpl_dict[rt].get("cap", max_val)
+        safe_val = max(min_val, min(current_val, max_val))
 
         tpl_dict[rt]["cap"] = st.number_input(
-            f"{rt} cap",
-            cap_min,               # min_value
-            cap_max,               # max_value
-            safe_val,              # value (clamped)
+            f"{rt} Cap",
+            min_value=min_val,
+            max_value=max_val,
+            value=safe_val,
             key=f"tpl_{rt}_cap",
         )
-# 템플릿 저장
-st.session_state["room_template"] = tpl_dict
-if st.button("🛠 cap 값을 활동 max_cap 에 맞추기"):
-    for rt in room_types:
-        need = req_cap.get(rt, 1)
-        tpl_dict[rt]["cap"] = max(tpl_dict[rt]["cap"], need)
-    st.session_state["room_template"] = tpl_dict
-    st.success("공통 템플릿 cap 이 활동 max_cap 이상으로 보정되었습니다. ↻")
-    st.rerun()
-st.divider()  # ─────────────────────────────────────────
-if st.button("🌀 템플릿 값을 모든 날짜에 적용", key="btn_apply_tpl"):
-    room_df = st.session_state.get("room_plan")
-    if room_df is None or room_df.empty:
-        st.warning("먼저 날짜 범위를 생성하세요.")
-    else:
-        for rt in room_types:
-            room_df[f"{rt}_count"] = tpl_dict[rt]["count"]
-            room_df[f"{rt}_cap"]   = tpl_dict[rt]["cap"]
-        st.session_state["room_plan"] = room_df.copy()
-        st.success("공통 템플릿을 모든 날짜에 적용했습니다.")
-# ─────────────────────────────────────────────
-# 2. 날짜 범위 입력 → room_plan 기본 생성
-# ─────────────────────────────────────────────
-with st.expander("② 날짜 범위 설정 (펼치면 세부 날짜 수정 - 초기 설정 단계에선 그냥 지나가세요.)", expanded=False):
 
-    st.subheader("② 날짜 범위 설정")   # ← 기존 코드 그대로
+# 변경된 템플릿 정보를 session_state에 저장
+st.session_state['room_template'] = tpl_dict
 
-    col1, col2, col3 = st.columns([2, 2, 1])
-    date_from = col1.date_input("시작 날짜")
-    date_to   = col2.date_input("종료 날짜")
+# 2. room_plan 생성 및 저장
+# 이제 room_plan은 날짜 컬럼 없이, 템플릿 값만 반영하는 단일 행 DataFrame이 됨
+room_plan_rows = []
+for rt, values in tpl_dict.items():
+    room_plan_rows.append({
+        'room_type': rt,
+        'count': values['count'],
+        'cap': values['cap']
+    })
+
+room_plan_df = pd.DataFrame(room_plan_rows)
+# 데이터가 있을 때만 저장
+if not room_plan_df.empty:
+    # count와 cap 컬럼을 모두 포함하는 형태로 재구성
+    final_room_plan = pd.DataFrame([
+        {
+            f"{row.room_type}_count": row['count'],
+            f"{row.room_type}_cap": row['cap']
+        }
+        for _, row in room_plan_df.iterrows()
+    ]).T.reset_index().rename(columns={'index': 'type', 0: 'value'}).T
+    # 위 방식은 복잡하니, 더 직관적인 dict 형태로 저장
+    
+    final_plan_dict = {}
+    for rt, values in tpl_dict.items():
+        final_plan_dict[f"{rt}_count"] = values['count']
+        final_plan_dict[f"{rt}_cap"] = values['cap']
+    
+    # DataFrame으로 변환하여 저장 (한 행짜리)
+    st.session_state['room_plan'] = pd.DataFrame([final_plan_dict])
 
 
-    if col3.button("날짜 행 생성"):
-        if date_from > date_to:
-            st.error("시작 날짜가 종료 날짜보다 늦습니다."); st.stop()
+with st.expander("🗂 저장된 `room_plan` 데이터 미리보기"):
+    st.dataframe(st.session_state.get('room_plan', pd.DataFrame()), use_container_width=True)
 
-        days = pd.date_range(date_from, date_to, freq="D").date
-
-        def make_row(day):
-            base = {"date": day, "사용여부": True}
-            for rt in room_types:
-                base[f"{rt}_count"] = tpl_dict[rt]["count"]
-                base[f"{rt}_cap"]   = tpl_dict[rt]["cap"]
-            return base
-
-        new_df = pd.DataFrame(make_row(d) for d in days)
-
-        base = st.session_state.get("room_plan",
-                                    pd.DataFrame(columns=["date"]))
-        st.session_state["room_plan"] = (
-            pd.concat([base, new_df])
-            .drop_duplicates(subset="date")
-            .sort_values("date")
-            .reset_index(drop=True)
-        )
-
-    # ─────────────────────────────────────────────
-    # 3. 날짜별 카드 편집 (기존 로직 유지)
-    # ─────────────────────────────────────────────
-    df = st.session_state.get("room_plan")
-    # ★ 변경 ★  – ‘날짜 행’이 하나도 없으면 → 오늘 날짜 한 줄 자동 생성
-    if df is None or df.empty:
-        today = pd.Timestamp.today().normalize().date()
-        df = pd.DataFrame([{
-            "date": today, "사용여부": True,
-            **{f"{rt}_count": tpl_dict[rt]["count"] for rt in room_types},
-            **{f"{rt}_cap":   tpl_dict[rt]["cap"]   for rt in room_types},
-        }])
-
-    base_cols = ["사용여부"] + [f"{rt}_{x}" for rt in room_types for x in ("count", "cap")]
-    for col in base_cols:
-        if col not in df.columns:
-            default = True if col == "사용여부" else (
-                min_cap.get(col[:-4], 1) if col.endswith("_cap") else 1
-            )
-            df[col] = default
-
-    new_rows = df.copy()
-
-    for idx, d in enumerate(new_rows["date"]):
-        key = d.strftime("%Y-%m-%d")
-
-        def val(col, fallback):
-            raw = new_rows.loc[idx, col]
-            v = int(raw) if pd.notna(raw) else fallback
-            if col.endswith("_cap"):
-                base_rt = col[:-4]
-                v = max(v, req_cap.get(base_rt, 1))   # ★ min_cap → req_cap 으로
-            return v
-
-        used = st.toggle(f"📅 {d} 사용",
-                        value=val("사용여부", True),
-                        key=f"{key}_toggle")
-        new_rows.loc[idx, "사용여부"] = used
-
-        with st.container():
-            if used:                      # 토글 on 일 때만 세부 입력 보여주기
-                st.markdown(f"##### 세부 설정 – {d}")
-            if not used:
-                for rt in room_types:
-                    new_rows.loc[idx, f"{rt}_count"] = 0
-                    new_rows.loc[idx, f"{rt}_cap"]   = 0
-                continue
-            colA, colB = st.columns(2)
-            with colA:
-                for rt in room_types:
-                    new_rows.loc[idx, f"{rt}_count"] = st.number_input(
-                        f"{rt} 개수", 0, 50,
-                        val(f"{rt}_count", tpl_dict[rt]["count"]),
-                        key=f"{key}_{rt}_cnt"
-                    )
-            # with colB:
-            #     for rt in room_types:
-            #         new_rows.loc[idx, f"{rt}_cap"] = st.number_input(
-            #             f"{rt} cap",
-            #             min_cap.get(rt, 1), max_cap.get(rt, 50),
-            #             val(f"{rt}_cap", tpl_dict[rt]["cap"]),
-            #             key=f"{key}_{rt}_cap"
-            #         )
-            with colB:
-                for rt in room_types:
-                    cap_min = min_cap.get(rt, 1)
-                    cap_max = max_cap.get(rt, 50)
-
-                    # value 를 min-max 범위로 한번 ‘잘라내기’
-                    raw_val  = val(f"{rt}_cap", tpl_dict[rt]["cap"])
-                    safe_val = max(cap_min, min(raw_val, cap_max))
-
-                    new_rows.loc[idx, f"{rt}_cap"] = st.number_input(
-                        f"{rt} cap",
-                        cap_min,          # min_value
-                        cap_max,          # max_value
-                        safe_val,         # ✔︎ 범위 안으로 clamp
-                        key=f"{key}_{rt}_cap",
-                    )
-
-# ─────────────────────────────────────────────
-# 4. 결과 저장 + Solver 테이블 변환
-# ─────────────────────────────────────────────
-st.session_state["room_plan"] = new_rows
-
-def explode_room_plan(df_dates):
-    rows = []
-    for _, row in df_dates.iterrows():
-        # if not row["사용여부"]:
-        #     continue
-        if not row.get("사용여부", True):
-            continue
-        if pd.isna(row["date"]):          # ★ 추가 – 날짜가 없으면 skip
-            continue
-        date = row["date"]
-        for rt in room_types:
-            for i in range(1, row[f"{rt}_count"] + 1):
-                rows.append({
-                    "loc": f"{rt}{chr(64+i)}",
-                    "date": date,
-                    "capacity_max": row[f"{rt}_cap"],
-                })
-    # 🔽 columns 명시 – 행이 없어도 컬럼은 유지
-    return pd.DataFrame(rows, columns=["loc", "date", "capacity_max"])
-
-space_avail = explode_room_plan(new_rows)
-st.session_state["space_avail"] = space_avail
-
-st.session_state["activity_space_map"] = build_act_space_map(acts_df, space_avail)
-
-with st.expander("🗂 room_plan / space_avail 미리보기"):
-    st.dataframe(new_rows, use_container_width=True)
-    st.dataframe(space_avail, height=250)
 
 st.divider()
 if st.button("다음 단계로 ▶"):
