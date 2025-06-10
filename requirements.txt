@@ -40,9 +40,7 @@ urllib3==2.4.0
 watchdog==6.0.0
 streamlit>=1.34
 pandas
-openpyxl
-st-aggrid
+streamlit-aggrid==0.4.2
 ortools==9.9
 pyyaml
-openpyxl
 matplotlib>=3.7

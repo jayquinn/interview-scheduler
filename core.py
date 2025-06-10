@@ -2,7 +2,6 @@
 from io import BytesIO
 from datetime import datetime, timedelta
 import pandas as pd
-from openpyxl import Workbook
 # OR-Tools 래퍼 ───────────────────────────────────────────
 from solver.solver import solve, load_param_grid   # solve()만 쓰면 충분
 from interview_opt_test_v4 import prepare_schedule
