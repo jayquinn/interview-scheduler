@@ -177,7 +177,7 @@ if st.button("❌ 선택된 활동 삭제"):
         kept = st.session_state["activities"].drop(idx_to_drop).reset_index(drop=True)
         st.session_state["activities"] = kept
         st.success("선택된 활동이 삭제되었습니다.")
-        st.experimental_rerun()
+        st.rerun()
 # ───────────────────────────────────────────────
 # 6. 네비게이션
 # ───────────────────────────────────────────────
