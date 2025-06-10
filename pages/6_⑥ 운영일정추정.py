@@ -23,6 +23,8 @@ if 'last_solve_logs' not in st.session_state:
     st.session_state['last_solve_logs'] = ""
 if 'solver_status' not in st.session_state:
     st.session_state['solver_status'] = "미실행"
+if 'daily_limit' not in st.session_state:
+    st.session_state['daily_limit'] = 0
 
 def df_to_excel(df: pd.DataFrame, stream=None) -> None:
     """ DataFrame을 엑셀 파일 스트림으로 만듭니다. """
@@ -75,6 +77,7 @@ def reset_run_state():
     st.session_state['final_schedule'] = None
     st.session_state['last_solve_logs'] = ""
     st.session_state['solver_status'] = "미실행"
+    st.session_state['daily_limit'] = 0
 
 with st.sidebar:
     st.markdown("## 파라미터")
@@ -165,10 +168,11 @@ if st.button("운영일정추정 시작", type="primary", use_container_width=Tr
     with st.spinner("최적의 운영 일정을 계산 중입니다..."):
         cfg = core.build_config(st.session_state)
         
-        status, final_wide, logs = solve_for_days(cfg, params, debug=debug_mode)
+        status, final_wide, logs, limit = solve_for_days(cfg, params, debug=debug_mode)
         
         st.session_state['last_solve_logs'] = logs
         st.session_state['solver_status'] = status
+        st.session_state['daily_limit'] = limit
 
         if status == "OK" and final_wide is not None and not final_wide.empty:
             st.session_state['final_schedule'] = final_wide
@@ -181,7 +185,17 @@ if st.button("운영일정추정 시작", type="primary", use_container_width=Tr
 # ────────────────────────────────
 st.markdown("---")
 status = st.session_state.get('solver_status', '미실행')
-st.info(f"Solver Status: `{status}`")
+daily_limit = st.session_state.get('daily_limit', 0)
+
+col1, col2 = st.columns(2)
+with col1:
+    st.info(f"Solver Status: `{status}`")
+with col2:
+    if daily_limit > 0:
+        st.info(f"계산된 일일 최대 처리 인원: **{daily_limit}명**")
+
+if "솔버 시간 초과" in st.session_state.get('last_solve_logs', ''):
+    st.warning("⚠️ 연산 시간이 1분(60초)을 초과하여, 현재까지 찾은 최적의 스케줄을 반환했습니다. 결과는 최상이 아닐 수 있습니다.")
 
 if status == "MAX_DAYS_EXCEEDED":
     logs = st.session_state.get('last_solve_logs', '')

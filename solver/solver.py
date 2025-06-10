@@ -198,6 +198,22 @@ def _drop_useless_cols(df: pd.DataFrame) -> pd.DataFrame:
     def useless(s: pd.Series) -> bool:
         return s.replace('', pd.NA).nunique(dropna=True) == 0
     return df.drop(columns=[c for c in df.columns if useless(df[c])])
+
+def sort_activities_by_time(df: pd.DataFrame, activity_cols: list) -> list:
+    """활동(activity) 컬럼들을 평균 시작 시간순으로 정렬"""
+    avg_start_times = {}
+    for act in activity_cols:
+        start_col = f'start_{act}'
+        if start_col in df.columns:
+            # SettingWithCopyWarning을 피하기 위해 .loc 사용 및 타입 변환
+            times = pd.to_datetime(df[start_col], errors='coerce').dropna()
+            if not times.empty:
+                avg_start_times[act] = times.mean()
+
+    sorted_activities = sorted(avg_start_times.keys(), key=lambda k: avg_start_times[k])
+    time_missing_activities = sorted([act for act in activity_cols if act not in avg_start_times])
+    return sorted_activities + time_missing_activities
+
 # ──────────────────────────────────────────────
 # 3) 최상위 호출 함수 – Streamlit에서 여기만 사용
 #    ★ 여러 날짜(6/4‥6/7 등)를 모두 처리하도록 수정 버전 ★
@@ -327,6 +343,7 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
             'oper_hours': oper_hours,
             'rules': rules,
             'min_gap_min': params.get('min_gap_min', 5) if params else 5,
+            'time_limit_sec': 60.0
         }
         
         log_buf = io.StringIO()
@@ -355,7 +372,53 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
         st.info("ℹ️ 해당 조건으로 배치 가능한 지원자가 없습니다.")
         return "NO_FEASIBLE_DATE", None, "\n".join(all_logs)
 
-    final_wide = pd.concat(all_wide, ignore_index=True)
+    all_long = []
+    for df_w in all_wide:
+        id_vars = [c for c in df_w.columns if not (c.startswith('start_') or c.startswith('end_') or c.startswith('loc_'))]
+        # end_D -> end_ 로 미리 변경
+        df_w.columns = df_w.columns.str.replace("end_D", "end_")
+        
+        activities_in_df = set()
+        for c in df_w.columns:
+            if c.startswith('start_'): activities_in_df.add(c.replace('start_',''))
+            elif c.startswith('end_'): activities_in_df.add(c.replace('end_',''))
+            elif c.startswith('loc_'): activities_in_df.add(c.replace('loc_',''))
+
+        if not activities_in_df:
+            continue
+
+        df_l = pd.wide_to_long(df_w,
+                               stubnames=['start', 'end', 'loc'],
+                               i=id_vars,
+                               j='activity',
+                               sep='_',
+                               suffix='(' + '|'.join(activities_in_df) + ')').reset_index()
+        all_long.append(df_l)
+
+    if not all_long:
+        st.info("ℹ️ 조건에 맞는 스케줄 생성에 실패했습니다.")
+        return "NO_FEASIBLE_SCHEDULE", None, "\n".join(all_logs)
+
+    final_long = pd.concat(all_long, ignore_index=True)
+    
+    final_wide = final_long.pivot_table(
+        index=[c for c in final_long.columns if c not in ['activity', 'start', 'end', 'loc']],
+        columns='activity',
+        values=['start', 'end', 'loc']
+    ).reset_index()
+
+    final_wide.columns = [f'{v}_{c}' if c else v for v,c in final_wide.columns]
+    
+    activity_cols = sorted(list(final_long['activity'].unique()))
+    # copy()를 사용하여 SettingWithCopyWarning 방지
+    sorted_activity_cols = sort_activities_by_time(final_wide.copy(), activity_cols)
+
+    base_cols = [c for c in ['id', 'interview_date', 'code'] if c in final_wide.columns]
+    ordered_cols = base_cols + [f'{prefix}{act}' for act in sorted_activity_cols for prefix in ['start_', 'end_', 'loc_']]
+    
+    final_ordered_cols = [c for c in ordered_cols if c in final_wide.columns]
+    final_wide = final_wide[final_ordered_cols]
+    
     return "OK", _drop_useless_cols(final_wide), "\n".join(all_logs)
 
 def generate_virtual_candidates(job_acts_map: pd.DataFrame) -> pd.DataFrame:
@@ -376,6 +439,79 @@ def generate_virtual_candidates(job_acts_map: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(all_candidates)
 
+def _calculate_dynamic_daily_limit(
+    room_plan_tpl: pd.DataFrame, 
+    oper_window_tpl: pd.DataFrame, 
+    activities_df: pd.DataFrame, 
+    job_acts_map: pd.DataFrame
+) -> int:
+    """사용 가능한 자원(시간, 공간)과 지원자별 필요 자원을 기반으로 일일 처리 가능 인원을 동적으로 추정합니다."""
+    from datetime import date, datetime
+    
+    # 1. 총 가용 시간 계산
+    start_time_str = oper_window_tpl['start_time'].iloc[0]
+    end_time_str = oper_window_tpl['end_time'].iloc[0]
+
+    if isinstance(start_time_str, str):
+        start_time = pd.to_datetime(start_time_str).time()
+    else:
+        start_time = start_time_str
+
+    if isinstance(end_time_str, str):
+        end_time = pd.to_datetime(end_time_str).time()
+    else:
+        end_time = end_time_str
+
+    if not start_time or not end_time:
+        return 20 # Fallback
+
+    total_oper_minutes = (datetime.combine(date.min, end_time) - datetime.combine(date.min, start_time)).total_seconds() / 60
+    
+    room_types = activities_df.query("use==True")['room_type'].dropna().unique()
+    total_room_minutes = 0
+    for rt in room_types:
+        count_col = f"{rt}_count"
+        if count_col in room_plan_tpl:
+            try:
+                num_rooms = pd.to_numeric(room_plan_tpl[count_col].iloc[0], errors='coerce')
+                if pd.notna(num_rooms):
+                    total_room_minutes += num_rooms * total_oper_minutes
+            except (ValueError, IndexError):
+                pass
+            
+    if total_room_minutes <= 0:
+        return 20
+
+    # 2. 지원자 1명당 평균 필요 시간 계산
+    job_acts_map_copy = job_acts_map.copy()
+    
+    if 'total_duration' not in job_acts_map_copy.columns:
+        job_acts_map_copy['total_duration'] = 0
+        for idx, row in job_acts_map_copy.iterrows():
+            total_duration = 0
+            activities = [act for act, required in row.items() if required and act not in ['code', 'count', 'total_duration']]
+            
+            for act_name in activities:
+                act_info = activities_df[activities_df['activity'] == act_name]
+                if not act_info.empty:
+                    duration = act_info['duration_min'].iloc[0]
+                    total_duration += duration
+            job_acts_map_copy.loc[idx, 'total_duration'] = total_duration
+
+    total_applicants = job_acts_map_copy['count'].sum()
+    if total_applicants == 0:
+        return 20
+        
+    weighted_avg_duration = (job_acts_map_copy['total_duration'] * job_acts_map_copy['count']).sum() / total_applicants
+    
+    if weighted_avg_duration <= 0:
+        return 20
+
+    # 3. 일일 처리 가능 인원 추산 (안전 마진 80% 적용)
+    daily_capacity = int((total_room_minutes / weighted_avg_duration) * 0.8)
+    
+    return max(10, daily_capacity)
+
 def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
     """
     최소 운영일을 추정하기 위한 메인 솔버 함수.
@@ -387,12 +523,12 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
     job_acts_map = cfg_ui.get("job_acts_map")
     if job_acts_map is None or job_acts_map.empty:
         st.error("⛔ '② 직무별 면접활동'에서 인원수 설정을 먼저 완료해주세요.")
-        return "NO_JOB_DATA", None, "직무별 인원 정보 없음"
+        return "NO_JOB_DATA", None, "직무별 인원 정보 없음", 0
         
     candidates_df = generate_virtual_candidates(job_acts_map)
     if candidates_df.empty:
         st.info("처리할 지원자 데이터가 없습니다.")
-        return "NO_CANDIDATES", None, "지원자 없음"
+        return "NO_CANDIDATES", None, "지원자 없음", 0
 
     # 2. 고정 설정값 준비 (템플릿)
     room_plan_tpl = cfg_ui.get("room_plan")
@@ -402,17 +538,32 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
     
     if room_plan_tpl is None or room_plan_tpl.empty:
         st.error("⛔ '③ 운영공간설정'에서 공간 템플릿 설정을 먼저 완료해주세요.")
-        return "NO_ROOM_PLAN", None, "운영 공간 템플릿 없음"
+        return "NO_ROOM_PLAN", None, "운영 공간 템플릿 없음", 0
     if oper_window_tpl is None or oper_window_tpl.empty:
         st.error("⛔ '④ 운영시간설정'에서 시간 템플릿 설정을 먼저 완료해주세요.")
-        return "NO_OPER_WINDOW", None, "운영 시간 템플릿 없음"
+        return "NO_OPER_WINDOW", None, "운영 시간 템플릿 없음", 0
+
+    # +++ 동적 일일 처리량 계산 +++
+    daily_candidate_limit = 0
+    try:
+        daily_candidate_limit = _calculate_dynamic_daily_limit(
+            room_plan_tpl=room_plan_tpl,
+            oper_window_tpl=oper_window_tpl,
+            activities_df=activities_df.query("use==True"),
+            job_acts_map=job_acts_map
+        )
+    except Exception as e:
+        logger.warning(f"동적 일일 처리량 계산 실패: {e}. 기본값(70)으로 대체합니다.")
+        daily_candidate_limit = 70
+    # ++++++++++++++++++++++++++++++
 
     # 3. 날짜를 늘려가며 스케줄링 시도
-    all_scheduled_ids = set()
-    final_schedule_df = pd.DataFrame()
+    all_scheduled_cands_long = pd.DataFrame()
     log_messages = []
     
     max_days = 30
+    all_scheduled_ids = set()
+    
     for day_num in range(1, max_days + 1):
         the_date = pd.to_datetime("2025-01-01") + timedelta(days=day_num - 1)
 
@@ -421,12 +572,14 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
             log_messages.append("✅ 모든 지원자 배정 완료. 시뮬레이션을 종료합니다.")
             break
 
+        candidate_ids_for_day = unscheduled_cands['id'].unique()[:daily_candidate_limit]
+        cands_to_schedule_df = unscheduled_cands[unscheduled_cands['id'].isin(candidate_ids_for_day)]
+
         candidate_info = {
             cid: {'job_code': group['code'].iloc[0], 'activities': group['activity'].tolist()}
-            for cid, group in unscheduled_cands.groupby('id')
+            for cid, group in cands_to_schedule_df.groupby('id')
         }
 
-        # 일일 템플릿으로부터 해당 날짜의 설정 생성
         room_types = activities_df.query("use==True")['room_type'].dropna().unique()
         room_info_list = []
         for rt in room_types:
@@ -448,6 +601,7 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
         base_time = pd.to_datetime('00:00:00').time()
         start_time_str = oper_window_tpl['start_time'].iloc[0]
         end_time_str = oper_window_tpl['end_time'].iloc[0]
+        
         start_dt = datetime.combine(the_date.date(), pd.to_datetime(start_time_str).time())
         end_dt = datetime.combine(the_date.date(), pd.to_datetime(end_time_str).time())
         start_minutes = int((start_dt - datetime.combine(the_date.date(), base_time)).total_seconds() / 60)
@@ -464,42 +618,92 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
             'oper_hours': oper_hours,
             'rules': [tuple(x) for x in rules.to_records(index=False)],
             'debug_mode': debug,
-            'num_cpus': params.get('num_cpus', 8)
+            'num_cpus': params.get('num_cpus', 8),
+            'optimize_for_max_scheduled': True,
+            'time_limit_sec': 60.0
         }
         
-        model, status, wide_df, build_model_logs = build_model(config, logger)
-        
         log_messages.append(f"--- Day {day_num} ({the_date.date()}) ---")
+        log_messages.append(f"일일 최대 처리 가능 인원: {daily_candidate_limit}명")
         log_messages.append(f"시도 대상 지원자 수: {len(candidate_info)}")
+
+        model, status, wide_df, build_model_logs = build_model(config, logger)
         
         if build_model_logs:
             log_messages.extend(build_model_logs)
 
         log_messages.append(f"Solver status: {status}")
 
-        if status in ("OPTIMAL", "FEASIBLE") and not wide_df.empty:
-            scheduled_ids_today = set(wide_df['id'].unique())
-            all_scheduled_ids.update(scheduled_ids_today)
+        if status in ("OPTIMAL", "FEASIBLE") and wide_df is not None and not wide_df.empty:
             
-            wide_df['interview_date'] = the_date
-            final_schedule_df = pd.concat([final_schedule_df, wide_df], ignore_index=True)
-            log_messages.append(f"성공: {len(scheduled_ids_today)}명 배정 완료.")
+            # wide_df는 실제로는 long-form이므로, wide-to-long 변환이 불필요.
+            # 컬럼명 변경도 필요 없음.
+            try:
+                long_df = wide_df.copy()
+                long_df['interview_date'] = the_date
+                
+                # 'code' 열이 없으면 'job_code'를 사용
+                if 'code' not in long_df.columns and 'job_code' in long_df.columns:
+                    long_df = long_df.rename(columns={'job_code': 'code'})
+
+                # 'loc' 열이 없으면 'room'을 사용
+                if 'loc' not in long_df.columns and 'room' in long_df.columns:
+                    long_df = long_df.rename(columns={'room': 'loc'})
+                
+                # start_time, end_time -> start, end로 정규화
+                if 'start_time' in long_df.columns:
+                    long_df = long_df.rename(columns={'start_time': 'start'})
+                if 'end_time' in long_df.columns:
+                    long_df = long_df.rename(columns={'end_time': 'end'})
+
+
+                scheduled_ids_today = set(long_df['id'].unique())
+                all_scheduled_ids.update(scheduled_ids_today)
+                
+                all_scheduled_cands_long = pd.concat([all_scheduled_cands_long, long_df], ignore_index=True)
+                log_messages.append(f"성공: {len(scheduled_ids_today)}명 배정 완료.")
+            except Exception as e:
+                log_messages.append(f"결과 처리 중 오류: {e}")
+
         else:
             log_messages.append("실패 또는 배정된 지원자 없음.")
             if status == "ERROR":
                 log_messages.append("\n>> 오류로 인해 스케줄링에 실패했습니다. 위의 상세 로그(Traceback)를 확인해주세요. <<\n")
-    else:
+    
+    else: # for-else: break 없이 루프가 끝나면 실행
         unscheduled_cands_final = candidates_df[~candidates_df['id'].isin(all_scheduled_ids)]
         if not unscheduled_cands_final.empty:
-            num_unscheduled = unscheduled_cands_final['id'].nunique()
-            log_messages.append(f"\n❌ 최대 시도일({max_days}일)을 초과했지만 아직 {num_unscheduled}명의 지원자가 배정되지 못했습니다.")
-            log_messages.append("   운영 시간, 공간, 제약 조건 등을 완화하여 다시 시도해보세요.")
-            final_logs = "\n".join(log_messages)
-            return "MAX_DAYS_EXCEEDED", None, final_logs
+            log_messages.append(f"⚠️ {max_days}일 안에 {len(unscheduled_cands_final['id'].unique())}명의 지원자를 모두 배정하지 못했습니다.")
+            st.warning(f"시뮬레이션 기간({max_days}일)이 초과되었습니다. 일부 지원자가 배정되지 못했습니다.")
 
-    final_logs = "\n".join(log_messages)
+    if all_scheduled_cands_long.empty:
+        return "NO_SOLUTION", None, "\n".join(log_messages), daily_candidate_limit
 
-    if final_schedule_df.empty:
-        return "INFEASIBLE", None, final_logs
-    else:
-        return "OK", final_schedule_df, final_logs
+    # 최종적으로 long 포맷을 wide 포맷으로 변환
+    final_wide = all_scheduled_cands_long.pivot_table(
+        index=['id', 'interview_date', 'code'],
+        columns='activity',
+        values=['start', 'end', 'loc'],
+        aggfunc='first'
+    ).reset_index()
+
+    final_wide.columns = ['_'.join(col).strip() if isinstance(col, tuple) and col[1] else col[0] for col in final_wide.columns]
+    final_wide = final_wide.rename(columns={'id_': 'id', 'interview_date_': 'interview_date', 'code_': 'code'})
+
+    activity_cols = sorted(list(all_scheduled_cands_long['activity'].unique()))
+    
+    for act in activity_cols:
+        for prefix in ['start_', 'end_']:
+            col = f"{prefix}{act}"
+            if col in final_wide.columns:
+                final_wide[col] = pd.to_datetime(final_wide[col], errors='coerce').dt.strftime('%H:%M:%S')
+
+    sorted_activity_cols = sort_activities_by_time(final_wide.copy(), activity_cols)
+
+    base_cols = ['id', 'interview_date', 'code']
+    ordered_cols = base_cols + [f'{prefix}{act}' for act in sorted_activity_cols for prefix in ['start_', 'end_', 'loc_']]
+    
+    final_ordered_cols = [c for c in ordered_cols if c in final_wide.columns]
+    final_wide = final_wide[final_ordered_cols]
+
+    return "OK", _drop_useless_cols(final_wide), "\n".join(log_messages), daily_candidate_limit

@@ -316,19 +316,29 @@ def build_model(config, logger):
                 horizon = max(horizon, end)
         
         intervals, presences, room_assignments = {}, {}, {}
+        optimize_for_max_scheduled = config.get('optimize_for_max_scheduled', False)
+        candidate_master_presences = []
 
         for cid in CIDS:
+            master_presence_var = model.NewBoolVar(f'master_presence_{cid}')
+            if optimize_for_max_scheduled:
+                candidate_master_presences.append(master_presence_var)
+            else:
+                model.Add(master_presence_var == 1)
+
             for act_name in CANDIDATE_ACTS.get(cid, []):
                 if act_name in ACT_SPACE:
                     duration = ACT_SPACE[act_name]['duration']
                     suffix = f"{cid}_{act_name}"
                     start_var = model.NewIntVar(0, horizon, f'start_{suffix}')
                     end_var = model.NewIntVar(0, horizon, f'end_{suffix}')
+                    
                     presence_var = model.NewBoolVar(f'presence_{suffix}')
+                    model.Add(presence_var == master_presence_var)
+                    
                     interval_var = model.NewOptionalIntervalVar(start_var, duration, end_var, presence_var, f'interval_{suffix}')
                     intervals[(cid, act_name)] = interval_var
                     presences[(cid, act_name)] = presence_var
-                    model.Add(presence_var == 1)
 
         for cid in CIDS:
             cid_intervals = [iv for (c, _), iv in intervals.items() if c == cid]
@@ -415,11 +425,18 @@ def build_model(config, logger):
                         model.Add(iv.StartExpr() >= start_time)
                         model.Add(iv.EndExpr() <= end_time)
 
+        if optimize_for_max_scheduled:
+            model.Maximize(sum(candidate_master_presences))
+
         solver = cp_model.CpSolver()
         solver.parameters.num_search_workers = config.get('num_cpus', 8)
         solver.parameters.log_search_progress = True
+        solver.parameters.max_time_in_seconds = config.get('time_limit_sec', 180.0)
         status = solver.Solve(model)
         status_name = solver.StatusName(status)
+
+        if status == cp_model.FEASIBLE:
+            all_logs.append(">> 솔버 시간 초과: 최적 해를 보장할 수 없지만, 실행 가능한 스케줄을 반환합니다.")
 
         if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
             final_report_df, _ = prepare_schedule(solver, intervals, presences, room_assignments, CANDIDATE_SPACE, ACT_SPACE, ROOM_SPACE, the_date, logger)
@@ -428,16 +445,54 @@ def build_model(config, logger):
                 logger.warning("Rule violations found:")
                 for msg in err_msgs: logger.warning(msg)
                 status_name = 'RULE_VIOLATED'
+            
+            # Use the new long-form schedule preparation
+            final_report_df_long = prepare_schedule_long(solver, intervals, presences, room_assignments, CANDIDATE_SPACE, ACT_SPACE, ROOM_SPACE, the_date, logger)
+            
         else:
             final_report_df = pd.DataFrame()
+            final_report_df_long = pd.DataFrame()
             
     except Exception as e:
         logger.error(f"Error during model building or solving: {e}", exc_info=True)
         status_name = "ERROR"
         final_report_df = pd.DataFrame()
+        final_report_df_long = pd.DataFrame()
         all_logs.append(f"\n--- EXCEPTION TRACEBACK ---\n{traceback.format_exc()}")
 
-    return model, status_name, final_report_df, all_logs
+    return model, status_name, final_report_df_long, all_logs
+
+
+def prepare_schedule_long(solver, intervals, presences, room_assignments, CANDIDATE_SPACE, ACT_SPACE, ROOM_SPACE, the_date, logger):
+    """'long-form' DataFrame을 생성합니다."""
+    
+    rows = []
+    for (cid, act_name), iv in intervals.items():
+        if solver.Value(presences[(cid, act_name)]):
+            start_time = timedelta(minutes=solver.Value(iv.StartExpr()))
+            end_time = timedelta(minutes=solver.Value(iv.EndExpr()))
+            
+            room_name = "N/A"
+            for r_name, p_var in room_assignments.items():
+                if r_name[0] == cid and r_name[1] == act_name and solver.Value(p_var):
+                    room_name = r_name[2]
+                    break
+
+            rows.append({
+                'id': cid,
+                'activity': act_name,
+                'start_time': the_date + start_time,
+                'end_time': the_date + end_time,
+                'room': room_name,
+                'job_code': CANDIDATE_SPACE[cid]['job_code'],
+                'interview_date': the_date.date()
+            })
+            
+    if not rows:
+        return pd.DataFrame()
+        
+    df = pd.DataFrame(rows)
+    return df
 
 
 # ────────────────────────────────
