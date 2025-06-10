@@ -11,3 +11,8 @@ __pycache__/
 ".autosave.pkl"        
 "__pycache__/"         
 "*.pyc"                
+# ── 데이터 파일 제외 ─────────────────────
+*.csv
+*.xlsx
+*.yaml
+*.yml
