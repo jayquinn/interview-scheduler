@@ -268,7 +268,25 @@ def build_model(the_date: pd.Timestamp,
         df_cand = cfg["df_raw"][cfg["df_raw"]["interview_date"] == the_date].copy()
         if df_cand.empty:
             return "NO_DATA", None
-        ALL_ACTS = get_all_activities(YAML_FILE, df_cand)  
+        
+        # --- 활동 목록(ALL_ACTS)을 동적으로 생성 ---
+        prec_yaml = cfg["prec_yaml"]
+        acts = set(df_cand["activity"].unique())
+        # 공통 규칙에서 활동 추출
+        for r in prec_yaml.get("common", []):
+            acts.add(r["predecessor"])
+            acts.add(r["successor"])
+        # 코드별 규칙에서 활동 추출
+        for branches in prec_yaml.get("by_code", {}).values():
+            for rules in branches.values():
+                for r in rules:
+                    acts.add(r["predecessor"])
+                    acts.add(r["successor"])
+        # 토큰 제거
+        if "__START__" in acts: acts.remove("__START__")
+        if "__END__" in acts: acts.remove("__END__")
+        ALL_ACTS = sorted(list(acts))
+
         # ── 2-2. 짧은 별칭 ──
         cfg_duration = cfg["cfg_duration"].copy()
         cfg_avail    = cfg["cfg_avail"].copy()
@@ -407,12 +425,12 @@ def build_model(the_date: pd.Timestamp,
                     conds = [sel[cid, pred, loc_p],
                             sel[cid, succ, loc_s],
                             lit] + extra_lits
-                    if adjacent:                    # ✅ A와 B를 ‘붙이기’(==) 제약
+                    if adjacent:                    # ✅ A와 B를 '붙이기'(==) 제약
                         model.Add(
                             start[cid, succ, loc_s] + ARR_OFF[cid] ==
                             end  [cid, pred, loc_p] + ARR_OFF[cid] + min_gap
                         ).OnlyEnforceIf(conds)
-                    else:                           # 기존 ‘pred ⟶ succ’(>=) 제약
+                    else:                           # 기존 'pred ⟶ succ'(>=) 제약
                         model.Add(
                             start[cid, succ, loc_s] + ARR_OFF[cid] >=
                             end  [cid, pred, loc_p] + ARR_OFF[cid] + min_gap
