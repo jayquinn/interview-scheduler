@@ -156,7 +156,28 @@ if st.button("➕ 활동 행 추가"):
         ignore_index=True,
     )
     st.rerun()
-
+    # ───────────────────────────────────────────────
+    # 5-1) ➖ 삭제 기능 – 멀티셀렉트 & 버튼
+    # ───────────────────────────────────────────────
+    st.markdown("#### 삭제할 활동을 선택 후, 아래 버튼을 눌러주세요.")
+    act_df = st.session_state["activities"].copy()
+    act_df["_삭제표시"] = act_df.reset_index().apply(
+        lambda r: f"{r['index']}: {r['activity']}", axis=1
+    )
+    to_delete = st.multiselect(
+        "삭제할 활동 선택",
+        options=act_df["_삭제표시"].tolist(),
+        default=[]
+    )
+    if st.button("❌ 선택된 활동 삭제"):
+        if not to_delete:
+            st.warning("먼저 삭제할 활동을 선택하세요.")
+        else:
+            idx_to_drop = [int(s.split(":")[0]) for s in to_delete]
+            kept = st.session_state["activities"].drop(idx_to_drop).reset_index(drop=True)
+            st.session_state["activities"] = kept
+            st.success("선택된 활동이 삭제되었습니다.")
+            st.experimental_rerun()
 # ───────────────────────────────────────────────
 # 6. 네비게이션
 # ───────────────────────────────────────────────
