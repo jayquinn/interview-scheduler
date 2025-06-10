@@ -569,7 +569,7 @@ def build_model(the_date: pd.Timestamp,
             if OFFSET_B > 0:                                         # 안전가드
                 for cid in CIDS:
                     model.Add(I_wave[cid] >= OFFSET_B).OnlyEnforceIf(isA_lit[cid].Not())
-            # ─── δ-slide용 z 변수 및 “exactly-one” 제약 (★ 방별로 계산) ──────────
+            # ─── δ-slide용 z 변수 및 "exactly-one" 제약 (★ 방별로 계산) ──────────
             deb_z = {}                               # (cid, loc, abs_t) → BoolVar
 
             # 0) 토론 방 목록 & 방별 좌석 수
@@ -737,6 +737,44 @@ def build_model(the_date: pd.Timestamp,
         # 3-3a) 모든 지원자에게 공통으로 적용할 순서 제약
         for c in prec.get("common", []):
             for cid in CIDS:
+                # ◀◀◀ NEW: START/END 특별 처리 ◀◀◀
+                p, s = c["predecessor"], c["successor"]
+
+                # 1) "S가 가장 처음"
+                if p == "__START__":
+                    succ_acts = [(s, loc) for loc in get_space(s) if (cid, s, loc) in sel]
+                    if not succ_acts: continue
+
+                    other_acts = [
+                        (act, loc)
+                        for act in ALL_ACTS if act != s
+                        for loc in get_space(act) if (cid, act, loc) in sel
+                    ]
+                    for s_act, s_loc in succ_acts:
+                        for o_act, o_loc in other_acts:
+                            model.Add(start[s_act] <= start[o_act]).OnlyEnforceIf(
+                                [sel[cid, s, s_loc], sel[cid, o_act, o_loc]]
+                            )
+                    continue
+
+                # 2) "P가 가장 마지막"
+                if s == "__END__":
+                    pred_acts = [(p, loc) for loc in get_space(p) if (cid, p, loc) in sel]
+                    if not pred_acts: continue
+
+                    other_acts = [
+                        (act, loc)
+                        for act in ALL_ACTS if act != p
+                        for loc in get_space(act) if (cid, act, loc) in sel
+                    ]
+                    for p_act, p_loc in pred_acts:
+                        for o_act, o_loc in other_acts:
+                            model.Add(end[p_act] >= end[o_act]).OnlyEnforceIf(
+                                [sel[cid, p, p_loc], sel[cid, o_act, o_loc]]
+                            )
+                    continue
+
+                # 3) 일반 제약 (기존과 동일)
                 _apply_prec_constraint(cid,
                                     c["predecessor"],
                                     c["successor"],
@@ -1193,7 +1231,7 @@ def detect_variants(df: pd.DataFrame,
                  times: dict[str, str],
                  rank: dict[str, int]) -> bool:
         """
-        해당 활동(act)의 시작시간이 ‘정상 순서’ 안에 들어있으면 True.
+        해당 활동(act)의 시작시간이 '정상 순서' 안에 들어있으면 True.
         times  : {활동: "HH:MM"}
         rank   : {활동: 예상순위}
         """
@@ -1362,7 +1400,7 @@ def topo_sort(nodes, G):
     if len(order) != len(nodes):
         raise ValueError('⚠️  cycle detected in activity order!')
     return {n:i for i,n in enumerate(order)}
-# 변종이 기본보다 얼마나 ‘당겨/미룰’지
+# 변종이 기본보다 얼마나 '당겨/미룰'지
 SHIFT = {
     '':      0,     # 기본
     '_v2': -0.4,    # 제일 먼저
