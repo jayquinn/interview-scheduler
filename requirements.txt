@@ -45,3 +45,4 @@ ortools
 pyyaml
 matplotlib>=3.7
 tqdm
+openpyxl
