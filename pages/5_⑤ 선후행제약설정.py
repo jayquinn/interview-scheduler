@@ -5,7 +5,7 @@
 ────────────────────────────────────────────────────────────
 * ① Activities ② Job-Activities 입력을 선행 가정
 * 1) 일반 precedence 규칙  (기존 기능·그대로)
-* 2) Branch-Template       (offset 파라미터 표 + 새 ‘플로우’ 미리보기)
+* 2) Branch-Template       (offset 파라미터 표 + 새 '플로우' 미리보기)
 * 3) Code ↔ Branch 매핑    (직무코드 → 사용할 브랜치)
 """
 import streamlit as st
@@ -73,7 +73,7 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
         p  = c[0].selectbox("선행", ACT_OPTS)
         s  = c[1].selectbox("후행", ACT_OPTS)
         g  = c[2].number_input("간격(분)", 0, 60, 5)
-        adj = st.checkbox("A ↔ B 붙이기(인접)", value=False)
+        adj = st.checkbox("A ↔ B 붙이기(인접)", value=True)
         ok = st.form_submit_button("➕ 추가")
         if ok:
             df = st.session_state["precedence"]
@@ -90,7 +90,7 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
                 st.success("추가 완료!")
 
     ## ========== 멀티셀렉트 + 삭제 버튼 추가 부분 시작 ==========
-    # (1) “삭제표시용” 문자열 컬럼 생성 → 예: "발표준비 → 발표면접 (gap=5)"
+    # (1) "삭제표시용" 문자열 컬럼 생성 → 예: "발표준비 → 발표면접 (gap=5)"
     prec_df = st.session_state["precedence"].copy()
     prec_df["삭제표시용"] = prec_df.apply(
         lambda r: f"{r.predecessor} → {r.successor} (gap={r.gap_min})", axis=1
@@ -105,21 +105,21 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
         help="여러 개를 Ctrl/Cmd+클릭으로 선택할 수 있습니다."
     )
 
-    # (3) “❌ 선택된 규칙 삭제” 버튼
+    # (3) "❌ 선택된 규칙 삭제" 버튼
     if st.button("❌ 선택된 규칙 삭제"):
         if not to_delete:
             st.warning("삭제하려면 먼저 목록에서 규칙을 하나 이상 선택하세요.")
         else:
-            # “삭제표시용” 컬럼 값이 to_delete에 포함되지 않은 행만 남김
+            # "삭제표시용" 컬럼 값이 to_delete에 포함되지 않은 행만 남김
             new_prec = prec_df[~prec_df["삭제표시용"].isin(to_delete)].drop(
                 columns="삭제표시용"
             ).reset_index(drop=True)
             st.session_state["precedence"] = new_prec.copy()
             st.success("선택된 규칙이 삭제되었습니다!")
     # (4) ——————————
-    # (5) 이제 “간단히 st.data_editor로 편집만” 허용할 수도 있고, 
+    # (5) 이제 "간단히 st.data_editor로 편집만" 허용할 수도 있고, 
     #      혹은 AgGrid로 보여주기만 할 수도 있습니다.
-    #      “체크박스 선택” 기능 없이, 단순히 셀을 수정만 하게 하고 싶다면
+    #      "체크박스 선택" 기능 없이, 단순히 셀을 수정만 하게 하고 싶다면
     #      아래 AgGrid 코드를 사용하세요.
 
     prec_df_for_grid = st.session_state["precedence"].copy()
@@ -223,7 +223,7 @@ def render_dynamic_flows(prec_df: pd.DataFrame, base_nodes: list[str]) -> list[s
             # 일반 활동 간 제약
             if p in perm and s in perm:
                 i_p, i_s = perm.index(p), perm.index(s)
-                # 붙이기(adjacent) 또는 gap>0 모두 “인접” 처리
+                # 붙이기(adjacent) 또는 gap>0 모두 "인접" 처리
                 if adj or gap > 0:
                     if i_s != i_p + 1:
                         ok = False
@@ -270,7 +270,7 @@ st.session_state.setdefault(
 BR_TBL = st.session_state["branch_templates"]
 
 def render_flow(row: pd.Series) -> str:
-    """offset 파라미터 한 줄을 ‘아이콘 플로우’ 문자열로 변환"""
+    """offset 파라미터 한 줄을 '아이콘 플로우' 문자열로 변환"""
     wave, slide, arr = int(row.offset_wave), int(row.offset_slide), int(row.arr_off)
     ico = {"인성검사":"🧩", "발표준비":"📝", "발표면접":"🎤", "토론면접":"💬"}
     a,b,c,d = ico["인성검사"], ico["발표준비"], ico["발표면접"], ico["토론면접"]
@@ -280,8 +280,8 @@ def render_flow(row: pd.Series) -> str:
     else:
         order = [a,d,b,c]
 
-    arr_txt   = "" if arr == 0 else " (+5′)"
-    slide_txt = "" if slide == 0 else f"  Δ{slide}′"
+    arr_txt   = "" if arr == 0 else " (+5')"
+    slide_txt = "" if slide == 0 else f"  Δ{slide}'"
     return " → ".join(order) + slide_txt + arr_txt
 
 # with st.expander("🏷️ 브랜치-템플릿 편집", expanded=True):

@@ -183,6 +183,15 @@ st.markdown("---")
 status = st.session_state.get('solver_status', '미실행')
 st.info(f"Solver Status: `{status}`")
 
+if status == "MAX_DAYS_EXCEEDED":
+    logs = st.session_state.get('last_solve_logs', '')
+    match = re.search(r"최대 시도일\((\d+)일\)을 초과했지만 아직 (\d+)명의 지원자가 배정되지 못했습니다", logs)
+    if match:
+        max_days, num_unscheduled = match.groups()
+        st.error(f"**스케줄링 실패:** 최대 시도일({max_days}일)을 초과했지만, 아직 {num_unscheduled}명의 지원자가 배정되지 못했습니다. 운영 시간, 공간, 제약 조건 등을 완화하여 다시 시도해보세요.")
+    else:
+        st.error(f"**스케줄링 실패:** 최대 시도 가능일 수를 초과하여 모든 지원자를 배정할 수 없습니다. 운영 시간, 공간, 제약 조건 등을 완화하여 다시 시도해보세요.")
+
 df = st.session_state.get('final_schedule')
 
 if df is not None and not df.empty:

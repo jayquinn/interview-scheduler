@@ -182,7 +182,12 @@ def verify_rules(wide_df: pd.DataFrame, rules: list) -> list:
                 parts = col.split('_', 1)
                 times[(parts[0], parts[1])] = row[col]
 
-        for pred, succ, _ in rules:
+        for rule in rules:
+            if len(rule) == 4:
+                pred, succ, _, __ = rule
+            else:
+                pred, succ, _ = rule
+
             if pred == '__START__':
                 succ_start_time = times.get(('start', succ))
                 if succ_start_time is None: continue
@@ -293,7 +298,11 @@ def build_model(config, logger):
         CIDS = list(CANDIDATE_SPACE.keys())
         
         all_rule_activities = set()
-        for pred, succ, _ in rules:
+        for rule in rules:
+            if len(rule) == 4:
+                pred, succ, _, __ = rule
+            else:
+                pred, succ, _ = rule
             if pred != '__START__': all_rule_activities.add(pred)
             if succ != '__END__': all_rule_activities.add(succ)
 
@@ -360,21 +369,42 @@ def build_model(config, logger):
                 capacity = ROOM_SPACE[room_name].get('capacity', 1)
                 model.AddCumulative(iv_list, [1]*len(iv_list), capacity)
 
-        for pred, succ, _ in rules:
+        for rule in rules:
+            if len(rule) == 4:
+                pred, succ, gap, stick = rule
+            else:
+                pred, succ, gap = rule
+                stick = False
+
             for cid in CIDS:
                 acts = CANDIDATE_ACTS.get(cid, [])
-                if pred == '__START__' and succ in acts and (cid, succ) in intervals:
-                    succ_iv = intervals[(cid, succ)]
-                    for act_name in acts:
-                        if act_name != succ and (cid, act_name) in intervals:
-                            model.Add(intervals[(cid, act_name)].StartExpr() >= succ_iv.EndExpr())
-                elif succ == '__END__' and pred in acts and (cid, pred) in intervals:
+                
+                # Rule 1: __START__ → succ
+                if pred == '__START__':
+                    if succ in acts:
+                        succ_iv = intervals[(cid, succ)]
+                        for other_act in acts:
+                            if other_act != succ:
+                                other_iv = intervals[(cid, other_act)]
+                                model.Add(succ_iv.EndExpr() <= other_iv.StartExpr())
+
+                # Rule 2: pred → __END__
+                elif succ == '__END__':
+                    if pred in acts:
+                        pred_iv = intervals[(cid, pred)]
+                        for other_act in acts:
+                            if other_act != pred:
+                                other_iv = intervals[(cid, other_act)]
+                                model.Add(pred_iv.StartExpr() >= other_iv.EndExpr())
+
+                # Rule 3: pred → succ
+                elif pred in acts and succ in acts:
                     pred_iv = intervals[(cid, pred)]
-                    for act_name in acts:
-                        if act_name != pred and (cid, act_name) in intervals:
-                            model.Add(intervals[(cid, act_name)].EndExpr() <= pred_iv.StartExpr())
-                elif pred in acts and succ in acts and (cid, pred) in intervals and (cid, succ) in intervals:
-                    model.Add(intervals[(cid, succ)].StartExpr() >= intervals[(cid, pred)].EndExpr())
+                    succ_iv = intervals[(cid, succ)]
+                    if stick:
+                        model.Add(succ_iv.StartExpr() == pred_iv.EndExpr() + gap)
+                    else:
+                        model.Add(succ_iv.StartExpr() >= pred_iv.EndExpr() + gap)
 
         for cid, data in CANDIDATE_SPACE.items():
             if data['job_code'] in OPER_HOURS:

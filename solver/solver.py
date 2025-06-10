@@ -171,7 +171,7 @@ def _derive_internal_tables(cfg_ui: dict, the_date: pd.Timestamp, *, debug: bool
         
         if not cfg_avail_today.empty:
             st.dataframe(cfg_avail_today.sort_values("loc").head(20),
-                         use_container_width=True)
+                     use_container_width=True)
         else:
             st.markdown(f"**경고:** `{the_date.date()}`에 해당하는 장소(Room) 정보가 'Room Plan'에 없습니다.")
 
@@ -412,9 +412,9 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
     final_schedule_df = pd.DataFrame()
     log_messages = []
     
-    max_days = 10
+    max_days = 30
     for day_num in range(1, max_days + 1):
-        the_date = pd.to_datetime("2025-01-01") + timedelta(days=day_num - 1) # 버그 수정
+        the_date = pd.to_datetime("2025-01-01") + timedelta(days=day_num - 1)
 
         unscheduled_cands = candidates_df[~candidates_df['id'].isin(all_scheduled_ids)]
         if unscheduled_cands.empty:
@@ -488,6 +488,14 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
             log_messages.append("실패 또는 배정된 지원자 없음.")
             if status == "ERROR":
                 log_messages.append("\n>> 오류로 인해 스케줄링에 실패했습니다. 위의 상세 로그(Traceback)를 확인해주세요. <<\n")
+    else:
+        unscheduled_cands_final = candidates_df[~candidates_df['id'].isin(all_scheduled_ids)]
+        if not unscheduled_cands_final.empty:
+            num_unscheduled = unscheduled_cands_final['id'].nunique()
+            log_messages.append(f"\n❌ 최대 시도일({max_days}일)을 초과했지만 아직 {num_unscheduled}명의 지원자가 배정되지 못했습니다.")
+            log_messages.append("   운영 시간, 공간, 제약 조건 등을 완화하여 다시 시도해보세요.")
+            final_logs = "\n".join(log_messages)
+            return "MAX_DAYS_EXCEEDED", None, final_logs
 
     final_logs = "\n".join(log_messages)
 
