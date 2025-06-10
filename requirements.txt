@@ -41,6 +41,6 @@ watchdog==6.0.0
 streamlit>=1.34
 pandas
 streamlit-aggrid
-ortools==9.9
+ortools
 pyyaml
 matplotlib>=3.7
