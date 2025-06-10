@@ -8,44 +8,14 @@ import yaml
 from interview_opt_test_v4 import YAML_FILE
 def df_to_yaml_dict(df: pd.DataFrame) -> dict:
     rules = []
-    # 토큰을 제외한, 실제 활동 이름 목록
-    acts = sorted(set(df.predecessor) | set(df.successor) - {"__START__", "__END__"})
-    for r in df.itertuples():
-        p, s, gap = r.predecessor, r.successor, int(r.gap_min)
-
-        # 1) START→X → "X가 맨 앞"
-        if p == "__START__" and s != "__END__":
-            for other in acts:
-                if other == s: continue
-                rules.append({
-                    "predecessor": s,
-                    "successor":   other,
-                    "min_gap_min": gap
-                })
-            continue
-
-        # 2) X→END → "X가 맨 뒤"
-        if s == "__END__" and p != "__START__":
-            for other in acts:
-                if other == p: continue
-                rules.append({
-                    "predecessor": other,
-                    "successor":   p,
-                    "min_gap_min": gap
-                })
-            continue
-
-        # 3) 토큰 관련 룰은 모두 버리기
-        if p in ("__START__","__END__") or s in ("__START__","__END__"):
-            continue
-
-        # 4) 순수 활동→활동 룰 그대로 추가
-        rules.append({
-            "predecessor":   p,
-            "successor":     s,
-            "min_gap_min":   gap
-        })
-
+    for r in df.itertuples(index=False):
+        rule = {
+            "predecessor": r.predecessor,
+            "successor": r.successor,
+            "min_gap_min": int(r.gap_min),
+            "adjacent": bool(getattr(r, "adjacent", False))
+        }
+        rules.append(rule)
     return {"common": rules, "by_code": {}}
 
 
