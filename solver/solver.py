@@ -13,7 +13,7 @@ def df_to_yaml_dict(df: pd.DataFrame) -> dict:
     for r in df.itertuples():
         p, s, gap = r.predecessor, r.successor, int(r.gap_min)
 
-        # 1) START→X → “X가 맨 앞”
+        # 1) START→X → "X가 맨 앞"
         if p == "__START__" and s != "__END__":
             for other in acts:
                 if other == s: continue
@@ -24,7 +24,7 @@ def df_to_yaml_dict(df: pd.DataFrame) -> dict:
                 })
             continue
 
-        # 2) X→END → “X가 맨 뒤”
+        # 2) X→END → "X가 맨 뒤"
         if s == "__END__" and p != "__START__":
             for other in acts:
                 if other == p: continue
@@ -236,18 +236,16 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
         # (2) 내부 표 4개 생성 & df_raw 주입
         internal = _derive_internal_tables(cfg_ui, debug=debug)
         internal["df_raw"] = day_df_raw
-        # # (3) precedence 룰을 YAML 형식으로 (토큰 룰을 확장한 뒤)
-        # prec_yaml_ui = df_to_yaml_dict(cfg_ui["precedence"])
+        
+        # (3) precedence 룰을 YAML 형식으로 (토큰 룰을 확장한 뒤)
+        prec_yaml_ui = df_to_yaml_dict(cfg_ui["precedence"])
 
-
-        # # (5) build_model 호출용 merged dict 구성
-        # merged = {**internal, **cfg_ui}
-        # merged["prec_yaml"] = prec_yaml_ui
         # (5) build_model 호출용 merged dict 구성
         merged = {**internal, **cfg_ui}
-        # ── precedence 룰(YAML)도 함께 넘겨줘야 build_model()에서 읽을 수 있습니다
-        with open(YAML_FILE, encoding="utf-8") as f:
-            merged["prec_yaml"] = yaml.safe_load(f)
+        merged["prec_yaml"] = prec_yaml_ui
+
+        # 캡처 준비
+        f = io.StringIO()
 
         # ── (디버그) build_model 직전 테이블 확인
         if debug:
@@ -261,21 +259,20 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
             st.markdown("---")
 
         # (6) 실제 OR-Tools 모델 실행
-        log_buf = io.StringIO()
         try:
-            with contextlib.redirect_stdout(log_buf):
+            with contextlib.redirect_stdout(f):
                 status, wide = build_model(the_date, params or {}, merged)
         except Exception:
             tb_str = traceback.format_exc()
             st.error("❌ Solver exception:")
             st.code(tb_str)
-            st.code(log_buf.getvalue())
+            st.code(f.getvalue())
             return "ERR", None
 
         # (7) 하루치 실패 → 전체 실패
         if status != "OK":
             st.error(f"⚠️ Solver status: {status} (date {the_date.date()})")
-            st.code(log_buf.getvalue())
+            st.code(f.getvalue())
             return status, None
 
         all_wide.append(wide)
