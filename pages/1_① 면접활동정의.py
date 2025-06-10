@@ -8,7 +8,10 @@ from st_aggrid import (
     DataReturnMode,
 )
 
-st.header("① Activities & Template (AG‑Grid)")
+
+
+
+st.header("① 면접 활동 정의")
 
 # ───────────────────────────────────────────────
 # 1. 기본 템플릿 (모드·cap 디폴트 포함)
@@ -19,32 +22,32 @@ def default_df() -> pd.DataFrame:
         {
             "use": [True, True, True, True, True, True],
             "activity": [
-                "발표준비",
-                "발표면접",
-                "심층면접",
-                "커피챗",
+                "면접1",
+                "면접2",
+                "면접3",
+                "면접4",
                 "인성검사",
-                "토론면접",
+                "커피챗",
             ],
             "mode": [
-                "parallel",   # 발표준비
-                "individual", # 발표면접
-                "individual", # 심층면접
-                "individual", # 커피챗
-                "batched",    # 인성검사
-                "batched",    # 토론면접
+                "individual", 
+                "individual",
+                "individual", 
+                "individual",
+                "individual",
+                "individual",
             ],
-            "duration_min": [10, 15, 20, 5, 30, 35],
+            "duration_min": [10, 10, 10, 10, 10, 10],
             "room_type": [
-                "발표준비실",
-                "발표면접실",
-                "심층면접실",
-                "커피챗실",
+                "면접1실",
+                "면접2실",
+                "면접3실",
+                "면접4실",
                 "인성검사실",
-                "토론면접실",
+                "커피챗실",
             ],
-            "min_cap": [1, 1, 1, 1, 3, 3],
-            "max_cap": [30, 1, 1, 1, 5, 5],
+            "min_cap": [1, 1, 1, 1, 1, 1],
+            "max_cap": [1, 1, 1, 1, 1, 1],
         }
     )
 
@@ -89,7 +92,7 @@ gb.configure_column(
 gb.configure_column("activity", header_name="활동 이름", editable=True)
 
 # (3) mode – dropdown
-mode_values = ["individual", "parallel", "batched"]
+mode_values = ["individual"] #, "parallel", "batched"
 
 gb.configure_column(
     "mode",
@@ -160,4 +163,4 @@ if st.button("➕ 활동 행 추가"):
 
 st.divider()
 if st.button("다음 단계로 ▶"):
-    st.switch_page("pages/2_JobActivities.py")
+    st.switch_page("pages/2_② 직무별 면접활동.py")

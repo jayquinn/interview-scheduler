@@ -1,4 +1,4 @@
-# pages/5_Candidates.py
+# pages/6_Candidates.py
 import streamlit as st
 import pandas as pd
 
@@ -70,4 +70,4 @@ if uploaded:
     st.dataframe(df_exp, use_container_width=True)
 
 if st.button("다음 단계로 ▶"):
-    st.switch_page("pages/6_OperatingWindow.py")
+    st.switch_page("pages/7_RunScheduler.py")

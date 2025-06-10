@@ -4,19 +4,57 @@ import pandas as pd
 import traceback, sys, streamlit as st
 from interview_opt_test_v4 import build_model   # ← 원본 거대한 함수 재사용
 import contextlib, io
+import yaml
+from interview_opt_test_v4 import YAML_FILE
 def df_to_yaml_dict(df: pd.DataFrame) -> dict:
-    """
-    UI ⑤ Precedence DataFrame → build_model 이 바로 쓰는 dict 형태로 변환
-      columns = predecessor, successor, gap_min
-    """
-    rules = [
-        {"predecessor": r.predecessor,
-         "successor":   r.successor,
-         "min_gap_min": int(r.gap_min)}
-        for r in df.itertuples()
-        if str(r.predecessor) != "" and str(r.successor) != ""
-    ]
+    rules = []
+    # 토큰을 제외한, 실제 활동 이름 목록
+    acts = sorted(set(df.predecessor) | set(df.successor) - {"__START__", "__END__"})
+    for r in df.itertuples():
+        p, s, gap = r.predecessor, r.successor, int(r.gap_min)
+
+        # 1) START→X → “X가 맨 앞”
+        if p == "__START__" and s != "__END__":
+            for other in acts:
+                if other == s: continue
+                rules.append({
+                    "predecessor": s,
+                    "successor":   other,
+                    "min_gap_min": gap
+                })
+            continue
+
+        # 2) X→END → “X가 맨 뒤”
+        if s == "__END__" and p != "__START__":
+            for other in acts:
+                if other == p: continue
+                rules.append({
+                    "predecessor": other,
+                    "successor":   p,
+                    "min_gap_min": gap
+                })
+            continue
+
+        # 3) 토큰 관련 룰은 모두 버리기
+        if p in ("__START__","__END__") or s in ("__START__","__END__"):
+            continue
+
+        # 4) 순수 활동→활동 룰 그대로 추가
+        rules.append({
+            "predecessor":   p,
+            "successor":     s,
+            "min_gap_min":   gap
+        })
+
     return {"common": rules, "by_code": {}}
+
+
+
+
+
+
+
+
 # ────────────────────────────────────────────────────────
 # 0. 시나리오(파라미터) 그리드 로더  ★ RunScheduler 페이지에서 사용
 # ────────────────────────────────────────────────────────
@@ -31,16 +69,23 @@ def load_param_grid(csv_path: str = "parameter_grid_test_v4.csv") -> pd.DataFram
 # ──────────────────────────────────────────────
 def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
     """
-    Streamlit UI 값으로부터 build_model이 바로 쓸 4개 표를 생성.
+    Streamlit UI 값으로부터 build_model 이 바로 쓸 4개 표를 생성.
     debug=True 이면 브라우저에 cfg_map / cfg_avail 미리보기 출력.
     """
+    import pandas as pd
+    import streamlit as st
+
     # ① 활동 ↔ 소요시간 ----------------------------
     cfg_duration = cfg_ui["activities"][["activity", "duration_min"]].copy()
+
+    # ▶ room_type 목록을 Activities 표에서 자동 추출
+    room_types_ui = cfg_ui["activities"]["room_type"].dropna().unique()
 
     # ② 활동 ↔ loc(room_type) ----------------------
     base_map = cfg_ui["activities"][["activity", "room_type"]]
 
     if "space_avail" in cfg_ui and not cfg_ui["space_avail"].empty:
+        # 외부에서 loc · cap 이 이미 준비돼 있으면 그대로 활용
         sa = cfg_ui["space_avail"]
         rows = [
             {"activity": act, "loc": loc}
@@ -51,11 +96,13 @@ def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
         ]
         cfg_map = pd.DataFrame(rows)
     else:
-        # room_plan → loc 폭발
+        # room_plan → loc 폭발 (room_type 동적)
         rp, rows = cfg_ui["room_plan"], []
         for _, r in rp.iterrows():
-            for base in ("발표면접실","심층면접실","커피챗실","면접준비실"):
-                n = int(r.get(f"{base}_count", 1))
+            for base in room_types_ui:
+                n = int(r.get(f"{base}_count", 0))
+                if n == 0:
+                    continue
                 for i in range(1, n + 1):
                     loc = f"{base}{chr(64+i)}" if n > 1 else base
                     rows.append({"room_type": base, "loc": loc})
@@ -67,15 +114,17 @@ def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
 
     # ③ 날짜·방별 capacity --------------------------
     if "space_avail" in cfg_ui and not cfg_ui["space_avail"].empty:
-        cfg_avail = cfg_ui["space_avail"][["loc","date","capacity_max"]].copy()
+        cfg_avail = cfg_ui["space_avail"][["loc", "date", "capacity_max"]].copy()
         cfg_avail["capacity_override"] = pd.NA
     else:
         rp, rows = cfg_ui["room_plan"], []
         for _, r in rp.iterrows():
             date = pd.to_datetime(r["date"])
-            for base in ("발표면접실","심층면접실","커피챗실","면접준비실"):
-                n   = int(r.get(f"{base}_count", 1))
-                cap = int(r[f"{base}_cap"])
+            for base in room_types_ui:
+                n   = int(r.get(f"{base}_count", 0))
+                if n == 0:
+                    continue
+                cap = int(r.get(f"{base}_cap", 0))
                 for i in range(1, n + 1):
                     loc = f"{base}{chr(64+i)}" if n > 1 else base
                     rows.append(
@@ -90,11 +139,11 @@ def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
         if old in raw_oper.columns and new in raw_oper.columns:
             raw_oper = raw_oper.drop(columns=[old])
     cfg_oper = (
-        raw_oper.dropna(subset=["code","date",
+        raw_oper.dropna(subset=["code", "date",
                                 "start" if "start" in raw_oper.columns else "start_time",
                                 "end"   if "end"   in raw_oper.columns else "end_time"])
                 .query("code != ''")
-                .drop_duplicates(["code","date"])
+                .drop_duplicates(["code", "date"])
                 .reset_index(drop=True)
                 .rename(columns={"start": "start_time", "end": "end_time"})
     )
@@ -105,7 +154,7 @@ def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
     # ────── 🔎  디버그 미리보기 (브라우저) ──────
     if debug:
         st.markdown("#### 🐞 `cfg_map` (activity ↔ loc) – 상위 20행")
-        st.dataframe(cfg_map.sort_values(["activity","loc"]).head(20),
+        st.dataframe(cfg_map.sort_values(["activity", "loc"]).head(20),
                      use_container_width=True)
 
         first_date = cfg_avail["date"].min()
@@ -116,12 +165,14 @@ def _derive_internal_tables(cfg_ui: dict, *, debug: bool = False) -> dict:
         st.markdown("---")
 
     # 결과 반환 --------------------------------------
-    return dict(cfg_duration=cfg_duration,
-                cfg_map=cfg_map,
-                cfg_avail=cfg_avail,
-                cfg_oper=cfg_oper,
-                group_meta=cfg_ui["activities"].copy())   # ← 추가
-    # ------------------------------------------------
+    return dict(
+        cfg_duration=cfg_duration,
+        cfg_map=cfg_map,
+        cfg_avail=cfg_avail,
+        cfg_oper=cfg_oper,
+        group_meta=cfg_ui["activities"].copy(),   # 추가 필드
+    )
+
 # ──────────────────────────────────────────────
 # ★ 빈 칼럼 자동 삭제용 헬퍼 ★
 # ──────────────────────────────────────────────
@@ -143,17 +194,24 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
     params : wave_len·max_wave … 등 시나리오 한 줄(dict)
     반환   : (status:str, wide:pd.DataFrame|None)
     """
+    import io, contextlib, traceback, sys
+    import pandas as pd
+    import streamlit as st
+    from interview_opt_test_v4 import build_model
+
     # 0) 지원자 데이터 유무 체크
     if cfg_ui["candidates_exp"].empty:
         st.error("⛔ 지원자 데이터가 없습니다.")
         return "NO_DATA", None
-    # --- NEW: room_cap vs activity.max_cap 하드-검증 -----------------
+
+    # --- room_cap vs activity.max_cap 하드-검증 -----------------
+    room_types_ui = cfg_ui["activities"]["room_type"].dropna().unique()
     room_max = {}
     for _, rp in cfg_ui["room_plan"].iterrows():
-        for rt in ("발표면접실","심층면접실","커피챗실","면접준비실"):
-            cap = int(rp.get(f"{rt}_cap", 0))
-            room_max[rt] = max(room_max.get(rt, 0), cap)
-
+        for rt in room_types_ui:
+            col = f"{rt}_cap"
+            if col in rp and pd.notna(rp[col]):
+                room_max[rt] = max(room_max.get(rt, 0), int(rp[col]))
     bad = [
         (row.activity, row.max_cap, room_max.get(row.room_type, 0))
         for _, row in cfg_ui["activities"].iterrows()
@@ -163,14 +221,14 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
         msg = ", ".join(f"{a}(max {mc}>{rc})" for a,mc,rc in bad)
         st.error(f"⛔ room_plan cap 부족: {msg}")
         return "ERR", None
-    # ----------------------------------------------------------------
+    # ----------------------------------------------------------
 
-    # ── 날짜 리스트 추출 (여러 날짜 한꺼번에) ──────────────────
+    # 날짜 리스트 추출 (여러 날짜 한꺼번에)
     df_raw_all = cfg_ui["candidates_exp"].copy()
     df_raw_all["interview_date"] = pd.to_datetime(df_raw_all["interview_date"])
-    date_list = sorted(pd.to_datetime(df_raw_all["interview_date"].unique()))
+    date_list = sorted(df_raw_all["interview_date"].unique())
 
-    all_wide = []                      # 날짜별 결과 누적
+    all_wide = []
     for the_date in date_list:
         # (1) 하루치 지원자만 필터
         day_df_raw = df_raw_all[df_raw_all["interview_date"] == the_date]
@@ -178,23 +236,31 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
         # (2) 내부 표 4개 생성 & df_raw 주입
         internal = _derive_internal_tables(cfg_ui, debug=debug)
         internal["df_raw"] = day_df_raw
-        prec_yaml_ui = df_to_yaml_dict(cfg_ui["precedence"])
-        internal["prec_yaml"] = prec_yaml_ui        # 💡 build_model 에 넘길 키
+        # # (3) precedence 룰을 YAML 형식으로 (토큰 룰을 확장한 뒤)
+        # prec_yaml_ui = df_to_yaml_dict(cfg_ui["precedence"])
 
+
+        # # (5) build_model 호출용 merged dict 구성
+        # merged = {**internal, **cfg_ui}
+        # merged["prec_yaml"] = prec_yaml_ui
+        # (5) build_model 호출용 merged dict 구성
         merged = {**internal, **cfg_ui}
-        # ── (2½) 디버그: 모델에 넘길 테이블 미리 확인 ─────────────────
+        # ── precedence 룰(YAML)도 함께 넘겨줘야 build_model()에서 읽을 수 있습니다
+        with open(YAML_FILE, encoding="utf-8") as f:
+            merged["prec_yaml"] = yaml.safe_load(f)
+
+        # ── (디버그) build_model 직전 테이블 확인
         if debug:
             st.markdown("##### 🐞 build_model 호출 직전 스냅샷")
-            st.dataframe(internal["cfg_map"].head(20),      use_container_width=True)
+            st.dataframe(internal["cfg_map"].head(20), use_container_width=True)
             st.dataframe(
                 internal["cfg_avail"].query("date == @the_date").head(20),
                 use_container_width=True
             )
-            st.dataframe(day_df_raw.head(30),              use_container_width=True)
+            st.dataframe(day_df_raw.head(30), use_container_width=True)
             st.markdown("---")
-        # merged = {**internal, **cfg_ui}
 
-        # (3) build_model 실행
+        # (6) 실제 OR-Tools 모델 실행
         log_buf = io.StringIO()
         try:
             with contextlib.redirect_stdout(log_buf):
@@ -204,9 +270,9 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
             st.error("❌ Solver exception:")
             st.code(tb_str)
             st.code(log_buf.getvalue())
-            return "ERR", tb_str        # 즉시 종료
+            return "ERR", None
 
-        # 하루치 실패 → 전체 실패로 간주
+        # (7) 하루치 실패 → 전체 실패
         if status != "OK":
             st.error(f"⚠️ Solver status: {status} (date {the_date.date()})")
             st.code(log_buf.getvalue())
@@ -214,11 +280,11 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
 
         all_wide.append(wide)
 
-    # ── 모든 날짜 성공 시: 하나로 합쳐 반환 ───────────────────
+    # ── 모든 날짜 성공 시: 하나로 합쳐 반환
     full_wide = pd.concat(all_wide, ignore_index=True)
-    full_wide = _drop_useless_cols(full_wide)      # ← 빈 칼럼 정리 한 줄
+    full_wide = _drop_useless_cols(full_wide)
 
     if debug:
-        print("[solver.solve] dates:", list(date_list), file=sys.stderr)
+        print("[solver.solve] dates:", date_list, file=sys.stderr)
 
     return "OK", full_wide

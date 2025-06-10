@@ -14,7 +14,7 @@ import itertools
 from collections import defaultdict, deque
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 
-st.header("④ Precedence & Branch Settings")
+st.header("⑤ 선후행 제약 설정")
 
 # ───────────────────────────────────────────────
 # 0) 공통 데이터 로드 & 간단 검증
@@ -35,7 +35,8 @@ CODE_LIST = jobs_df["code"].unique()
 # ───────────────────────────────────────────────
 st.session_state.setdefault(
     "precedence",
-    pd.DataFrame(columns=["predecessor", "successor", "gap_min"])
+    pd.DataFrame(columns=["predecessor", "successor",
+                          "gap_min", "adjacent"])   # ← NEW
 )
 prec_df = st.session_state["precedence"].copy()
 valid_acts = set(ACT_OPTS) | {"__START__", "__END__"}
@@ -72,6 +73,7 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
         p  = c[0].selectbox("선행", ACT_OPTS)
         s  = c[1].selectbox("후행", ACT_OPTS)
         g  = c[2].number_input("간격(분)", 0, 60, 5)
+        adj = st.checkbox("A ↔ B 붙이기(인접)", value=False)
         ok = st.form_submit_button("➕ 추가")
         if ok:
             df = st.session_state["precedence"]
@@ -82,7 +84,7 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
                 st.warning("이미 존재하는 규칙입니다.")
             else:
                 st.session_state["precedence"] = pd.concat(
-                    [df, pd.DataFrame([{"predecessor": p, "successor": s, "gap_min": g}])],
+                    [df, pd.DataFrame([{"predecessor": p, "successor": s, "gap_min": g, "adjacent":adj}])],
                     ignore_index=True
                 )
                 st.success("추가 완료!")
@@ -143,6 +145,14 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
         type=["numericColumn", "numberColumnFilter"],
         width=100,
     )
+    gb.configure_column(          # gap_min 컬럼 바로 아래에 붙여두면 보기 좋음
+        "adjacent",
+        header_name="붙이기",          # 컬럼 헤더
+        cellRenderer="agCheckboxCellRenderer",
+        cellEditor="agCheckboxCellEditor",
+        editable=True,
+        width=90,
+    )
     grid_opts = gb.build()
 
     response = AgGrid(
@@ -171,84 +181,70 @@ with st.expander("📐 공통 순서 규칙(Precedence)", expanded=True):
 # ────────────────────────────────────────────────────────
 # 단계 1-C) 제약된 규칙을 기반으로 가능한 모든 활동 순서를 계산하여 보여주기 (gap_min + START/END 포함)
 # ────────────────────────────────────────────────────────
+import itertools
+import pandas as pd
+
 def render_dynamic_flows(prec_df: pd.DataFrame, base_nodes: list[str]) -> list[str]:
     """
-    prec_df: DataFrame with columns ['predecessor','successor','gap_min']
-    base_nodes: 순서에 포함될 수 있는 활동 리스트(ACT_OPTS)
-    
-    - gap_min == 0: 선행(P)이 후행(S)보다 앞에만 있으면 OK
-    - gap_min > 0: P와 S가 순열 상 인접해야 함
-    - p == "__START__": 반드시 succ가 맨 앞(index 0)에 있어야 함
-    - s == "__END__": 반드시 pred가 맨 뒤(index len-1)에 있어야 함
+    prec_df: ['predecessor','successor','gap_min','adjacent']
+    base_nodes: 순서에 포함될 활동 리스트
     """
-    # 1) 규칙을 (pre, succ, gap_min) 형태로 리스트화
+    # 1) 규칙(rules)에 adjacent까지 함께 읽어오기
     rules = [
-        (row.predecessor, row.successor, int(row.gap_min))
+        (row.predecessor, row.successor,
+         int(row.gap_min),
+         bool(getattr(row, "adjacent", False)))
         for row in prec_df.itertuples()
     ]
-
-    # 2) base_nodes의 모든 순열 생성
-    all_orders = itertools.permutations(base_nodes, len(base_nodes))
     n = len(base_nodes)
     valid_orders = []
 
-    for perm in all_orders:
+    # 2) 인터뷰 느낌 이모지 풀(10개) + 동적 매핑
+    emoji_pool = ["📝","🧑‍💼","🎤","💼","🗣️","🤝","🎯","🔎","📋","⏰"]
+    icons = { act: emoji_pool[i % len(emoji_pool)]
+              for i, act in enumerate(base_nodes) }
+
+    # 3) 모든 순열 검사
+    for perm in itertools.permutations(base_nodes, n):
         ok = True
-        for p, s, gap in rules:
-            # CASE1: "__START__ -> S"
+        for p, s, gap, adj in rules:
+            # START → S
             if p == "__START__":
-                if s not in base_nodes or perm.index(s) != 0:
+                if perm[0] != s:
                     ok = False
-                if not ok:
-                    break
-                else:
-                    continue
-
-            # CASE2: "P -> __END__"
+                if not ok: break
+                else: continue
+            # P → END
             if s == "__END__":
-                if p not in base_nodes or perm.index(p) != n - 1:
+                if perm[-1] != p:
                     ok = False
-                if not ok:
-                    break
-                else:
-                    continue
-
-            # CASE3: 일반 활동 간 제약
-            if (p in base_nodes) and (s in base_nodes):
-                idx_p = perm.index(p)
-                idx_s = perm.index(s)
-                if gap == 0:
-                    # p가 s보다 반드시 앞에 있어야 함
-                    if idx_p >= idx_s:
+                if not ok: break
+                else: continue
+            # 일반 활동 간 제약
+            if p in perm and s in perm:
+                i_p, i_s = perm.index(p), perm.index(s)
+                # 붙이기(adjacent) 또는 gap>0 모두 “인접” 처리
+                if adj or gap > 0:
+                    if i_s != i_p + 1:
                         ok = False
                         break
                 else:
-                    # gap > 0: p와 s가 순열상 인접해야 함
-                    if idx_s != idx_p + 1:
+                    # gap==0: 순서만 보장
+                    if i_p >= i_s:
                         ok = False
                         break
-            else:
-                # p나 s가 base_nodes에 없다면 무시
-                continue
-
         if ok:
             valid_orders.append(perm)
 
-    # 3) 아이콘 매핑 후 문자열로 변환
-    ico = {
-        "인성검사":    "🧑‍💻",
-        "발표준비":    "📝",
-        "발표면접":    "🎤",
-        "토론면접":    "💬",
-        "심층면접":    "🔎",
-    }
+    # 4) 문자열로 변환 (아이콘 + 활동명)
     flow_strs = []
     for order in valid_orders:
-        labels = [f"{ico.get(act,'')} {act}" for act in order]
+        labels = [f"{icons[act]} {act}" for act in order]
         flow_strs.append(" ➔ ".join(labels))
-
     return flow_strs
-
+# ────────────────────────────────────────────────
+# 1-C) 가능한 동선 미리보기 UI
+# ────────────────────────────────────────────────
 with st.expander("🔍 실시간 동선(활동 순서) 미리보기", expanded=True):
     prec_df_latest = st.session_state["precedence"]
     if prec_df_latest.empty:
@@ -261,7 +257,6 @@ with st.expander("🔍 실시간 동선(활동 순서) 미리보기", expanded=T
             st.markdown("**가능한 모든 활동 순서:**")
             for f in flows:
                 st.markdown(f"- {f}")
-
 # ───────────────────────────────────────────────
 # 2) Branch-Template (offset 파라미터) + 플로우 미리보기  (기존 코드 유지)
 # ───────────────────────────────────────────────
@@ -289,92 +284,92 @@ def render_flow(row: pd.Series) -> str:
     slide_txt = "" if slide == 0 else f"  Δ{slide}′"
     return " → ".join(order) + slide_txt + arr_txt
 
-with st.expander("🏷️ 브랜치-템플릿 편집", expanded=True):
-    st.caption(
-        "• `branch`: 대문자 한 글자  • `offset_wave`: 토론–인성 Wave 간격(+/-)\n"
-        "• `offset_slide`: 같은 Wave 안에서 δ-slide(0-60분)  • `arr_off`: 0 또는 5"
-    )
-    edited = st.data_editor(
-        BR_TBL,
-        key="tmpl_editor",
-        use_container_width=True,
-        num_rows="dynamic",
-        column_config={
-            "branch": st.column_config.TextColumn(max_chars=1,
-                                                  help="대문자 한 글자 (A-Z)"),
-            "offset_wave":  st.column_config.NumberColumn(step=1, min_value=-10, max_value=10),
-            "offset_slide": st.column_config.NumberColumn(step=5, min_value=0, max_value=60),
-            "arr_off":      st.column_config.NumberColumn(step=5, min_value=0, max_value=5),
-        },
-    )
-    bad = edited[~edited["branch"].str.fullmatch(r"[A-Z]")]["branch"]
-    if not bad.empty:
-        st.warning(f"잘못된 branch 키: {', '.join(bad.unique())}")
+# with st.expander("🏷️ 브랜치-템플릿 편집", expanded=True):
+#     st.caption(
+#         "• `branch`: 대문자 한 글자  • `offset_wave`: 토론–인성 Wave 간격(+/-)\n"
+#         "• `offset_slide`: 같은 Wave 안에서 δ-slide(0-60분)  • `arr_off`: 0 또는 5"
+#     )
+#     edited = st.data_editor(
+#         BR_TBL,
+#         key="tmpl_editor",
+#         use_container_width=True,
+#         num_rows="dynamic",
+#         column_config={
+#             "branch": st.column_config.TextColumn(max_chars=1,
+#                                                   help="대문자 한 글자 (A-Z)"),
+#             "offset_wave":  st.column_config.NumberColumn(step=1, min_value=-10, max_value=10),
+#             "offset_slide": st.column_config.NumberColumn(step=5, min_value=0, max_value=60),
+#             "arr_off":      st.column_config.NumberColumn(step=5, min_value=0, max_value=5),
+#         },
+#     )
+#     bad = edited[~edited["branch"].str.fullmatch(r"[A-Z]")]["branch"]
+#     if not bad.empty:
+#         st.warning(f"잘못된 branch 키: {', '.join(bad.unique())}")
 
-    st.session_state["branch_templates"] = edited
+#     st.session_state["branch_templates"] = edited
 
-    st.markdown("##### ▶ 브랜치별 실행 플로우 (템플릿 기준)")
-    flow_tbl = edited.assign(flow=edited.apply(render_flow, axis=1))[["branch","flow"]]
-    st.dataframe(flow_tbl, hide_index=True, use_container_width=True)
+#     st.markdown("##### ▶ 브랜치별 실행 플로우 (템플릿 기준)")
+#     flow_tbl = edited.assign(flow=edited.apply(render_flow, axis=1))[["branch","flow"]]
+#     st.dataframe(flow_tbl, hide_index=True, use_container_width=True)
 
-# ───────────────────────────────────────────────
-# 3) Code ↔ Branch 매핑 (AG-Grid 체크박스 버전)
-# ───────────────────────────────────────────────
-branch_opts = sorted(st.session_state["branch_templates"]["branch"].unique())
+# # ───────────────────────────────────────────────
+# # 3) Code ↔ Branch 매핑 (AG-Grid 체크박스 버전)
+# # ───────────────────────────────────────────────
+# branch_opts = sorted(st.session_state["branch_templates"]["branch"].unique())
 
-st.session_state.setdefault(
-    "code_branch_map",
-    pd.DataFrame({"code": CODE_LIST, "branches": ""})
-)
-cb_df = st.session_state["code_branch_map"].copy()
+# st.session_state.setdefault(
+#     "code_branch_map",
+#     pd.DataFrame({"code": CODE_LIST, "branches": ""})
+# )
+# cb_df = st.session_state["code_branch_map"].copy()
 
-if "branches" not in cb_df.columns:
-    cb_df["branches"] = ""
+# if "branches" not in cb_df.columns:
+#     cb_df["branches"] = ""
 
-cb_df = cb_df[cb_df["code"].isin(CODE_LIST)].reset_index(drop=True)
+# cb_df = cb_df[cb_df["code"].isin(CODE_LIST)].reset_index(drop=True)
 
-rows = []
-for _, row in cb_df.iterrows():
-    code = row["code"]
-    allowed = row["branches"].split("|") if row["branches"].strip() != "" else branch_opts[:]
-    r = {"code": code}
-    for br in branch_opts:
-        r[br] = (br in allowed)
-    rows.append(r)
+# rows = []
+# for _, row in cb_df.iterrows():
+#     code = row["code"]
+#     allowed = row["branches"].split("|") if row["branches"].strip() != "" else branch_opts[:]
+#     r = {"code": code}
+#     for br in branch_opts:
+#         r[br] = (br in allowed)
+#     rows.append(r)
 
-df_check = pd.DataFrame(rows)
-gb2 = GridOptionsBuilder.from_dataframe(df_check)
-gb2.configure_column("code", header_name="코드", editable=False, width=120)
-for br in branch_opts:
-    gb2.configure_column(
-        br,
-        header_name=f"브랜치 {br}",
-        cellRenderer="agCheckboxCellRenderer",
-        cellEditor="agCheckboxCellEditor",
-        editable=True,
-        width=100,
-    )
+# df_check = pd.DataFrame(rows)
+# gb2 = GridOptionsBuilder.from_dataframe(df_check)
+# gb2.configure_column("code", header_name="코드", editable=False, width=120)
+# for br in branch_opts:
+#     gb2.configure_column(
+#         br,
+#         header_name=f"브랜치 {br}",
+#         cellRenderer="agCheckboxCellRenderer",
+#         cellEditor="agCheckboxCellEditor",
+#         editable=True,
+#         width=100,
+#     )
 
-grid_opts2 = gb2.build()
-grid_response2 = AgGrid(
-    df_check,
-    gridOptions=grid_opts2,
-    update_mode=GridUpdateMode.VALUE_CHANGED,
-    data_return_mode=DataReturnMode.AS_INPUT,
-    fit_columns_on_grid_load=True,
-    theme="balham",
-    key="code_branch_aggrid",
-)
+# grid_opts2 = gb2.build()
+# grid_response2 = AgGrid(
+#     df_check,
+#     gridOptions=grid_opts2,
+#     update_mode=GridUpdateMode.VALUE_CHANGED,
+#     data_return_mode=DataReturnMode.AS_INPUT,
+#     fit_columns_on_grid_load=True,
+#     theme="balham",
+#     key="code_branch_aggrid",
+# )
 
-edited2 = pd.DataFrame(grid_response2["data"])
-new_rows = []
-for _, row in edited2.iterrows():
-    code = row["code"]
-    allowed = [br for br in branch_opts if row.get(br, False)]
-    new_rows.append({"code": code, "branches": "|".join(allowed)})
+# edited2 = pd.DataFrame(grid_response2["data"])
+# new_rows = []
+# for _, row in edited2.iterrows():
+#     code = row["code"]
+#     allowed = [br for br in branch_opts if row.get(br, False)]
+#     new_rows.append({"code": code, "branches": "|".join(allowed)})
 
-st.session_state["code_branch_map"] = pd.DataFrame(new_rows)
+# st.session_state["code_branch_map"] = pd.DataFrame(new_rows)
 
 st.divider()
 if st.button("다음 단계로 ▶", key="next_code_branch_aggrid"):
-    st.switch_page("pages/5_Candidates.py")
+    st.switch_page("pages/6_⑥ 운영일정추정.py")

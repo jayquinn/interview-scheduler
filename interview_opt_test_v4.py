@@ -141,6 +141,8 @@ def expand_availability(df_raw: pd.DataFrame) -> pd.DataFrame:
         ("심층면접실", "심층면접실_cap",   "심층면접실_count"),
         ("커피챗실",   "커피챗실_cap",     "커피챗실_count"),
         ("발표준비실", "발표준비실_cap",   "발표준비실_count"),
+        ("인인검사실", "인인검사실_cap",   "인인검사실_count"),   # ← 추가
+        ("토토면접실", "토토면접실_cap",   "토토면접실_count"),   # ← 추가
     ]
 
     for _, r in df_raw.iterrows():
@@ -171,7 +173,7 @@ def verify_rules(wide: pd.DataFrame,
                  company_end = pd.to_timedelta("17:45:00")) -> bool:
      # ────────────── NEW: 파라미터로부터 오프셋 읽기 ──────────────
     # --- optional columns safeguard ---
-    for a in ("인성검사", "토론면접"):
+    for a in ("인인검사", "토토면접"):
         for p in ("loc","start","end"):
             col = f"{p}_{a}"
             if col not in wide.columns:
@@ -188,7 +190,7 @@ def verify_rules(wide: pd.DataFrame,
     """
     for _, r in wide.iterrows():
         cid = r["id"]
-        arr_off = 0 if str(r["loc_인성검사"]).endswith("A") else 5
+        arr_off = 0 if str(r["loc_인인검사"]).endswith("A") else 5
         code = r["code"]
         if code in default_codes:
             branch = "default"
@@ -220,8 +222,8 @@ def verify_rules(wide: pd.DataFrame,
                     return False
 
         # ---------- ② δ-격자 ----------
-        if pd.notna(r["start_토론면접"]):
-            raw = (r["start_토론면접"] - r["start_인성검사"]).total_seconds() / 60
+        if pd.notna(r["start_토토면접"]):
+            raw = (r["start_토토면접"] - r["start_인인검사"]).total_seconds() / 60
 
             if branch == "A" or branch == "default":        # 인성 → 토론
                 base = raw - br_offset_A * wave_len         #   δ = slide (0‥60)
@@ -275,7 +277,9 @@ def build_model(the_date: pd.Timestamp,
             cfg_avail = expand_availability(cfg_avail)
         cfg_map      = cfg["cfg_map"]
         cfg_oper     = cfg["cfg_oper"]
-        prec_yaml = cfg["prec_yaml"]
+        # prec_yaml = cfg["prec_yaml"]
+        import yaml
+        prec_yaml = yaml.safe_load(open(YAML_FILE, encoding="utf-8"))
         # ▶️ NEW ───────────────────────────────────────
         group_meta      = cfg.get("group_meta", pd.DataFrame()).copy()
         MODE            = group_meta.set_index("activity")["mode"].to_dict()
@@ -284,7 +288,7 @@ def build_model(the_date: pd.Timestamp,
         # ──────────────────────────────────────────────
         # ▶️ NEW: invalid config → 즉시 예외
         for act, md in MODE.items():
-            if md != "batched" and MAX_CAP_ACT.get(act, 1) > 1:
+            if md == "individual" and MAX_CAP_ACT.get(act, 1) > 1:
                 raise ValueError(f"[CONFIG] '{act}' 는 individual 인데 max_cap > 1")
             if MIN_CAP_ACT.get(act, 1) > MAX_CAP_ACT.get(act, 1):
                 raise ValueError(f"[CONFIG] '{act}'  min_cap > max_cap")
@@ -326,7 +330,7 @@ def build_model(the_date: pd.Timestamp,
         df_cand["duration_min"] = df_cand["duration_min"].astype(int)
 
         ACT_SPACE = cfg_map.groupby("activity")["loc"].apply(list).to_dict()
-        DEBATE_ROOMS = ACT_SPACE.get("토론면접", [])
+        DEBATE_ROOMS = ACT_SPACE.get("토토면접", [])
 
         if DEBUG:                        # 🐞 새 디버그 출력
             print("[bm] ACT_SPACE keys:", list(ACT_SPACE.keys())[:5])
@@ -379,7 +383,7 @@ def build_model(the_date: pd.Timestamp,
 
         # ═════════════════════ 3. 모델 구축 ═════════════════════
         # ───────── helper (모델 내부 전용) ─────────────────────────
-        def _apply_prec_constraint(cid, pred, succ, min_gap, extra_lits=None):
+        def _apply_prec_constraint(cid, pred, succ, min_gap, adjacent=False, extra_lits=None):
             """
             cid      : 지원자 id
             pred,succ: activity 이름
@@ -403,11 +407,20 @@ def build_model(the_date: pd.Timestamp,
                     conds = [sel[cid, pred, loc_p],
                             sel[cid, succ, loc_s],
                             lit] + extra_lits
-
-                    model.Add(
-                        start[cid, succ, loc_s] + ARR_OFF[cid] >=
-                        end[cid,   pred, loc_p] + ARR_OFF[cid] + min_gap
-                    ).OnlyEnforceIf(conds)
+                    if adjacent:                    # ✅ A와 B를 ‘붙이기’(==) 제약
+                        model.Add(
+                            start[cid, succ, loc_s] + ARR_OFF[cid] ==
+                            end  [cid, pred, loc_p] + ARR_OFF[cid] + min_gap
+                        ).OnlyEnforceIf(conds)
+                    else:                           # 기존 ‘pred ⟶ succ’(>=) 제약
+                        model.Add(
+                            start[cid, succ, loc_s] + ARR_OFF[cid] >=
+                            end  [cid, pred, loc_p] + ARR_OFF[cid] + min_gap
+                        ).OnlyEnforceIf(conds)      # ← ★ 이 닫힘 괄호가 else 블록 안으로 들어가야 함
+                    # model.Add(
+                    #     start[cid, succ, loc_s] + ARR_OFF[cid] >=
+                    #     end[cid,   pred, loc_p] + ARR_OFF[cid] + min_gap
+                    # ).OnlyEnforceIf(conds)
         ASSUMPTIONS = []
         ASSUME_IDX = {}
         model = cp_model.CpModel()
@@ -446,7 +459,7 @@ def build_model(the_date: pd.Timestamp,
         for _, row in df_cand.iterrows():
             cid, act, dur = row["id"], row["activity"], row["duration_min"]
             for loc in ACT_SPACE[act]:
-                if act in ("인성검사", "발표면접"):
+                if act in ("인인검사", "발표면접"):
                     pass
                 if CAP.get((loc, the_date), 0) == 0:
                     continue
@@ -488,8 +501,8 @@ def build_model(the_date: pd.Timestamp,
         # 3-2 (선택적) 그룹 활동 Wave / δ-slide 로직 ────────
         SLIDE_UNIT = 5            # 5분 단위
         SLIDE_MAX  = 12           # 0‥60분
-        # HAS_GROUP = bool(get_space("인성검사")) and bool(get_space("토론면접"))
-        # 날짜별 지원자 목록에 토론면접이 실제로 존재하는지로 판단
+        # HAS_GROUP = bool(get_space("인인검사")) and bool(get_space("토토면접"))
+        # 날짜별 지원자 목록에 토토면접이 실제로 존재하는지로 판단
         # AFTER  ── (build_model() 상단, MODE·MIN_CAP_ACT·MAX_CAP_ACT 만든 바로 아래) ──
         BATCH_ACTS = [a for a, m in MODE.items() if m == "batched"]
         HAS_GROUP  = df_cand["activity"].isin(BATCH_ACTS).any()
@@ -511,16 +524,16 @@ def build_model(the_date: pd.Timestamp,
             print("=== Wave capacity debug ===")
             y = {}
             for cid in CIDS:
-                for room in ("인성검사실A","인성검사실B","인성검사실C"):
-                    if (cid,"인성검사",room) not in sel: continue
+                for room in ("인인검사실A","인인검사실B","인인검사실C"):
+                    if (cid,"인인검사",room) not in sel: continue
                     for w in range(MAX_WAVE):
                         y[cid,room,w] = model.NewBoolVar(f"y_{cid}_{room}_{w}")
-                        model.Add(sel[cid,"인성검사",room] == 1).OnlyEnforceIf(y[cid,room,w])
-                        model.Add(start[cid,"인성검사",room] == w*WAVE_LEN).OnlyEnforceIf(y[cid,room,w])
-                    model.Add(sum(y[cid,room,w] for w in range(MAX_WAVE)) == sel[cid,"인성검사",room])
+                        model.Add(sel[cid,"인인검사",room] == 1).OnlyEnforceIf(y[cid,room,w])
+                        model.Add(start[cid,"인인검사",room] == w*WAVE_LEN).OnlyEnforceIf(y[cid,room,w])
+                    model.Add(sum(y[cid,room,w] for w in range(MAX_WAVE)) == sel[cid,"인인검사",room])
 
             # wave 동시입실(3–5)
-            for room in ("인성검사실A","인성검사실B","인성검사실C"):
+            for room in ("인인검사실A","인인검사실B","인인검사실C"):
                 for w in range(MAX_WAVE):
                     members = [y[c,room,w] for c in CIDS if (c,room,w) in y]
                     if not members: continue
@@ -531,16 +544,16 @@ def build_model(the_date: pd.Timestamp,
                     # model.Add(sum(members)<=5).OnlyEnforceIf(non_empty)
                     # model.Add(sum(members) >= GROUP_MIN).OnlyEnforceIf(non_empty)
                     # model.Add(sum(members) <= GROUP_MAX).OnlyEnforceIf(non_empty)
-                    act = "인성검사"      # ← 이미 그 블록이 인성검사용이면 하드코딩 그대로 둬도 무방
+                    act = "인인검사"      # ← 이미 그 블록이 인인검사용이면 하드코딩 그대로 둬도 무방
                     model.Add(sum(members) >= GROUP_MIN[act]).OnlyEnforceIf(non_empty)
                     model.Add(sum(members) <= GROUP_MAX[act]).OnlyEnforceIf(non_empty)
-            # 인성검사 종료 시각 저장
+            # 인인검사 종료 시각 저장
             # I_END = {}
             # for cid in CIDS:
-            #     lst = [end[cid, "인성검사", l]
-            #         for l in ACT_SPACE.get("인성검사", [])
-            #         if (cid, "인성검사", l) in end]
-            #     if lst:                      # 인성검사 있는 경우에만 저장
+            #     lst = [end[cid, "인인검사", l]
+            #         for l in ACT_SPACE.get("인인검사", [])
+            #         if (cid, "인인검사", l) in end]
+            #     if lst:                      # 인인검사 있는 경우에만 저장
             #         I_END[cid] = lst[0]
 
             # I_wave 정의
@@ -548,8 +561,8 @@ def build_model(the_date: pd.Timestamp,
             for cid in CIDS:
                 wvar = model.NewIntVar(0, MAX_WAVE-1, f"Iwave_{cid}")
                 I_wave[cid] = wvar
-                for room in ("인성검사실A","인성검사실B",'인성검사실C'):
-                    key = (cid,"인성검사",room)
+                for room in ("인인검사실A","인인검사실B",'인인검사실C'):
+                    key = (cid,"인인검사",room)
                     if key in start:
                         model.Add(wvar*WAVE_LEN == start[key]).OnlyEnforceIf(sel[key])
             # --- B-브랜치(토론→인성) 최소 wave 하한 ---  ← 새 코드
@@ -560,21 +573,21 @@ def build_model(the_date: pd.Timestamp,
             deb_z = {}                               # (cid, loc, abs_t) → BoolVar
 
             # 0) 토론 방 목록 & 방별 좌석 수
-            DEBATE_ROOMS = ACT_SPACE.get("토론면접", [])
+            DEBATE_ROOMS = ACT_SPACE.get("토토면접", [])
             ROOM_CAP = {loc: CAP[(loc, the_date)] for loc in DEBATE_ROOMS}  # ex) 5
 
             for cid in CIDS:
                 # 이 지원자가 실제로 갖고 있는 토론 interval 키 모으기
                 debate_keys = [
-                    (cid, "토론면접", loc)
+                    (cid, "토토면접", loc)
                     for loc in DEBATE_ROOMS
-                    if (cid, "토론면접", loc) in sel
+                    if (cid, "토토면접", loc) in sel
                 ]
                 if not debate_keys:            # 토론이 없는 지원자
                     continue
 
                 for loc in DEBATE_ROOMS:
-                    if (cid, "토론면접", loc) not in sel:
+                    if (cid, "토토면접", loc) not in sel:
                         continue
                     for w in range(MAX_WAVE):
                         for du in range(SLIDE_MAX + 1):      # δ-unit 0‥12
@@ -587,8 +600,8 @@ def build_model(the_date: pd.Timestamp,
                                 z = model.NewBoolVar(f"deb_{cid}_{loc}_{abs_t}")
                                 deb_z[cid, loc, abs_t] = z
 
-                                model.Add(sel[cid,"토론면접",loc] == 1).OnlyEnforceIf([z, lit_ok])
-                                model.Add(start[cid,"토론면접",loc] + ARR_OFF[cid] == abs_t).OnlyEnforceIf([z, lit_ok])
+                                model.Add(sel[cid,"토토면접",loc] == 1).OnlyEnforceIf([z, lit_ok])
+                                model.Add(start[cid,"토토면접",loc] + ARR_OFF[cid] == abs_t).OnlyEnforceIf([z, lit_ok])
                 # 한 지원자당 z 하나만 1
                 model.Add(
                     sum(deb_z[cid, loc, t]
@@ -609,7 +622,7 @@ def build_model(the_date: pd.Timestamp,
                     # model.Add(sum(members) >= 3).OnlyEnforceIf(non_empty)     # 켜졌으면 ≥3
                     # model.Add(sum(members) <= 2).OnlyEnforceIf(non_empty.Not())   # 꺼졌으면 ≤2
                     # model.Add(sum(members) <= cap).OnlyEnforceIf(non_empty)\
-                    act = "토론면접"
+                    act = "토토면접"
                     model.Add(sum(members) >= GROUP_MIN[act]).OnlyEnforceIf(non_empty)
                     model.Add(sum(members) <= 2).OnlyEnforceIf(non_empty.Not())       # (이 줄은 그대로)
                     model.Add(sum(members) <= cap).OnlyEnforceIf(non_empty)
@@ -635,14 +648,14 @@ def build_model(the_date: pd.Timestamp,
             delta_unit      = []
             delta_unit_cid  = {cid: model.NewIntVar(0, 0, f"deltaSel_{cid}") for cid in CIDS}
             slide_penalty   = 0
-        # ───── 토론면접 start 식 수정 ───────────────────────────────────────
+        # ───── 토토면접 start 식 수정 ───────────────────────────────────────
 # === δ-slide 선택 변수는 이미 정의 ===
 # delta : list[IntVar]   delta_cid : dict[cid -> IntVar]
-# ─── 토론면접 start 등식 ─────────────────────────
-        # ─── 토론면접 start 등식 (ARR_OFF 제거‧재배치) ─────────────────
+# ─── 토토면접 start 등식 ─────────────────────────
+        # ─── 토토면접 start 등식 (ARR_OFF 제거‧재배치) ─────────────────
         # for cid in CIDS:
         #     for loc in DEBATE_ROOMS:
-        #         key_T = (cid, "토론면접", loc)
+        #         key_T = (cid, "토토면접", loc)
         #         if key_T not in sel: continue
 
         #         model.Add(
@@ -653,7 +666,7 @@ def build_model(the_date: pd.Timestamp,
         #         ).OnlyEnforceIf(sel[key_T])
         for cid in CIDS:
             for loc in DEBATE_ROOMS:
-                key = (cid, "토론면접", loc)
+                key = (cid, "토토면접", loc)
                 if key not in sel: continue
 
                 # A-branch: 토론 = 인성 + OFFSET_A
@@ -673,8 +686,8 @@ def build_model(the_date: pd.Timestamp,
 
         # ───────── 토론실 capacity ─────────
         for loc in DEBATE_ROOMS:
-            iv_list = [ iv[cid, "토론면접", loc]
-                        for cid in CIDS if (cid, "토론면접", loc) in iv ]
+            iv_list = [ iv[cid, "토토면접", loc]
+                        for cid in CIDS if (cid, "토토면접", loc) in iv ]
             if iv_list:
                 max_cap = CAP[(loc, the_date)]                  # CSV 값 (5)
                 model.AddCumulative(iv_list, [1]*len(iv_list), max_cap)
@@ -727,16 +740,17 @@ def build_model(the_date: pd.Timestamp,
                 _apply_prec_constraint(cid,
                                     c["predecessor"],
                                     c["successor"],
-                                    c["min_gap_min"])
+                                    c["min_gap_min"],
+                                    c.get("adjacent", False))
 
         # 3-3b) 코드별·branch별 특별 제약  ← 전체 교체
         # ─── 3-3b) 코드별·branch별 특별 제약 ─────────────────────────
         for cid in CIDS:
             code = CODE_MAP[cid]
             lit = isA_lit[cid]
-            # ①-a 인성검사 방과 lit 연결
-            for loc in ("인성검사실A","인성검사실B","인성검사실C"):
-                key = (cid, "인성검사", loc)
+            # ①-a 인인검사 방과 lit 연결
+            for loc in ("인인검사실A","인인검사실B","인인검사실C"):
+                key = (cid, "인인검사", loc)
                 if key in sel:
                     if loc.endswith("A"):
                         model.Add(lit == 1).OnlyEnforceIf(sel[key])
@@ -745,7 +759,7 @@ def build_model(the_date: pd.Timestamp,
 
 
 
-            # ①-b  인성검사가 **아예 없는** 지원자는 자유 변수
+            # ①-b  인인검사가 **아예 없는** 지원자는 자유 변수
             #       (힌트를 주고 싶으면 여기서 model.AddHint(isA_lit, …) 가능)
             #       별도 제약은 주지 않는다.
 
@@ -759,6 +773,7 @@ def build_model(the_date: pd.Timestamp,
                 _apply_prec_constraint(cid,
                                     r["predecessor"], r["successor"],
                                     r["min_gap_min"],
+                                    r.get("adjacent", False),
                                     extra_lits=[lit])
 
             # B-branch rules
@@ -766,13 +781,15 @@ def build_model(the_date: pd.Timestamp,
                 _apply_prec_constraint(cid,
                                     r["predecessor"], r["successor"],
                                     r["min_gap_min"],
+                                    r.get("adjacent", False),
                                     extra_lits=[lit.Not()])
 
             # default rules (branch 무관)
             for r in def_rules:
                 _apply_prec_constraint(cid,
                                     r["predecessor"], r["successor"],
-                                    r["min_gap_min"])
+                                    r["min_gap_min"],
+                                    r.get("adjacent", False))
         # ───────────────────────────────────────────────
         # 3-4 NoOverlap & Capacity
         for ivs in cid_iv.values():
@@ -873,37 +890,37 @@ def build_model(the_date: pd.Timestamp,
 
         # ───────────────── 디버그 출력 (SAT 해일 때만) ─────────
         if DEBUG:
-            # 4-1 Wave capacity (인성검사 그룹)
+            # 4-1 Wave capacity (인인검사 그룹)
             if HAS_GROUP:
                 print("=== Wave capacity debug ===")
                 for w in range(MAX_WAVE):
                     a = sum(solver.Value(v)
                             for (cid, room, ww), v in y.items()
-                            if room == "인성검사실A" and ww == w)
+                            if room == "인인검사실A" and ww == w)
                     b = sum(solver.Value(v)
                             for (cid, room, ww), v in y.items()
-                            if room == "인성검사실B" and ww == w)
+                            if room == "인인검사실B" and ww == w)
                     c = sum(solver.Value(v)
                             for (cid, room, ww), v in y.items()
-                            if room == "인성검사실C" and ww == w)
+                            if room == "인인검사실C" and ww == w)
                     print(f"Wave{w:02d}: A={a}, B={b}, C={c}")
                 print("=== End wave debug ===")
 
-            # 4-2 토론면접 확정 start 시각
-            print("=== Debug: 실제 할당된 토론면접 start times (minutes) ===")
+            # 4-2 토토면접 확정 start 시각
+            print("=== Debug: 실제 할당된 토토면접 start times (minutes) ===")
             for cid in CIDS:
                 for loc in DEBATE_ROOMS:
-                    key = (cid, "토론면접", loc)
+                    key = (cid, "토토면접", loc)
                     if key in sel and solver.Value(sel[key]):
                         real_start = solver.Value(start[key]) + ARR_OFF_VAL[cid]
                         print(f"{cid}({loc}): start+ARR_OFF = {real_start}")
             print("=============================================")
 
-            # 4-3 raw 토론면접 start 시각
-            print("=== Debug: raw 토론면접 start times (minutes) ===")
+            # 4-3 raw 토토면접 start 시각
+            print("=== Debug: raw 토토면접 start times (minutes) ===")
             for cid in CIDS:
                 for loc in DEBATE_ROOMS:
-                    key = (cid, "토론면접", loc)
+                    key = (cid, "토토면접", loc)
                     if key in start:
                         val = solver.Value(start[key])
                         print(f"{cid}({loc}): start={val} (+ARR_OFF {ARR_OFF_VAL[cid]})")
@@ -965,7 +982,7 @@ def build_model(the_date: pd.Timestamp,
                 aggfunc="first"
             )
         )
-        for a in ("인성검사", "토론면접"):
+        for a in ("인인검사", "토토면접"):
             for p in ("loc", "start", "end"):
                 col = f"{p}_{a}"
                 if col not in wide.columns:
@@ -982,16 +999,16 @@ def build_model(the_date: pd.Timestamp,
 
         # === 🔽 중복 없는 카운트 컬럼 추가 ===============
         # 1) 카운트 계산
-        # 1) wave cnt (인성검사 없으면 건너뜀)
-        if "loc_인성검사" in wide.columns and "start_인성검사" in wide.columns:
-            cnt_wave = (wide.groupby(["interview_date","wave","loc_인성검사"])["id"]
+        # 1) wave cnt (인인검사 없으면 건너뜀)
+        if "loc_인인검사" in wide.columns and "start_인인검사" in wide.columns:
+            cnt_wave = (wide.groupby(["interview_date","wave","loc_인인검사"])["id"]
                             .transform("size"))
         else:
             cnt_wave = pd.NA
 
-        # 2) debate cnt (토론면접 없으면 건너뜀)
-        if "start_토론면접" in wide.columns:
-            cnt_debate = (wide.groupby(["interview_date","start_토론면접"])["id"]
+        # 2) debate cnt (토토면접 없으면 건너뜀)
+        if "start_토토면접" in wide.columns:
+            cnt_debate = (wide.groupby(["interview_date","start_토토면접"])["id"]
                             .transform("size"))
         else:
             cnt_debate = pd.NA
@@ -1132,7 +1149,7 @@ XLSX = Path('schedule_view_test_v4_HF.xlsx')    # ← 결과
 YAML = Path('precedence_config_test_v4.yaml')
 
 META        = ['id', 'code', 'interview_date']
-GROUP_ACTS  = ('인성검사', '토론면접')
+GROUP_ACTS  = ('인인검사', '토토면접')
 PALETTE     = ['E3F2FD','FFF3E0','E8F5E9','FCE4EC','E1F5FE',
                'F3E5F5','FFFDE7','E0F2F1','EFEBE9','ECEFF1']
 
@@ -1232,7 +1249,7 @@ def detect_variants(df: pd.DataFrame,
 
 
 def split_col(col: str):
-    """loc_토론면접_v2 → ('loc','토론면접','_v2')"""
+    """loc_토토면접_v2 → ('loc','토토면접','_v2')"""
     joint, body = col.split('_', 1)
     m = re.match(r'(.+?)(_v\d+)?$', body)
     return joint, m.group(1), m.group(2) or ''
@@ -1437,8 +1454,8 @@ def add_group_cols(df: pd.DataFrame) -> bool:
         df.insert(df.columns.get_loc('id') + 1, 'wave', pd.NA)
     df['wave_in_cnt'] = (df.groupby(['interview_date', 'wave'])['id']
                            .transform('size'))
-    if 'start_토론면접' in df:
-        df['debate_in_cnt'] = (df.groupby(['interview_date', 'start_토론면접'])['id']
+    if 'start_토토면접' in df:
+        df['debate_in_cnt'] = (df.groupby(['interview_date', 'start_토토면접'])['id']
                                  .transform('size'))
     return True
 

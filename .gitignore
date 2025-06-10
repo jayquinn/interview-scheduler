@@ -8,3 +8,6 @@ __pycache__/
 *.py[cod]
 # ── 플랫폼 우연 파일(선택) ────────────────
 .DS_Store
+".autosave.pkl"        
+"__pycache__/"         
+"*.pyc"                
