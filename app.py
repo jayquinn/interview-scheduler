@@ -295,6 +295,157 @@ if final_schedule is not None and not final_schedule.empty:
     total_days = final_schedule['interview_date'].nunique()
     st.info(f"총 {total_candidates}명의 지원자를 {total_days}일에 걸쳐 면접 진행")
     
+    # 체류시간 분석 추가
+    st.subheader("⏱️ 직무별 체류시간 분석")
+    
+    # 디버깅 모드 토글 (개발용)
+    with st.expander("🔧 개발자 옵션"):
+        debug_stay_time = st.checkbox("체류시간 분석 디버깅 모드", key="debug_stay_time", help="데이터 구조를 확인하기 위한 디버깅 정보를 표시합니다.")
+    
+    def calculate_stay_duration_stats(schedule_df):
+        """각 지원자의 체류시간을 계산하고 직무별 통계를 반환"""
+        stats_data = []
+        
+        # 실제 데이터 구조 확인을 위한 디버깅 정보 (개발용)
+        if st.session_state.get('debug_stay_time', False):
+            st.write("**디버깅: 스케줄 데이터 구조**")
+            st.write(f"컬럼들: {list(schedule_df.columns)}")
+            st.write(f"데이터 샘플 (첫 3행):")
+            st.dataframe(schedule_df.head(3))
+        
+        # 컬럼명 매핑 (실제 데이터에 맞게 조정)
+        id_col = 'id' if 'id' in schedule_df.columns else 'candidate_id'
+        job_col = 'code' if 'code' in schedule_df.columns else 'job_code'
+        
+        # 시간 컬럼들 찾기 (start_활동명, end_활동명 형태)
+        start_cols = [col for col in schedule_df.columns if col.startswith('start_')]
+        end_cols = [col for col in schedule_df.columns if col.startswith('end_')]
+        
+        if not start_cols or not end_cols:
+            st.error("시간 정보 컬럼을 찾을 수 없습니다. start_* 또는 end_* 형태의 컬럼이 필요합니다.")
+            return pd.DataFrame(), pd.DataFrame()
+        
+        # 지원자별로 그룹화하여 체류시간 계산
+        for candidate_id, candidate_data in schedule_df.groupby(id_col):
+            # 해당 지원자의 모든 활동 시간 정보 수집
+            all_start_times = []
+            all_end_times = []
+            
+            for _, row in candidate_data.iterrows():
+                for start_col in start_cols:
+                    if pd.notna(row[start_col]) and row[start_col] != '':
+                        try:
+                            # 시간 문자열을 datetime으로 변환
+                            time_str = str(row[start_col])
+                            if ':' in time_str:
+                                # HH:MM:SS 또는 HH:MM 형태
+                                time_obj = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
+                                if pd.isna(time_obj):
+                                    time_obj = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
+                                if not pd.isna(time_obj):
+                                    all_start_times.append(time_obj)
+                        except:
+                            continue
+                
+                for end_col in end_cols:
+                    if pd.notna(row[end_col]) and row[end_col] != '':
+                        try:
+                            # 시간 문자열을 datetime으로 변환
+                            time_str = str(row[end_col])
+                            if ':' in time_str:
+                                # HH:MM:SS 또는 HH:MM 형태
+                                time_obj = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
+                                if pd.isna(time_obj):
+                                    time_obj = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
+                                if not pd.isna(time_obj):
+                                    all_end_times.append(time_obj)
+                        except:
+                            continue
+            
+            if all_start_times and all_end_times:
+                # 전체 체류시간 = 첫 번째 활동 시작 ~ 마지막 활동 종료
+                total_start = min(all_start_times)
+                total_end = max(all_end_times)
+                stay_duration_minutes = (total_end - total_start).total_seconds() / 60
+                
+                # 직무 코드 (첫 번째 행에서 가져오기)
+                job_code = candidate_data.iloc[0].get(job_col, 'Unknown')
+                
+                stats_data.append({
+                    'candidate_id': candidate_id,
+                    'job_code': job_code,
+                    'stay_duration_minutes': stay_duration_minutes,
+                    'start_time': total_start,
+                    'end_time': total_end
+                })
+        
+        if not stats_data:
+            st.warning("체류시간을 계산할 수 있는 유효한 데이터가 없습니다.")
+            return pd.DataFrame(), pd.DataFrame()
+        
+        stats_df = pd.DataFrame(stats_data)
+        
+        # 직무별 통계 계산
+        job_stats = []
+        for job_code, job_data in stats_df.groupby('job_code'):
+            durations = job_data['stay_duration_minutes']
+            job_stats.append({
+                'job_code': job_code,
+                'count': len(job_data),
+                'min_duration': durations.min(),
+                'max_duration': durations.max(),
+                'avg_duration': durations.mean(),
+                'median_duration': durations.median()
+            })
+        
+        return pd.DataFrame(job_stats), stats_df
+    
+    try:
+        job_stats_df, individual_stats_df = calculate_stay_duration_stats(final_schedule)
+        
+        if not job_stats_df.empty:
+            # 직무별 통계 표시
+            st.markdown("**📊 직무별 체류시간 통계 (분 단위)**")
+            
+            # 표시용 데이터프레임 생성
+            display_stats = job_stats_df.copy()
+            display_stats['min_duration'] = display_stats['min_duration'].round(1)
+            display_stats['max_duration'] = display_stats['max_duration'].round(1)
+            display_stats['avg_duration'] = display_stats['avg_duration'].round(1)
+            display_stats['median_duration'] = display_stats['median_duration'].round(1)
+            
+            # 컬럼명 한글화
+            display_stats.columns = ['직무코드', '인원수', '최소시간(분)', '최대시간(분)', '평균시간(분)', '중간값(분)']
+            
+            st.dataframe(display_stats, use_container_width=True)
+            
+            # 시각적 요약
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                overall_min = job_stats_df['min_duration'].min()
+                st.metric("전체 최소 체류시간", f"{overall_min:.1f}분")
+            with col2:
+                overall_max = job_stats_df['max_duration'].max()
+                st.metric("전체 최대 체류시간", f"{overall_max:.1f}분")
+            with col3:
+                overall_avg = (individual_stats_df['stay_duration_minutes'].mean())
+                st.metric("전체 평균 체류시간", f"{overall_avg:.1f}분")
+            
+            # 상세 정보를 expander로 제공
+            with st.expander("🔍 개별 지원자 체류시간 상세보기"):
+                detail_display = individual_stats_df.copy()
+                detail_display['stay_duration_minutes'] = detail_display['stay_duration_minutes'].round(1)
+                detail_display['start_time'] = detail_display['start_time'].dt.strftime('%H:%M')
+                detail_display['end_time'] = detail_display['end_time'].dt.strftime('%H:%M')
+                detail_display.columns = ['지원자ID', '직무코드', '체류시간(분)', '시작시간', '종료시간']
+                st.dataframe(detail_display, use_container_width=True)
+        else:
+            st.warning("체류시간 통계를 계산할 수 없습니다.")
+            
+    except Exception as e:
+        st.error(f"체류시간 분석 중 오류가 발생했습니다: {str(e)}")
+        st.info("일정표에 필요한 컬럼(candidate_id, start_time, end_time, job_code)이 있는지 확인해주세요.")
+    
     # 결과 테이블
     st.subheader("📋 상세 일정표")
     st.dataframe(final_schedule, use_container_width=True)
@@ -309,7 +460,8 @@ if final_schedule is not None and not final_schedule.empty:
         data=excel_data,
         file_name=f"interview_schedule_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
+        use_container_width=True,
+        type="secondary"  # 빨간색 버튼으로 변경
     )
 
 elif status == "MAX_DAYS_EXCEEDED":
@@ -329,11 +481,18 @@ st.divider()
 # =============================================================================
 # 섹션 1: 면접 활동 정의
 # =============================================================================
-col_header, col_refresh = st.columns([4, 1])
+col_header, col_refresh = st.columns([3, 2])
 with col_header:
     st.header("1️⃣ 면접 활동 정의")
 with col_refresh:
-    if st.button("🔄", key="refresh_activities", help="이 섹션 새로고침"):
+    st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
+    if st.button("🔄 섹션 새로고침", key="refresh_activities", help="AG-Grid 반응이 느릴 때 이 섹션을 새로고침"):
+        # 섹션별 새로고침: 해당 섹션의 key 값들을 변경하여 컴포넌트 재렌더링 유도
+        if "section_refresh_counter" not in st.session_state:
+            st.session_state["section_refresh_counter"] = {}
+        if "activities" not in st.session_state["section_refresh_counter"]:
+            st.session_state["section_refresh_counter"]["activities"] = 0
+        st.session_state["section_refresh_counter"]["activities"] += 1
         st.rerun()
 
 st.markdown("면접에서 진행할 활동들을 정의하고 각 활동의 속성을 설정합니다.")
@@ -398,26 +557,13 @@ for col, hdr in [("duration_min", "소요시간(분)"), ("min_cap", "최소 인�
         width=120,
     )
 
-gb.configure_column("room_type", header_name="방 종류", editable=True)
+gb.configure_column("room_type", header_name="면접실 이름", editable=True)
 
 grid_opts = gb.build()
 
 st.markdown("#### 활동 정의")
 
-grid_ret = AgGrid(
-    df,
-    gridOptions=grid_opts,
-    data_return_mode=DataReturnMode.AS_INPUT,
-    update_mode=GridUpdateMode.VALUE_CHANGED,
-    allow_unsafe_jscode=True,
-    fit_columns_on_grid_load=True,
-    theme="balham",
-    key="activities_grid",
-)
-
-st.session_state["activities"] = grid_ret["data"]
-
-# 행 추가/삭제 기능
+# 행 추가/삭제 기능 (위로 이동)
 col_add, col_del = st.columns(2)
 
 with col_add:
@@ -472,16 +618,40 @@ with col_del:
     else:
         st.info("삭제할 활동이 없습니다.")
 
+# AG-Grid 표시 (행 추가/삭제 기능 아래로 이동)
+# 섹션별 새로고침을 위한 동적 key 생성
+activities_refresh_count = st.session_state.get("section_refresh_counter", {}).get("activities", 0)
+
+grid_ret = AgGrid(
+    df,
+    gridOptions=grid_opts,
+    data_return_mode=DataReturnMode.AS_INPUT,
+    update_mode=GridUpdateMode.VALUE_CHANGED,
+    allow_unsafe_jscode=True,
+    fit_columns_on_grid_load=True,
+    theme="balham",
+    key=f"activities_grid_{activities_refresh_count}",  # 동적 key로 강제 재렌더링
+)
+
+st.session_state["activities"] = grid_ret["data"]
+
 st.divider()
 
 # =============================================================================
 # 섹션 2: 선후행 제약 설정 (면접 활동 정의 바로 다음으로 이동)
 # =============================================================================
-col_header, col_refresh = st.columns([4, 1])
+col_header, col_refresh = st.columns([3, 2])
 with col_header:
     st.header("2️⃣ 선후행 제약 설정")
 with col_refresh:
-    if st.button("🔄", key="refresh_precedence", help="이 섹션 새로고침"):
+    st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
+    if st.button("🔄 섹션 새로고침", key="refresh_precedence", help="선후행 제약 UI가 먹통일 때 새로고침"):
+        # 섹션별 새로고침
+        if "section_refresh_counter" not in st.session_state:
+            st.session_state["section_refresh_counter"] = {}
+        if "precedence" not in st.session_state["section_refresh_counter"]:
+            st.session_state["section_refresh_counter"]["precedence"] = 0
+        st.session_state["section_refresh_counter"]["precedence"] += 1
         st.rerun()
 
 st.markdown("면접 활동 간의 순서 제약과 시간 간격을 설정합니다.")
@@ -675,14 +845,20 @@ if not acts_df.empty:
         if rule['successor'] == "__END__":
             current_end = rule['predecessor']
     
-    # ═══════════════════════════════════════════
-    # 1단계: 시작/끝 활동 지정
-    # ═══════════════════════════════════════════
-    with st.container():
-        st.markdown("#### 1️⃣ 시작과 끝 활동 지정")
+    # 섹션별 새로고침을 위한 동적 key 생성
+    precedence_refresh_count = st.session_state.get("section_refresh_counter", {}).get("precedence", 0)
+    
+    st.markdown("---")
+    st.subheader("🎯 면접 순서 설정")
+    st.markdown("면접 활동들의 순서와 제약을 설정합니다.")
+    
+    # 탭으로 기능 구분
+    tab1, tab2 = st.tabs(["🏁 시작/끝 규칙", "🔗 순서 규칙"])
+    
+    with tab1:
         st.markdown("💡 **면접의 첫 번째와 마지막 활동을 지정하세요.** (선택사항)")
         
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns([2, 2, 1])
         
         # 현재 값을 기본값으로 설정
         start_idx = 0
@@ -692,155 +868,167 @@ if not acts_df.empty:
         if current_end and current_end in ACT_OPTS:
             end_idx = ACT_OPTS.index(current_end) + 1
         
-        first = col1.selectbox(
-            "🏁 가장 먼저 할 활동", 
-            ["(지정 안 함)"] + ACT_OPTS, 
-            index=start_idx, 
-            key="first_act",
-            help="면접 프로세스의 첫 번째 활동을 선택하세요"
-        )
-        last = col2.selectbox(
-            "🏁 가장 마지막 활동", 
-            ["(지정 안 함)"] + ACT_OPTS, 
-            index=end_idx, 
-            key="last_act",
-            help="면접 프로세스의 마지막 활동을 선택하세요"
-        )
+        with col1:
+            first = st.selectbox(
+                "🏁 가장 먼저 할 활동", 
+                ["(지정 안 함)"] + ACT_OPTS, 
+                index=start_idx, 
+                key=f"first_act_{precedence_refresh_count}",
+                help="면접 프로세스의 첫 번째 활동을 선택하세요"
+            )
         
-        if st.button("✅ 시작/끝 활동 적용", key="btn_add_start_end", type="primary"):
-            # 기존 __START__/__END__ 관련 행 제거
-            tmp = prec_df[
-                (~prec_df["predecessor"].isin(["__START__", "__END__"])) &
-                (~prec_df["successor"].isin(["__START__", "__END__"]))
-            ].copy()
-            
-            rows = []
-            if first != "(지정 안 함)":
-                rows.append({"predecessor": "__START__", "successor": first, "gap_min": 0, "adjacent": True})
-            if last != "(지정 안 함)":
-                rows.append({"predecessor": last, "successor": "__END__", "gap_min": 0, "adjacent": True})
-            
-            st.session_state["precedence"] = pd.concat([tmp, pd.DataFrame(rows)], ignore_index=True)
-            st.success("✅ 시작/끝 활동이 설정되었습니다!")
-            st.rerun()
+        with col2:
+            last = st.selectbox(
+                "🏁 가장 마지막 활동", 
+                ["(지정 안 함)"] + ACT_OPTS, 
+                index=end_idx, 
+                key=f"last_act_{precedence_refresh_count}",
+                help="면접 프로세스의 마지막 활동을 선택하세요"
+            )
+        
+        with col3:
+            st.markdown("<br>", unsafe_allow_html=True)  # 버튼 높이 맞추기
+            if st.button("✅ 적용", key="btn_add_start_end", type="primary", use_container_width=True):
+                # 기존 __START__/__END__ 관련 행 제거
+                tmp = prec_df[
+                    (~prec_df["predecessor"].isin(["__START__", "__END__"])) &
+                    (~prec_df["successor"].isin(["__START__", "__END__"]))
+                ].copy()
+                
+                rows = []
+                if first != "(지정 안 함)":
+                    rows.append({"predecessor": "__START__", "successor": first, "gap_min": 0, "adjacent": True})
+                if last != "(지정 안 함)":
+                    rows.append({"predecessor": last, "successor": "__END__", "gap_min": 0, "adjacent": True})
+                
+                st.session_state["precedence"] = pd.concat([tmp, pd.DataFrame(rows)], ignore_index=True)
+                st.success("✅ 시작/끝 활동이 설정되었습니다!")
+                st.rerun()
     
-    st.markdown("---")
-    
-    # ═══════════════════════════════════════════
-    # 2단계: 활동 순서 연결
-    # ═══════════════════════════════════════════
-    with st.container():
-        st.markdown("#### 2️⃣ 활동 순서 연결")
+    with tab2:
         st.markdown("💡 **특정 활동 다음에 반드시 와야 하는 활동을 연결하세요.** (선택사항)")
         st.markdown("📝 **예시:** 면접1 → 면접2 (면접1 후에 반드시 면접2가 와야 함)")
         
-        with st.form("form_add_rule"):
-            st.markdown("##### 새 순서 규칙 추가")
-            
-            col_form1, col_form2 = st.columns(2)
-            p = col_form1.selectbox("🔸 먼저 할 활동", ACT_OPTS, key="pred_select", help="선행 활동을 선택하세요")
-            s = col_form2.selectbox("🔹 다음에 할 활동", ACT_OPTS, key="succ_select", help="후행 활동을 선택하세요")
-            
-            # 고급 옵션을 expander로 숨김
-            with st.expander("⚙️ 고급 옵션 (기본값 사용 권장)", expanded=False):
-                col_gap, col_adj = st.columns(2)
-                g = col_gap.number_input("⏱️ 최소 간격 (분)", 0, 60, 5, key="gap_input", help="두 활동 사이의 최소 시간 간격")
-                adj = col_adj.checkbox("📌 연속 배치 (붙여서 진행)", value=True, key="adj_checkbox", help="두 활동을 시간적으로 연속해서 배치")
-            
-            ok = st.form_submit_button("➕ 순서 규칙 추가", use_container_width=True, type="primary")
-            
-            if ok:
-                df = st.session_state["precedence"]
-                dup = ((df["predecessor"] == p) & (df["successor"] == s)).any()
-                if p == s:
-                    st.error("❌ 같은 활동끼리는 연결할 수 없습니다.")
-                elif dup:
-                    st.warning("⚠️ 이미 존재하는 규칙입니다.")
-                else:
-                    st.session_state["precedence"] = pd.concat(
-                        [df, pd.DataFrame([{"predecessor": p, "successor": s, "gap_min": g, "adjacent": adj}])],
-                        ignore_index=True
-                    )
-                    st.success(f"✅ 규칙 추가: {p} → {s}")
-                    st.rerun()
-    
-    st.markdown("---")
-    
-    # ═══════════════════════════════════════════
-    # 규칙 삭제 - 직접 접근 가능
-    # ═══════════════════════════════════════════
-    st.subheader("🗑️ 설정된 규칙 삭제")
-    
-    prec_df = st.session_state["precedence"].copy()
-    if not prec_df.empty:
-        st.markdown("**현재 설정된 규칙들:**")
+        # 기본 연결 설정
+        st.markdown("#### 📌 활동 연결")
+        col_form1, col_form2, col_form3 = st.columns([2, 2, 1])
         
-        # 규칙을 보기 좋게 표시
-        prec_df["규칙표시용"] = prec_df.apply(
-            lambda r: f"{r.predecessor} → {r.successor}" + 
-                     (f" (간격: {r.gap_min}분)" if r.gap_min > 0 else "") +
-                     (" [연속배치]" if r.adjacent else ""), axis=1
-        )
+        with col_form1:
+            p = st.selectbox("🔸 먼저 할 활동", ACT_OPTS, key=f"pred_select_{precedence_refresh_count}", help="선행 활동을 선택하세요")
         
-        # START/END 규칙과 일반 규칙 분리해서 표시
-        start_end_rules = prec_df[
-            (prec_df["predecessor"] == "__START__") | (prec_df["successor"] == "__END__")
-        ]
-        normal_rules = prec_df[
-            (~prec_df["predecessor"].isin(["__START__", "__END__"])) &
-            (~prec_df["successor"].isin(["__START__", "__END__"]))
-        ]
+        with col_form2:
+            s = st.selectbox("🔹 다음에 할 활동", ACT_OPTS, key=f"succ_select_{precedence_refresh_count}", help="후행 활동을 선택하세요")
         
-        if not start_end_rules.empty:
-            st.markdown("**🏁 시작/끝 규칙:**")
-            for rule in start_end_rules["규칙표시용"]:
-                st.markdown(f"• {rule}")
+        with col_form3:
+            st.markdown("<br>", unsafe_allow_html=True)  # 버튼 높이 맞추기
+            add_rule_btn = st.button("✅ 적용", key="btn_add_sequence", type="primary", use_container_width=True)
         
-        if not normal_rules.empty:
-            st.markdown("**🔗 순서 연결 규칙:**")
-            for rule in normal_rules["규칙표시용"]:
-                st.markdown(f"• {rule}")
+        # 고급 옵션을 별도 영역으로 분리
+        st.markdown("#### ⚙️ 고급 옵션")
+        col_gap, col_adj = st.columns(2)
+        with col_gap:
+            g = st.number_input("⏱️ 최소 간격 (분)", 0, 60, 5, key=f"gap_input_{precedence_refresh_count}", help="두 활동 사이의 최소 시간 간격")
+        with col_adj:
+            adj = st.checkbox("📌 연속 배치 (붙여서 진행)", value=True, key=f"adj_checkbox_{precedence_refresh_count}", help="두 활동을 시간적으로 연속해서 배치")
         
-        # 삭제 기능
-        delete_options = prec_df["규칙표시용"].tolist()
-        
-        to_delete = st.multiselect(
-            "🗑️ 삭제할 규칙을 선택하세요",
-            options=delete_options,
-            key="del_prec_select",
-            help="여러 규칙을 한 번에 선택하여 삭제할 수 있습니다"
-        )
-        
-        col_del, col_clear = st.columns(2)
-        
-        with col_del:
-            if st.button("❌ 선택된 규칙 삭제", key="del_prec", disabled=not to_delete):
-                if to_delete:
-                    new_prec = prec_df[~prec_df["규칙표시용"].isin(to_delete)].drop(
-                        columns="규칙표시용"
-                    ).reset_index(drop=True)
-                    st.session_state["precedence"] = new_prec.copy()
-                    st.success(f"✅ {len(to_delete)}개 규칙이 삭제되었습니다!")
-                    st.rerun()
-        
-        with col_clear:
-            if st.button("🗑️ 모든 규칙 삭제", key="clear_all_prec", type="secondary"):
-                st.session_state["precedence"] = pd.DataFrame(columns=["predecessor", "successor", "gap_min", "adjacent"])
-                st.success("✅ 모든 규칙이 삭제되었습니다!")
+        if add_rule_btn:
+            df = st.session_state["precedence"]
+            dup = ((df["predecessor"] == p) & (df["successor"] == s)).any()
+            if p == s:
+                st.error("❌ 같은 활동끼리는 연결할 수 없습니다.")
+            elif dup:
+                st.warning("⚠️ 이미 존재하는 규칙입니다.")
+            else:
+                st.session_state["precedence"] = pd.concat(
+                    [df, pd.DataFrame([{"predecessor": p, "successor": s, "gap_min": g, "adjacent": adj}])],
+                    ignore_index=True
+                )
+                st.success(f"✅ 규칙 추가: {p} → {s}")
                 st.rerun()
-    else:
-        st.info("📋 설정된 선후행 제약 규칙이 없습니다. 위에서 규칙을 추가해보세요.")
+    
+    # 설정된 규칙 관리 및 삭제
+    with st.expander("🗂️ 설정된 규칙 관리", expanded=True):
+        prec_df = st.session_state["precedence"].copy()
+        
+        if not prec_df.empty:
+            # 규칙을 보기 좋게 표시
+            prec_df["규칙표시용"] = prec_df.apply(
+                lambda r: f"{r.predecessor} → {r.successor}" + 
+                         (f" (간격: {r.gap_min}분)" if r.gap_min > 0 else "") +
+                         (" [연속배치]" if r.adjacent else ""), axis=1
+            )
+            
+            # 2단 구조: 왼쪽은 규칙 목록, 오른쪽은 삭제 기능
+            col_rules, col_actions = st.columns([3, 2])
+            
+            with col_rules:
+                st.markdown("**📋 현재 설정된 규칙들**")
+                
+                # START/END 규칙과 일반 규칙 분리해서 표시
+                start_end_rules = prec_df[
+                    (prec_df["predecessor"] == "__START__") | (prec_df["successor"] == "__END__")
+                ]
+                normal_rules = prec_df[
+                    (~prec_df["predecessor"].isin(["__START__", "__END__"])) &
+                    (~prec_df["successor"].isin(["__START__", "__END__"]))
+                ]
+                
+                if not start_end_rules.empty:
+                    st.markdown("**🏁 시작/끝 규칙:**")
+                    for rule in start_end_rules["규칙표시용"]:
+                        st.markdown(f"• {rule}")
+                
+                if not normal_rules.empty:
+                    st.markdown("**🔗 순서 연결 규칙:**")
+                    for rule in normal_rules["규칙표시용"]:
+                        st.markdown(f"• {rule}")
+            
+            with col_actions:
+                st.markdown("**🗑️ 규칙 삭제**")
+                
+                # 삭제할 규칙 선택
+                delete_options = prec_df["규칙표시용"].tolist()
+                to_delete = st.multiselect(
+                    "삭제할 규칙 선택",
+                    options=delete_options,
+                    key=f"del_prec_select_{precedence_refresh_count}",
+                    help="여러 규칙을 한 번에 선택 가능"
+                )
+                
+                # 삭제 버튼들
+                if st.button("❌ 선택 삭제", key="del_prec", disabled=not to_delete, use_container_width=True):
+                    if to_delete:
+                        new_prec = prec_df[~prec_df["규칙표시용"].isin(to_delete)].drop(
+                            columns="규칙표시용"
+                        ).reset_index(drop=True)
+                        st.session_state["precedence"] = new_prec.copy()
+                        st.success(f"✅ {len(to_delete)}개 규칙 삭제!")
+                        st.rerun()
+                
+                if st.button("🗑️ 전체 삭제", key="clear_all_prec", type="secondary", use_container_width=True):
+                    st.session_state["precedence"] = pd.DataFrame(columns=["predecessor", "successor", "gap_min", "adjacent"])
+                    st.success("✅ 모든 규칙 삭제!")
+                    st.rerun()
+        else:
+            st.info("📋 설정된 선후행 제약 규칙이 없습니다. 위에서 규칙을 추가해보세요.")
 
 st.divider()
 
 # =============================================================================
 # 섹션 3: 직무별 면접활동 정의 (선후행 제약 설정 다음으로 이동)
 # =============================================================================
-col_header, col_refresh = st.columns([4, 1])
+col_header, col_refresh = st.columns([3, 2])
 with col_header:
     st.header("3️⃣ 직무별 면접활동 정의")
 with col_refresh:
-    if st.button("🔄", key="refresh_job_activities", help="이 섹션 새로고침"):
+    st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
+    if st.button("🔄 섹션 새로고침", key="refresh_job_activities", help="직무별 면접활동 AG-Grid가 먹통일 때 새로고침"):
+        # 섹션별 새로고침
+        if "section_refresh_counter" not in st.session_state:
+            st.session_state["section_refresh_counter"] = {}
+        if "job_activities" not in st.session_state["section_refresh_counter"]:
+            st.session_state["section_refresh_counter"]["job_activities"] = 0
+        st.session_state["section_refresh_counter"]["job_activities"] += 1
         st.rerun()
 
 st.markdown("각 직무 코드별로 어떤 면접활동을 진행할지 설정하고 인원수를 지정합니다.")
@@ -946,6 +1134,9 @@ else:
         
         grid_opts2 = gb2.build()
         
+        # 섹션별 새로고침을 위한 동적 key 생성
+        job_activities_refresh_count = st.session_state.get("section_refresh_counter", {}).get("job_activities", 0)
+        
         grid_ret2 = AgGrid(
             df_to_display,
             gridOptions=grid_opts2,
@@ -953,7 +1144,7 @@ else:
             data_return_mode=DataReturnMode.AS_INPUT,
             fit_columns_on_grid_load=True,
             theme="balham",
-            key="job_grid_display",
+            key=f"job_grid_display_{job_activities_refresh_count}",  # 동적 key로 강제 재렌더링
         )
         
         edited_df = pd.DataFrame(grid_ret2["data"])
@@ -1007,11 +1198,18 @@ st.divider()
 # =============================================================================
 # 섹션 4: 운영 공간 설정
 # =============================================================================
-col_header, col_refresh = st.columns([4, 1])
+col_header, col_refresh = st.columns([3, 2])
 with col_header:
     st.header("4️⃣ 운영 공간 설정")
 with col_refresh:
-    if st.button("🔄", key="refresh_room_settings", help="이 섹션 새로고침"):
+    st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
+    if st.button("🔄 섹션 새로고침", key="refresh_room_settings", help="운영 공간 설정 UI가 먹통일 때 새로고침"):
+        # 섹션별 새로고침
+        if "section_refresh_counter" not in st.session_state:
+            st.session_state["section_refresh_counter"] = {}
+        if "room_settings" not in st.session_state["section_refresh_counter"]:
+            st.session_state["section_refresh_counter"]["room_settings"] = 0
+        st.session_state["section_refresh_counter"]["room_settings"] += 1
         st.rerun()
 
 st.markdown("면접을 운영할 경우, 하루에 동원 가능한 모든 공간의 종류와 수, 그리고 최대 수용 인원을 설정합니다.")
@@ -1039,6 +1237,9 @@ if acts_df is not None and not acts_df.empty:
         
         st.subheader("하루 기준 운영 공간 설정")
         
+        # 섹션별 새로고침을 위한 동적 key 생성
+        room_settings_refresh_count = st.session_state.get("section_refresh_counter", {}).get("room_settings", 0)
+        
         col_cnt, col_cap = st.columns(2, gap="large")
         
         with col_cnt:
@@ -1049,7 +1250,7 @@ if acts_df is not None and not acts_df.empty:
                     min_value=0, 
                     max_value=50, 
                     value=tpl_dict[rt].get("count", 1), 
-                    key=f"tpl_{rt}_cnt"
+                    key=f"tpl_{rt}_cnt_{room_settings_refresh_count}"  # 동적 key로 강제 재렌더링
                 )
         
         with col_cap:
@@ -1065,7 +1266,7 @@ if acts_df is not None and not acts_df.empty:
                     min_value=min_val,
                     max_value=max_val,
                     value=safe_val,
-                    key=f"tpl_{rt}_cap",
+                    key=f"tpl_{rt}_cap_{room_settings_refresh_count}",  # 동적 key로 강제 재렌더링
                 )
         
         # 변경된 템플릿 정보를 세션에 저장
@@ -1089,11 +1290,18 @@ st.divider()
 # =============================================================================
 # 섹션 5: 운영 시간 설정
 # =============================================================================
-col_header, col_refresh = st.columns([4, 1])
+col_header, col_refresh = st.columns([3, 2])
 with col_header:
     st.header("5️⃣ 운영 시간 설정")
 with col_refresh:
-    if st.button("🔄", key="refresh_time_settings", help="이 섹션 새로고침"):
+    st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
+    if st.button("🔄 섹션 새로고침", key="refresh_time_settings", help="운영 시간 설정 UI가 먹통일 때 새로고침"):
+        # 섹션별 새로고침
+        if "section_refresh_counter" not in st.session_state:
+            st.session_state["section_refresh_counter"] = {}
+        if "time_settings" not in st.session_state["section_refresh_counter"]:
+            st.session_state["section_refresh_counter"]["time_settings"] = 0
+        st.session_state["section_refresh_counter"]["time_settings"] += 1
         st.rerun()
 
 st.markdown("면접을 운영할 경우의 하루 기준 운영 시작 및 종료 시간을 설정합니다.")
@@ -1104,13 +1312,16 @@ init_end = st.session_state.get("oper_end_time", time(18, 0))
 
 st.subheader("하루 기준 공통 운영 시간")
 
+# 섹션별 새로고침을 위한 동적 key 생성
+time_settings_refresh_count = st.session_state.get("section_refresh_counter", {}).get("time_settings", 0)
+
 col_start, col_end = st.columns(2)
 
 with col_start:
-    t_start = st.time_input("운영 시작 시간", value=init_start, key="oper_start")
+    t_start = st.time_input("운영 시작 시간", value=init_start, key=f"oper_start_{time_settings_refresh_count}")
 
 with col_end:
-    t_end = st.time_input("운영 종료 시간", value=init_end, key="oper_end")
+    t_end = st.time_input("운영 종료 시간", value=init_end, key=f"oper_end_{time_settings_refresh_count}")
 
 if t_start >= t_end:
     st.error("오류: 운영 시작 시간은 종료 시간보다 빨라야 합니다.")
