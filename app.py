@@ -141,12 +141,6 @@ init_session_states()
 st.header("🚀 운영일정 추정")
 st.markdown("현재 설정을 바탕으로 최적의 운영일정을 추정합니다.")
 
-# 섹션별 새로고침 버튼
-col_refresh, col_space = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 이 섹션 새로고침", key="refresh_schedule_estimation", help="운영일정 추정 섹션만 새로고침합니다"):
-        st.rerun()
-
 # 첫 방문자를 위한 안내
 if st.session_state.get('solver_status', '미실행') == '미실행':
     st.info("👋 **처음 방문하셨나요?** 바로 아래 '운영일정추정 시작' 버튼을 눌러보세요! 기본 설정으로 데모를 체험할 수 있습니다.")
@@ -448,10 +442,12 @@ with col_del:
     if not act_df.empty:
         # 인덱스와 활동명을 안전하게 결합
         delete_options = []
+        valid_indices = []
         for idx, row in act_df.iterrows():
             activity_name = str(row.get('activity', 'Unknown'))
             if activity_name and activity_name != 'nan':
                 delete_options.append(f"{idx}: {activity_name}")
+                valid_indices.append(idx)
         
         to_delete = st.multiselect(
             "삭제할 활동 선택",
@@ -460,11 +456,19 @@ with col_del:
         )
         if st.button("❌ 선택된 활동 삭제", key="del_activity"):
             if to_delete:
-                idx_to_drop = [int(s.split(":")[0]) for s in to_delete]
-                kept = st.session_state["activities"].drop(idx_to_drop).reset_index(drop=True)
-                st.session_state["activities"] = kept
-                st.success("선택된 활동이 삭제되었습니다.")
-                st.rerun()
+                # 선택된 인덱스 추출
+                selected_indices = [int(s.split(":")[0]) for s in to_delete]
+                
+                # 실제 DataFrame에 존재하는 인덱스만 필터링
+                valid_to_drop = [idx for idx in selected_indices if idx in act_df.index]
+                
+                if valid_to_drop:
+                    kept = st.session_state["activities"].drop(valid_to_drop).reset_index(drop=True)
+                    st.session_state["activities"] = kept
+                    st.success(f"선택된 {len(valid_to_drop)}개 활동이 삭제되었습니다.")
+                    st.rerun()
+                else:
+                    st.error("삭제할 유효한 활동이 없습니다.")
     else:
         st.info("삭제할 활동이 없습니다.")
 
