@@ -141,6 +141,12 @@ init_session_states()
 st.header("🚀 운영일정 추정")
 st.markdown("현재 설정을 바탕으로 최적의 운영일정을 추정합니다.")
 
+# 섹션별 새로고침 버튼
+col_refresh, col_space = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 이 섹션 새로고침", key="refresh_schedule_estimation", help="운영일정 추정 섹션만 새로고침합니다"):
+        st.rerun()
+
 # 첫 방문자를 위한 안내
 if st.session_state.get('solver_status', '미실행') == '미실행':
     st.info("👋 **처음 방문하셨나요?** 바로 아래 '운영일정추정 시작' 버튼을 눌러보세요! 기본 설정으로 데모를 체험할 수 있습니다.")
@@ -332,6 +338,12 @@ st.divider()
 st.header("1️⃣ 면접 활동 정의")
 st.markdown("면접에서 진행할 활동들을 정의하고 각 활동의 속성을 설정합니다.")
 
+# 섹션별 새로고침 버튼
+col_refresh, col_space = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 이 섹션 새로고침", key="refresh_activities", help="면접 활동 정의 섹션만 새로고침합니다"):
+        st.rerun()
+
 # 기본 템플릿 함수
 def default_df() -> pd.DataFrame:
     return pd.DataFrame({
@@ -433,21 +445,28 @@ with col_add:
 
 with col_del:
     act_df = st.session_state["activities"].copy()
-    act_df["_삭제표시"] = act_df.reset_index().apply(
-        lambda r: f"{r['index']}: {r['activity']}", axis=1
-    )
-    to_delete = st.multiselect(
-        "삭제할 활동 선택",
-        options=act_df["_삭제표시"].tolist(),
-        key="del_activity_select"
-    )
-    if st.button("❌ 선택된 활동 삭제", key="del_activity"):
-        if to_delete:
-            idx_to_drop = [int(s.split(":")[0]) for s in to_delete]
-            kept = st.session_state["activities"].drop(idx_to_drop).reset_index(drop=True)
-            st.session_state["activities"] = kept
-            st.success("선택된 활동이 삭제되었습니다.")
-            st.rerun()
+    if not act_df.empty:
+        # 인덱스와 활동명을 안전하게 결합
+        delete_options = []
+        for idx, row in act_df.iterrows():
+            activity_name = str(row.get('activity', 'Unknown'))
+            if activity_name and activity_name != 'nan':
+                delete_options.append(f"{idx}: {activity_name}")
+        
+        to_delete = st.multiselect(
+            "삭제할 활동 선택",
+            options=delete_options,
+            key="del_activity_select"
+        )
+        if st.button("❌ 선택된 활동 삭제", key="del_activity"):
+            if to_delete:
+                idx_to_drop = [int(s.split(":")[0]) for s in to_delete]
+                kept = st.session_state["activities"].drop(idx_to_drop).reset_index(drop=True)
+                st.session_state["activities"] = kept
+                st.success("선택된 활동이 삭제되었습니다.")
+                st.rerun()
+    else:
+        st.info("삭제할 활동이 없습니다.")
 
 st.divider()
 
@@ -456,6 +475,12 @@ st.divider()
 # =============================================================================
 st.header("2️⃣ 선후행 제약 설정")
 st.markdown("면접 활동 간의 순서 제약과 시간 간격을 설정합니다.")
+
+# 섹션별 새로고침 버튼
+col_refresh, col_space = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 이 섹션 새로고침", key="refresh_precedence", help="선후행 제약 설정 섹션만 새로고침합니다"):
+        st.rerun()
 
 # 공통 데이터 로드
 acts_df = st.session_state.get("activities", pd.DataFrame())
@@ -810,6 +835,12 @@ st.divider()
 st.header("3️⃣ 직무별 면접활동 정의")
 st.markdown("각 직무 코드별로 어떤 면접활동을 진행할지 설정하고 인원수를 지정합니다.")
 
+# 섹션별 새로고침 버튼
+col_refresh, col_space = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 이 섹션 새로고침", key="refresh_job_activities", help="직무별 면접활동 정의 섹션만 새로고침합니다"):
+        st.rerun()
+
 # 활동 목록 확보
 acts_df = st.session_state.get("activities")
 if acts_df is None or acts_df.empty:
@@ -975,6 +1006,12 @@ st.divider()
 st.header("4️⃣ 운영 공간 설정")
 st.markdown("면접을 운영할 경우, 하루에 동원 가능한 모든 공간의 종류와 수, 그리고 최대 수용 인원을 설정합니다.")
 
+# 섹션별 새로고침 버튼
+col_refresh, col_space = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 이 섹션 새로고침", key="refresh_room_settings", help="운영 공간 설정 섹션만 새로고침합니다"):
+        st.rerun()
+
 # 활동 DF에서 room_types 확보
 acts_df = st.session_state.get("activities")
 if acts_df is not None and not acts_df.empty:
@@ -1050,6 +1087,12 @@ st.divider()
 # =============================================================================
 st.header("5️⃣ 운영 시간 설정")
 st.markdown("면접을 운영할 경우의 하루 기준 운영 시작 및 종료 시간을 설정합니다.")
+
+# 섹션별 새로고침 버튼
+col_refresh, col_space = st.columns([1, 4])
+with col_refresh:
+    if st.button("🔄 이 섹션 새로고침", key="refresh_time_settings", help="운영 시간 설정 섹션만 새로고침합니다"):
+        st.rerun()
 
 # 기존 값 불러오기
 init_start = st.session_state.get("oper_start_time", time(9, 0))
