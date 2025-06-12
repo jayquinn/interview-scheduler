@@ -85,8 +85,8 @@ def init_session_states():
     
     # 기본 선후행 제약 (인성검사 첫 번째, 커피챗 마지막)
     default_precedence = pd.DataFrame([
-        {"predecessor": "", "successor": "인성검사", "gap_min": 0, "adjacent": False},  # 인성검사가 가장 먼저
-        {"predecessor": "커피챗", "successor": "", "gap_min": 0, "adjacent": False}     # 커피챗이 가장 마지막
+        {"predecessor": "__START__", "successor": "인성검사", "gap_min": 0, "adjacent": False},  # 인성검사가 가장 먼저
+        {"predecessor": "커피챗", "successor": "__END__", "gap_min": 0, "adjacent": False}     # 커피챗이 가장 마지막
     ])
     st.session_state.setdefault("precedence", default_precedence)
     
@@ -464,9 +464,9 @@ jobs_df = st.session_state.get("job_acts_map", pd.DataFrame())
 if not acts_df.empty:
     ACT_OPTS = acts_df.query("use == True")["activity"].tolist()
     
-    # precedence 규칙 초기화
+    # precedence 규칙 초기화 (빈 문자열도 허용)
     prec_df = st.session_state["precedence"].copy()
-    valid_acts = set(ACT_OPTS) | {"__START__", "__END__"}
+    valid_acts = set(ACT_OPTS) | {"__START__", "__END__", ""}
     prec_df = prec_df[prec_df["predecessor"].isin(valid_acts) & prec_df["successor"].isin(valid_acts)]
     st.session_state["precedence"] = prec_df
     
@@ -577,16 +577,57 @@ if not acts_df.empty:
     # 실시간 동선(활동 순서) 미리보기
     with st.expander("🔍 실시간 동선(활동 순서) 미리보기", expanded=True):
         prec_df_latest = st.session_state["precedence"]
+        
+        # 기본 규칙 표시
+        st.markdown("**📋 현재 설정된 선후행 제약 규칙:**")
         if prec_df_latest.empty:
-            st.info("추가된 precedence 규칙이 없습니다. 자유 규칙을 먼저 추가해 주세요.")
+            st.info("설정된 제약 규칙이 없습니다. 모든 활동이 자유롭게 배치 가능합니다.")
         else:
+            # 규칙을 사용자 친화적으로 표시
+            for _, rule in prec_df_latest.iterrows():
+                pred = rule['predecessor']
+                succ = rule['successor']
+                gap = rule['gap_min']
+                adj = rule['adjacent']
+                
+                # 표시 형식 개선
+                if pred == "__START__":
+                    pred_display = "🏁 시작"
+                elif pred == "":
+                    pred_display = "🏁 시작"
+                else:
+                    pred_display = f"📝 {pred}"
+                
+                if succ == "__END__":
+                    succ_display = "🏁 종료"
+                elif succ == "":
+                    succ_display = "🏁 종료"
+                else:
+                    succ_display = f"📝 {succ}"
+                
+                gap_info = f" ({gap}분 간격)" if gap > 0 else ""
+                adj_info = " [인접 배치]" if adj else ""
+                
+                st.markdown(f"• {pred_display} → {succ_display}{gap_info}{adj_info}")
+        
+        st.markdown("---")
+        
+        # 가능한 활동 순서 계산 및 표시
+        if ACT_OPTS:
             flows = render_dynamic_flows(prec_df_latest, ACT_OPTS)
             if not flows:
-                st.warning("현재 제약을 만족하는 활동 순서가 없습니다.")
+                st.warning("⚠️ 현재 제약을 만족하는 활동 순서가 없습니다. 제약 조건을 확인해주세요.")
             else:
-                st.markdown("**가능한 모든 활동 순서:**")
-                for f in flows:
-                    st.markdown(f"- {f}")
+                st.markdown("**🔄 가능한 모든 활동 순서:**")
+                for i, f in enumerate(flows, 1):
+                    st.markdown(f"{i}. {f}")
+                
+                if len(flows) == 1:
+                    st.success("✅ 제약 조건에 따라 활동 순서가 고유하게 결정됩니다!")
+                else:
+                    st.info(f"💡 총 {len(flows)}가지 가능한 활동 순서가 있습니다.")
+        else:
+            st.warning("활성화된 활동이 없습니다. 먼저 활동을 정의해주세요.")
     
     st.markdown("---")
     
