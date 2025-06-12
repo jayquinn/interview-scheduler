@@ -65,13 +65,13 @@ st.markdown("""
 def init_session_states():
     # 기본 활동 템플릿
     default_activities = pd.DataFrame({
-        "use": [True, True, True, True, True, True],
-        "activity": ["면접1", "면접2", "면접3", "면접4", "인성검사", "커피챗"],
-        "mode": ["individual"] * 6,
-        "duration_min": [10] * 6,
-        "room_type": ["면접1실", "면접2실", "면접3실", "면접4실", "인성검사실", "커피챗실"],
-        "min_cap": [1] * 6,
-        "max_cap": [1] * 6,
+        "use": [True, True, True, True],
+        "activity": ["면접1", "면접2", "인성검사", "커피챗"],
+        "mode": ["individual"] * 4,
+        "duration_min": [10] * 4,
+        "room_type": ["면접1실", "면접2실", "인성검사실", "커피챗실"],
+        "min_cap": [1] * 4,
+        "max_cap": [1] * 4,
     })
     st.session_state.setdefault("activities", default_activities)
     
@@ -83,8 +83,12 @@ def init_session_states():
             job_data[act] = True
         st.session_state["job_acts_map"] = pd.DataFrame(job_data)
     
-    # 기본 선후행 제약
-    st.session_state.setdefault("precedence", pd.DataFrame(columns=["predecessor", "successor", "gap_min", "adjacent"]))
+    # 기본 선후행 제약 (인성검사 첫 번째, 커피챗 마지막)
+    default_precedence = pd.DataFrame([
+        {"predecessor": "", "successor": "인성검사", "gap_min": 0, "adjacent": False},  # 인성검사가 가장 먼저
+        {"predecessor": "커피챗", "successor": "", "gap_min": 0, "adjacent": False}     # 커피챗이 가장 마지막
+    ])
+    st.session_state.setdefault("precedence", default_precedence)
     
     # 기본 운영 시간
     st.session_state.setdefault("oper_start_time", time(9, 0))
@@ -331,13 +335,13 @@ st.markdown("면접에서 진행할 활동들을 정의하고 각 활동의 속�
 # 기본 템플릿 함수
 def default_df() -> pd.DataFrame:
     return pd.DataFrame({
-        "use": [True, True, True, True, True, True],
-        "activity": ["면접1", "면접2", "면접3", "면접4", "인성검사", "커피챗"],
-        "mode": ["individual"] * 6,
-        "duration_min": [10] * 6,
-        "room_type": ["면접1실", "면접2실", "면접3실", "면접4실", "인성검사실", "커피챗실"],
-        "min_cap": [1] * 6,
-        "max_cap": [1] * 6,
+        "use": [True, True, True, True],
+        "activity": ["면접1", "면접2", "인성검사", "커피챗"],
+        "mode": ["individual"] * 4,
+        "duration_min": [10] * 4,
+        "room_type": ["면접1실", "면접2실", "인성검사실", "커피챗실"],
+        "min_cap": [1] * 4,
+        "max_cap": [1] * 4,
     })
 
 df = st.session_state["activities"].copy()
