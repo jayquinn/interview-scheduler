@@ -332,12 +332,6 @@ st.divider()
 st.header("1️⃣ 면접 활동 정의")
 st.markdown("면접에서 진행할 활동들을 정의하고 각 활동의 속성을 설정합니다.")
 
-# 섹션별 새로고침 버튼
-col_refresh, col_space = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 이 섹션 새로고침", key="refresh_activities", help="면접 활동 정의 섹션만 새로고침합니다"):
-        st.rerun()
-
 # 기본 템플릿 함수
 def default_df() -> pd.DataFrame:
     return pd.DataFrame({
@@ -472,6 +466,13 @@ with col_del:
     else:
         st.info("삭제할 활동이 없습니다.")
 
+# 섹션 새로고침 버튼 (섹션 하단)
+st.markdown("---")
+col_center = st.columns([2, 1, 2])[1]
+with col_center:
+    if st.button("🔄 면접 활동 정의 새로고침", key="refresh_activities", help="이 섹션만 새로고침합니다", use_container_width=True):
+        st.rerun()
+
 st.divider()
 
 # =============================================================================
@@ -479,12 +480,6 @@ st.divider()
 # =============================================================================
 st.header("2️⃣ 선후행 제약 설정")
 st.markdown("면접 활동 간의 순서 제약과 시간 간격을 설정합니다.")
-
-# 섹션별 새로고침 버튼
-col_refresh, col_space = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 이 섹션 새로고침", key="refresh_precedence", help="선후행 제약 설정 섹션만 새로고침합니다"):
-        st.rerun()
 
 # 공통 데이터 로드
 acts_df = st.session_state.get("activities", pd.DataFrame())
@@ -831,6 +826,13 @@ if not acts_df.empty:
     else:
         st.info("📋 설정된 선후행 제약 규칙이 없습니다. 위에서 규칙을 추가해보세요.")
 
+# 섹션 새로고침 버튼 (섹션 하단)
+st.markdown("---")
+col_center = st.columns([2, 1, 2])[1]
+with col_center:
+    if st.button("🔄 선후행 제약 설정 새로고침", key="refresh_precedence", help="이 섹션만 새로고침합니다", use_container_width=True):
+        st.rerun()
+
 st.divider()
 
 # =============================================================================
@@ -838,12 +840,6 @@ st.divider()
 # =============================================================================
 st.header("3️⃣ 직무별 면접활동 정의")
 st.markdown("각 직무 코드별로 어떤 면접활동을 진행할지 설정하고 인원수를 지정합니다.")
-
-# 섹션별 새로고침 버튼
-col_refresh, col_space = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 이 섹션 새로고침", key="refresh_job_activities", help="직무별 면접활동 정의 섹션만 새로고침합니다"):
-        st.rerun()
 
 # 활동 목록 확보
 acts_df = st.session_state.get("activities")
@@ -1002,6 +998,13 @@ else:
         st.info(f"총 인원수: **{clean_df['count'].sum()}** 명")
         st.session_state["job_acts_map"] = clean_df
 
+# 섹션 새로고침 버튼 (섹션 하단)
+st.markdown("---")
+col_center = st.columns([2, 1, 2])[1]
+with col_center:
+    if st.button("🔄 직무별 면접활동 새로고침", key="refresh_job_activities", help="이 섹션만 새로고침합니다", use_container_width=True):
+        st.rerun()
+
 st.divider()
 
 # =============================================================================
@@ -1009,12 +1012,6 @@ st.divider()
 # =============================================================================
 st.header("4️⃣ 운영 공간 설정")
 st.markdown("면접을 운영할 경우, 하루에 동원 가능한 모든 공간의 종류와 수, 그리고 최대 수용 인원을 설정합니다.")
-
-# 섹션별 새로고침 버튼
-col_refresh, col_space = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 이 섹션 새로고침", key="refresh_room_settings", help="운영 공간 설정 섹션만 새로고침합니다"):
-        st.rerun()
 
 # 활동 DF에서 room_types 확보
 acts_df = st.session_state.get("activities")
@@ -1084,6 +1081,13 @@ if acts_df is not None and not acts_df.empty:
     else:
         st.error("사용(use=True)하도록 설정된 활동 중, 'room_type'이 지정된 활동이 없습니다.")
 
+# 섹션 새로고침 버튼 (섹션 하단)
+st.markdown("---")
+col_center = st.columns([2, 1, 2])[1]
+with col_center:
+    if st.button("🔄 운영 공간 설정 새로고침", key="refresh_room_settings", help="이 섹션만 새로고침합니다", use_container_width=True):
+        st.rerun()
+
 st.divider()
 
 # =============================================================================
@@ -1091,12 +1095,6 @@ st.divider()
 # =============================================================================
 st.header("5️⃣ 운영 시간 설정")
 st.markdown("면접을 운영할 경우의 하루 기준 운영 시작 및 종료 시간을 설정합니다.")
-
-# 섹션별 새로고침 버튼
-col_refresh, col_space = st.columns([1, 4])
-with col_refresh:
-    if st.button("🔄 이 섹션 새로고침", key="refresh_time_settings", help="운영 시간 설정 섹션만 새로고침합니다"):
-        st.rerun()
 
 # 기존 값 불러오기
 init_start = st.session_state.get("oper_start_time", time(9, 0))
@@ -1130,6 +1128,13 @@ else:
         st.dataframe(st.session_state.get('oper_window', pd.DataFrame()), use_container_width=True)
     
     st.success(f"운영 시간이 {t_start.strftime('%H:%M')}부터 {t_end.strftime('%H:%M')}까지로 설정되었습니다.")
+
+# 섹션 새로고침 버튼 (섹션 하단)
+st.markdown("---")
+col_center = st.columns([2, 1, 2])[1]
+with col_center:
+    if st.button("🔄 운영 시간 설정 새로고침", key="refresh_time_settings", help="이 섹션만 새로고침합니다", use_container_width=True):
+        st.rerun()
 
 st.divider()
 
