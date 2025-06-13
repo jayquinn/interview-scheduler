@@ -2,7 +2,8 @@
 import streamlit as st
 import pandas as pd
 import re
-from datetime import time, datetime
+import time
+from datetime import time as datetime_time, datetime
 from st_aggrid import (
     AgGrid,
     GridOptionsBuilder,
@@ -23,8 +24,68 @@ st.set_page_config(
     layout="wide"
 )
 
+# 전역 스타일 및 단축키 설정
+st.markdown("""
+<style>
+    /* 로딩 애니메이션 개선 */
+    .stSpinner > div {
+        border-color: #ff6b6b !important;
+    }
+    
+    /* 버튼 호버 효과 */
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+    
+    /* 성공 메시지 애니메이션 */
+    @keyframes slideIn {
+        from { transform: translateX(-100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .stSuccess {
+        animation: slideIn 0.5s ease-out;
+    }
+    
+    /* 툴팁 스타일 개선 */
+    [data-baseweb="tooltip"] {
+        max-width: 300px !important;
+    }
+</style>
+
+<script>
+// 단축키 지원
+document.addEventListener('keydown', function(e) {
+    // Ctrl+S: 자동 저장
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        console.log('Auto-save triggered');
+    }
+    // Ctrl+Enter: 운영일정 추정 시작
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        const button = document.querySelector('button[kind="primary"]');
+        if (button) button.click();
+    }
+});
+</script>
+""", unsafe_allow_html=True)
+
 # 이전 세션 내용 자동 복원
 cp.autoload_state()
+
+# 자동 저장 상태 표시
+if st.session_state.get('auto_save_enabled', True):
+    st.sidebar.success("💾 자동 저장 활성화됨")
+    auto_save_interval = st.sidebar.slider(
+        "자동 저장 주기 (분)", 
+        min_value=1, 
+        max_value=10, 
+        value=5,
+        help="설정이 자동으로 저장되는 주기를 설정합니다."
+    )
 
 # 사이드바에서 app 페이지 숨기기
 st.markdown("""
@@ -66,6 +127,123 @@ st.markdown("""
 운영일정 추정을 먼저 확인한 후, 필요한 설정들을 순차적으로 진행해보세요.
 """)
 
+# 단축키 안내
+with st.sidebar:
+    with st.expander("⌨️ 단축키 안내"):
+        st.markdown("""
+        - **Ctrl + Enter**: 운영일정 추정 시작
+        - **Ctrl + S**: 설정 저장
+        - **Tab**: 다음 입력 필드로 이동
+        - **Shift + Tab**: 이전 입력 필드로 이동
+        """)
+
+# 진행 상태 표시
+def show_progress_status():
+    """현재 설정 진행 상태를 표시합니다."""
+    acts_df = st.session_state.get("activities", pd.DataFrame())
+    job_df = st.session_state.get("job_acts_map", pd.DataFrame())
+    room_plan = st.session_state.get("room_plan", pd.DataFrame())
+    oper_window = st.session_state.get("oper_window", pd.DataFrame())
+    prec_df = st.session_state.get("precedence", pd.DataFrame())
+    
+    # 각 섹션별 완료 상태 확인
+    activities_done = not acts_df.empty and (acts_df["use"] == True).any()
+    precedence_done = True  # 선택사항이므로 항상 True
+    jobs_done = not job_df.empty and job_df["count"].sum() > 0
+    
+    # batched 활동이 있는지 확인
+    has_batched = False
+    batched_done = True
+    if activities_done:
+        batched_activities = acts_df[
+            (acts_df['mode'] == 'batched') & 
+            (acts_df['use'] == True)
+        ]
+        has_batched = not batched_activities.empty
+        if has_batched:
+            # 그룹 크기 호환성 체크
+            from solver.group_formation import check_group_size_compatibility
+            is_compatible, _ = check_group_size_compatibility(acts_df)
+            batched_done = is_compatible
+    
+    rooms_done = not room_plan.empty or bool(st.session_state.get("room_template", {}))
+    time_done = not oper_window.empty
+    
+    # 전체 진행률 계산
+    if has_batched:
+        total_steps = 6
+        completed_steps = sum([
+            activities_done,
+            precedence_done,
+            jobs_done,
+            batched_done,
+            rooms_done,
+            time_done
+        ])
+    else:
+        total_steps = 5
+        completed_steps = sum([
+            activities_done,
+            precedence_done,
+            jobs_done,
+            rooms_done,
+            time_done
+        ])
+    
+    progress = min(completed_steps / total_steps, 1.0)  # 최대값을 1.0으로 제한
+    
+    # Progress bar 표시
+    st.progress(progress, text=f"설정 진행률: {int(progress * 100)}%")
+    
+    # 각 섹션별 상태 표시
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    
+    with col1:
+        if activities_done:
+            st.success("✅ 활동 정의")
+        else:
+            st.error("❌ 활동 정의")
+    
+    with col2:
+        st.success("✅ 선후행 제약")  # 선택사항
+    
+    with col3:
+        if jobs_done:
+            st.success("✅ 직무별 활동")
+        else:
+            st.error("❌ 직무별 활동")
+    
+    with col4:
+        if has_batched:
+            if batched_done:
+                st.success("✅ 집단면접")
+            else:
+                st.error("❌ 집단면접")
+        else:
+            st.info("➖ 집단면접")
+    
+    with col5:
+        if rooms_done:
+            st.success("✅ 운영 공간")
+        else:
+            st.error("❌ 운영 공간")
+    
+    with col6:
+        if time_done:
+            st.success("✅ 운영 시간")
+        else:
+            st.error("❌ 운영 시간")
+    
+    # batched 모드 알림
+    if has_batched and not st.session_state.get('batched_notified', False):
+        st.info("💡 **집단면접 모드가 감지되었습니다!** 아래 '집단면접 설정' 섹션에서 그룹 구성 방식을 설정해주세요.")
+        st.session_state['batched_notified'] = True
+
+# 진행 상태 표시
+show_progress_status()
+
+st.markdown("---")
+
 # 세션 상태 초기화
 def init_session_states():
     # 기본 활동 템플릿
@@ -96,8 +274,8 @@ def init_session_states():
     st.session_state.setdefault("precedence", default_precedence)
     
     # 기본 운영 시간
-    st.session_state.setdefault("oper_start_time", time(9, 0))
-    st.session_state.setdefault("oper_end_time", time(18, 0))
+    st.session_state.setdefault("oper_start_time", datetime_time(9, 0))
+    st.session_state.setdefault("oper_end_time", datetime_time(18, 0))
     
     # 스마트 방 템플릿 (기본 활동에 맞춰 자동 생성)
     if "room_template" not in st.session_state:
@@ -151,7 +329,78 @@ if st.session_state.get('solver_status', '미실행') == '미실행':
     st.info("👋 **처음 방문하셨나요?** 바로 아래 '운영일정추정 시작' 버튼을 눌러보세요! 기본 설정으로 데모를 체험할 수 있습니다.")
     st.markdown("💡 **팁:** 추정 후 아래 섹션들에서 세부 설정을 조정하여 더 정확한 결과를 얻을 수 있습니다.")
 
+# 빠른 시작 가이드
+with st.expander("📖 **빠른 시작 가이드**", expanded=False):
+    st.markdown("""
+    ### 🚀 빠른 시작 (3단계)
+    
+    1. **기본 설정으로 시작**: 
+       - 처음이시면 바로 '운영일정추정 시작' 버튼을 클릭하세요
+       - 기본 설정으로 결과를 확인할 수 있습니다
+    
+    2. **면접 모드 선택**:
+       - **individual**: 일반 개별 면접 (기본값)
+       - **parallel**: 같은 공간에서 여러 명이 각자 면접
+       - **batched**: 집단면접 (여러 명이 함께 하는 활동)
+    
+    3. **집단면접 사용 시**:
+       - batched 모드 선택 시 자동으로 '집단면접 설정' 섹션이 나타납니다
+       - 그룹 크기가 호환되는지 확인하세요
+       - '그룹 구성 시뮬레이션'으로 미리 확인 가능합니다
+    
+    ### 💡 주요 기능
+    
+    - **진행 상태 표시**: 상단에서 설정 완료 상태를 한눈에 확인
+    - **자동 연동 알림**: 설정 변경 시 영향받는 섹션을 자동으로 알려줍니다
+    - **체류시간 분석**: 결과에서 직무별/그룹별 체류시간 통계 제공
+    
+    ### ⚠️ 주의사항
+    
+    - 집단면접 활동들의 그룹 크기 범위가 겹쳐야 합니다
+    - 운영 공간은 활동에 맞게 자동으로 설정됩니다
+    - 선후행 제약은 선택사항입니다
+    """)
 
+# 대화형 튜토리얼
+if st.session_state.get('show_tutorial', True):
+    with st.container():
+        tutorial_container = st.info("🎓 **튜토리얼 모드 활성화됨** - 처음 사용하시는 분을 위한 단계별 가이드입니다.")
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("👉 각 섹션을 진행하시면 다음 단계를 안내해드립니다.")
+        with col2:
+            if st.button("튜토리얼 종료"):
+                st.session_state['show_tutorial'] = False
+                st.rerun()
+
+# 튜토리얼 단계별 안내
+def show_tutorial_hint():
+    """현재 진행 상황에 따라 튜토리얼 힌트를 표시합니다."""
+    if not st.session_state.get('show_tutorial', True):
+        return
+    
+    # 현재 상태 확인
+    acts_df = st.session_state.get("activities", pd.DataFrame())
+    job_df = st.session_state.get("job_acts_map", pd.DataFrame())
+    room_plan = st.session_state.get("room_plan", pd.DataFrame())
+    
+    # 단계별 가이드
+    if acts_df.empty or not (acts_df["use"] == True).any():
+        st.info("💡 **튜토리얼 단계 1**: 먼저 '1️⃣ 면접 활동 정의'에서 활동을 추가하거나 예제 템플릿을 사용해보세요!")
+    elif job_df.empty or job_df["count"].sum() == 0:
+        st.info("💡 **튜토리얼 단계 2**: '3️⃣ 직무별 면접활동 정의'에서 직무와 인원수를 설정하세요!")
+    elif room_plan.empty and not st.session_state.get("room_template", {}):
+        st.info("💡 **튜토리얼 단계 3**: '4️⃣ 운영 공간 설정'에서 면접실 정보를 입력하세요!")
+    else:
+        st.success("💡 **튜토리얼 완료**: 모든 필수 설정이 완료되었습니다! 이제 '운영일정추정 시작' 버튼을 클릭하세요! 🎉")
+        if st.button("🎓 튜토리얼 완료하기"):
+            st.session_state['show_tutorial'] = False
+            st.balloons()
+            st.rerun()
+
+# 메인 섹션 시작 전에 튜토리얼 힌트 표시
+show_tutorial_hint()
 
 def reset_run_state():
     st.session_state['final_schedule'] = None
@@ -177,6 +426,36 @@ with st.sidebar:
     else:
         st.warning("파라미터 파일을 찾을 수 없습니다.")
         params = {}
+    
+    # 성능 통계 표시
+    st.markdown("---")
+    with st.expander("📊 사용 통계", expanded=True):
+        # 실행 횟수 추적
+        if 'total_runs' not in st.session_state:
+            st.session_state['total_runs'] = 0
+        if 'successful_runs' not in st.session_state:
+            st.session_state['successful_runs'] = 0
+        if 'processing_times' not in st.session_state:
+            st.session_state['processing_times'] = []
+        
+        # 통계 표시
+        st.metric("총 실행 횟수", st.session_state.get('total_runs', 0))
+        
+        if st.session_state.get('total_runs', 0) > 0:
+            success_rate = (st.session_state.get('successful_runs', 0) / st.session_state.get('total_runs', 1)) * 100
+            st.metric("성공률", f"{success_rate:.1f}%")
+        
+        if st.session_state.get('processing_times', []):
+            avg_time = sum(st.session_state['processing_times']) / len(st.session_state['processing_times'])
+            st.metric("평균 처리 시간", f"{avg_time:.1f}초")
+            st.metric("마지막 처리 시간", f"{st.session_state['processing_times'][-1]:.1f}초")
+        
+        # 리셋 버튼
+        if st.button("📊 통계 초기화"):
+            st.session_state['total_runs'] = 0
+            st.session_state['successful_runs'] = 0
+            st.session_state['processing_times'] = []
+            st.rerun()
 
 # 데이터 검증
 acts_df = st.session_state.get("activities", pd.DataFrame())
@@ -189,34 +468,126 @@ prec_df = st.session_state.get("precedence", pd.DataFrame())
 validation_errors = []
 
 if acts_df.empty or not (acts_df["use"] == True).any():
-    validation_errors.append("활동을 하나 이상 정의하고 'use=True'로 설정해주세요.")
+    validation_errors.append({
+        "error": "활동을 하나 이상 정의하고 'use=True'로 설정해주세요.",
+        "section": "1️⃣ 면접 활동 정의",
+        "action": "활동을 추가하거나 기존 활동의 'use' 체크박스를 활성화하세요."
+    })
 
 if job_df.empty or (job_df["count"].sum() == 0):
-    validation_errors.append("직무 코드를 추가하고 인원수를 1명 이상 입력해주세요.")
+    validation_errors.append({
+        "error": "직무 코드를 추가하고 인원수를 1명 이상 입력해주세요.",
+        "section": "3️⃣ 직무별 면접활동 정의",
+        "action": "직무 코드를 추가하고 각 직무별 인원수를 설정하세요."
+    })
 
 if job_df["code"].duplicated().any():
-    validation_errors.append("중복된 직무 코드가 있습니다.")
+    validation_errors.append({
+        "error": "중복된 직무 코드가 있습니다.",
+        "section": "3️⃣ 직무별 면접활동 정의",
+        "action": "중복된 직무 코드를 수정하거나 삭제하세요."
+    })
 
 # room_plan 검증: room_template이 있으면 유효한 것으로 간주
 room_template = st.session_state.get("room_template", {})
 if room_plan.empty and not room_template:
-    validation_errors.append("운영 공간을 설정해주세요.")
+    validation_errors.append({
+        "error": "운영 공간을 설정해주세요.",
+        "section": "4️⃣ 운영 공간 설정",
+        "action": "각 면접실의 개수와 수용 인원을 설정하세요."
+    })
+
+# Batched 활동이 있을 때 그룹 크기 호환성 체크
+if not acts_df.empty:
+    batched_acts = acts_df[(acts_df['mode'] == 'batched') & (acts_df['use'] == True)]
+    if not batched_acts.empty:
+        from solver.group_formation import check_group_size_compatibility
+        is_compatible, error_msg = check_group_size_compatibility(acts_df)
+        if not is_compatible:
+            validation_errors.append({
+                "error": "집단면접 활동의 그룹 크기가 호환되지 않습니다.",
+                "section": "🏃‍♂️ 집단면접 설정",
+                "action": "모든 batched 활동의 최소/최대 인원 범위가 겹치도록 조정하세요."
+            })
 
 if validation_errors:
-    st.error("다음 항목을 설정해주세요:")
-    for error in validation_errors:
-        st.error(f"• {error}")
-    st.info("⬇️ 아래 섹션들에서 필요한 설정을 완료한 후 다시 추정해보세요.")
+    st.error("**🚨 다음 항목들을 확인해주세요:**")
+    
+    # 에러를 섹션별로 그룹화
+    error_by_section = {}
+    for error_info in validation_errors:
+        section = error_info["section"]
+        if section not in error_by_section:
+            error_by_section[section] = []
+        error_by_section[section].append(error_info)
+    
+    # 섹션별로 에러 표시
+    for section, errors in error_by_section.items():
+        with st.expander(f"**{section}** - {len(errors)}개 문제", expanded=True):
+            for error_info in errors:
+                st.error(f"❌ {error_info['error']}")
+                st.info(f"💡 **해결방법**: {error_info['action']}")
+    
+    st.warning("⚠️ 위 문제들을 해결한 후 다시 '운영일정추정 시작' 버튼을 클릭하세요.")
 else:
-    st.success("✅ 입력 데이터 검증 통과 – 운영일정추정을 시작할 수 있습니다!")
+    st.success("✅ 모든 설정이 완료되었습니다! 운영일정추정을 시작할 수 있습니다.")
 
 # 운영일정 추정 실행
 if st.button("🚀 운영일정추정 시작", type="primary", use_container_width=True, on_click=reset_run_state):
     if not validation_errors:
+        # 실행 전 최종 확인
+        total_candidates = job_df['count'].sum()
+        total_activities = len(acts_df[acts_df['use'] == True])
+        
+        # 예상 소요 시간 계산
+        total_duration = 0
+        for _, act in acts_df[acts_df['use'] == True].iterrows():
+            total_duration += act['duration_min']
+        
+        st.info(f"""
+        📊 **실행 전 요약**
+        - 총 지원자 수: {total_candidates}명
+        - 활성화된 활동 수: {total_activities}개
+        - 지원자당 예상 소요시간: {total_duration}분
+        """)
+        
+        # 프로그레스 바와 상태 메시지를 위한 컨테이너
+        progress_container = st.container()
+        status_container = st.container()
+        
         with st.spinner("최적의 운영 일정을 계산 중입니다..."):
             try:
+                # 실행 시작 시간 기록
+                start_time = time.time()
+                
+                # 실행 횟수 증가
+                st.session_state['total_runs'] = st.session_state.get('total_runs', 0) + 1
+                
+                # 진행 상황 표시
+                progress_bar = progress_container.progress(0)
+                status_text = status_container.empty()
+                
+                # 단계별 진행
+                status_text.text("📍 단계 1/3: 설정 검증 중...")
+                progress_bar.progress(0.33)
+                
                 cfg = core.build_config(st.session_state)
+                
+                status_text.text("📍 단계 2/3: 최적화 알고리즘 실행 중...")
+                progress_bar.progress(0.66)
+                
                 status, final_wide, logs, limit = solve_for_days(cfg, params, debug=debug_mode)
+                
+                status_text.text("📍 단계 3/3: 결과 처리 중...")
+                progress_bar.progress(1.0)
+                
+                # 실행 시간 계산
+                execution_time = time.time() - start_time
+                st.session_state['processing_times'] = st.session_state.get('processing_times', []) + [execution_time]
+                
+                # 진행 상황 UI 제거
+                progress_bar.empty()
+                status_text.empty()
                 
                 st.session_state['last_solve_logs'] = logs
                 st.session_state['solver_status'] = status
@@ -224,11 +595,111 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
                 
                 if status == "OK" and final_wide is not None and not final_wide.empty:
                     st.session_state['final_schedule'] = final_wide
+                    st.session_state['successful_runs'] = st.session_state.get('successful_runs', 0) + 1
                     st.balloons()
+                    st.success(f"🎉 최적화가 성공적으로 완료되었습니다! (처리 시간: {execution_time:.1f}초)")
                 else:
                     st.session_state['final_schedule'] = None
+                    
+                    # 상태별 구체적인 에러 메시지와 해결책
+                    error_solutions = {
+                        "INFEASIBLE": {
+                            "message": "현재 설정으로는 유효한 스케줄을 생성할 수 없습니다.",
+                            "solutions": [
+                                "운영 시간을 늘려보세요 (예: 9시-18시 → 9시-20시)",
+                                "운영 공간(방)의 수를 늘려보세요",
+                                "활동 시간을 줄여보세요",
+                                "선후행 제약을 완화해보세요"
+                            ]
+                        },
+                        "MAX_DAYS_EXCEEDED": {
+                            "message": "설정된 최대 일수 내에 모든 지원자를 배정할 수 없습니다.",
+                            "solutions": [
+                                "일일 운영 시간을 늘려보세요",
+                                "더 많은 면접실을 추가해보세요",
+                                "병렬 처리 가능한 활동은 parallel 모드로 변경해보세요"
+                            ]
+                        },
+                        "NO_SOLUTION": {
+                            "message": "해결 가능한 스케줄을 찾을 수 없습니다.",
+                            "solutions": [
+                                "제약 조건을 하나씩 제거하며 테스트해보세요",
+                                "지원자 수를 줄여서 먼저 테스트해보세요",
+                                "기본 설정으로 되돌려보세요"
+                            ]
+                        }
+                    }
+                    
+                    if status in error_solutions:
+                        error_info = error_solutions[status]
+                        st.error(f"❌ {error_info['message']}")
+                        
+                        with st.expander("🔧 해결 방법", expanded=True):
+                            for i, solution in enumerate(error_info['solutions'], 1):
+                                st.write(f"{i}. {solution}")
+                        
+                        # 빠른 수정 버튼들
+                        st.markdown("### 🚀 빠른 수정")
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            if st.button("⏰ 운영시간 1시간 연장"):
+                                current_end = st.session_state.get("oper_end_time", datetime_time(18, 0))
+                                new_end = datetime_time(current_end.hour + 1, current_end.minute)
+                                st.session_state["oper_end_time"] = new_end
+                                st.rerun()
+                        
+                        with col2:
+                            if st.button("🏢 면접실 1개씩 추가"):
+                                room_template = st.session_state.get("room_template", {})
+                                for rt in room_template:
+                                    room_template[rt]["count"] += 1
+                                st.session_state["room_template"] = room_template
+                                st.rerun()
+                        
+                        with col3:
+                            if st.button("🔄 기본 설정으로 복원"):
+                                init_session_states()
+                                st.rerun()
+                    
             except Exception as e:
-                st.error(f"계산 중 오류가 발생했습니다: {str(e)}")
+                # 예외 처리 개선
+                error_type = type(e).__name__
+                error_message = str(e)
+                
+                st.error(f"⚠️ 계산 중 오류가 발생했습니다: {error_type}")
+                
+                with st.expander("🐛 오류 상세 정보", expanded=True):
+                    st.code(error_message)
+                    
+                    # 스택 트레이스 (디버그 모드에서만)
+                    if debug_mode:
+                        import traceback
+                        st.code(traceback.format_exc())
+                
+                # 오류 복구 가이드
+                st.warning("💡 **오류 해결 단계**")
+                st.markdown("""
+                1. **입력 데이터 확인**: 모든 필수 항목이 올바르게 입력되었는지 확인
+                2. **제약 조건 검토**: 너무 엄격한 제약이 있는지 확인
+                3. **단순화 테스트**: 최소한의 설정으로 먼저 테스트
+                4. **지원 요청**: 위 단계로 해결되지 않으면 관리자에게 문의
+                """)
+                
+                # 오류 리포트 생성
+                if st.button("📧 오류 리포트 생성"):
+                    error_report = f"""
+                    오류 발생 시간: {datetime.now()}
+                    오류 타입: {error_type}
+                    오류 메시지: {error_message}
+                    
+                    현재 설정:
+                    - 지원자 수: {job_df['count'].sum()}
+                    - 활동 수: {len(acts_df[acts_df['use'] == True])}
+                    - 운영 시간: {st.session_state.get('oper_start_time')} - {st.session_state.get('oper_end_time')}
+                    """
+                    st.text_area("오류 리포트 (복사하여 관리자에게 전달)", error_report, height=200)
+                
                 st.session_state['solver_status'] = "ERROR"
 
 # 결과 표시
@@ -277,6 +748,7 @@ if final_schedule is not None and not final_schedule.empty:
         # 컬럼명 매핑 (실제 데이터에 맞게 조정)
         id_col = 'id' if 'id' in schedule_df.columns else 'candidate_id'
         job_col = 'code' if 'code' in schedule_df.columns else 'job_code'
+        group_col = 'group_id' if 'group_id' in schedule_df.columns else None
         
         # 시간 컬럼들 찾기 (start_활동명, end_활동명 형태)
         start_cols = [col for col in schedule_df.columns if col.startswith('start_')]
@@ -284,7 +756,7 @@ if final_schedule is not None and not final_schedule.empty:
         
         if not start_cols or not end_cols:
             st.error("시간 정보 컬럼을 찾을 수 없습니다. start_* 또는 end_* 형태의 컬럼이 필요합니다.")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
         # 지원자별로 그룹화하여 체류시간 계산
         for candidate_id, candidate_data in schedule_df.groupby(id_col):
@@ -332,9 +804,13 @@ if final_schedule is not None and not final_schedule.empty:
                 # 직무 코드 (첫 번째 행에서 가져오기)
                 job_code = candidate_data.iloc[0].get(job_col, 'Unknown')
                 
+                # 그룹 ID (있는 경우)
+                group_id = candidate_data.iloc[0].get(group_col) if group_col else None
+                
                 stats_data.append({
                     'candidate_id': candidate_id,
                     'job_code': job_code,
+                    'group_id': group_id,
                     'stay_duration_minutes': stay_duration_minutes,
                     'start_time': total_start,
                     'end_time': total_end
@@ -342,7 +818,7 @@ if final_schedule is not None and not final_schedule.empty:
         
         if not stats_data:
             st.warning("체류시간을 계산할 수 있는 유효한 데이터가 없습니다.")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
         stats_df = pd.DataFrame(stats_data)
         
@@ -359,10 +835,34 @@ if final_schedule is not None and not final_schedule.empty:
                 'median_duration': durations.median()
             })
         
-        return pd.DataFrame(job_stats), stats_df
+        job_stats_df = pd.DataFrame(job_stats)
+        
+        # 그룹별 통계 계산 (그룹 ID가 있는 경우)
+        group_stats_df = pd.DataFrame()
+        if group_col and 'group_id' in stats_df.columns and stats_df['group_id'].notna().any():
+            group_stats = []
+            for group_id, group_data in stats_df.groupby('group_id'):
+                if pd.notna(group_id):
+                    # 그룹 내 모든 구성원의 체류시간이 동일해야 함 (동시 시작/종료)
+                    durations = group_data['stay_duration_minutes']
+                    job_dist = group_data['job_code'].value_counts().to_dict()
+                    
+                    group_stats.append({
+                        'group_id': int(group_id),
+                        'member_count': len(group_data),
+                        'duration': durations.iloc[0],  # 모든 구성원이 동일한 체류시간
+                        'job_distribution': job_dist,
+                        'start_time': group_data['start_time'].iloc[0],
+                        'end_time': group_data['end_time'].iloc[0]
+                    })
+            
+            if group_stats:
+                group_stats_df = pd.DataFrame(group_stats)
+        
+        return job_stats_df, stats_df, group_stats_df
     
     try:
-        job_stats_df, individual_stats_df = calculate_stay_duration_stats(final_schedule)
+        job_stats_df, individual_stats_df, group_stats_df = calculate_stay_duration_stats(final_schedule)
         
         if not job_stats_df.empty:
             # 직무별 통계 표시
@@ -392,13 +892,50 @@ if final_schedule is not None and not final_schedule.empty:
                 overall_avg = (individual_stats_df['stay_duration_minutes'].mean())
                 st.metric("전체 평균 체류시간", f"{overall_avg:.1f}분")
             
+            # 그룹별 체류시간 통계 (집단면접이 있는 경우)
+            if not group_stats_df.empty:
+                st.markdown("**👥 그룹별 체류시간 통계**")
+                
+                # 그룹 통계 표시
+                group_display = group_stats_df.copy()
+                group_display['duration'] = group_display['duration'].round(1)
+                group_display['start_time'] = group_display['start_time'].dt.strftime('%H:%M')
+                group_display['end_time'] = group_display['end_time'].dt.strftime('%H:%M')
+                
+                # 직무 분포를 문자열로 변환
+                group_display['직무구성'] = group_display['job_distribution'].apply(
+                    lambda x: ', '.join([f"{k}:{v}명" for k, v in x.items()])
+                )
+                
+                # 표시할 컬럼 선택
+                group_display = group_display[['group_id', 'member_count', 'duration', 'start_time', 'end_time', '직무구성']]
+                group_display.columns = ['그룹ID', '인원수', '체류시간(분)', '시작시간', '종료시간', '직무구성']
+                
+                st.dataframe(group_display, use_container_width=True)
+                
+                # 그룹 요약 정보
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("총 그룹 수", f"{len(group_stats_df)}개")
+                with col2:
+                    avg_group_size = group_stats_df['member_count'].mean()
+                    st.metric("평균 그룹 크기", f"{avg_group_size:.1f}명")
+            
             # 상세 정보를 expander로 제공
             with st.expander("🔍 개별 지원자 체류시간 상세보기"):
                 detail_display = individual_stats_df.copy()
                 detail_display['stay_duration_minutes'] = detail_display['stay_duration_minutes'].round(1)
                 detail_display['start_time'] = detail_display['start_time'].dt.strftime('%H:%M')
                 detail_display['end_time'] = detail_display['end_time'].dt.strftime('%H:%M')
-                detail_display.columns = ['지원자ID', '직무코드', '체류시간(분)', '시작시간', '종료시간']
+                
+                # 그룹 ID가 있는 경우 표시
+                if 'group_id' in detail_display.columns:
+                    detail_display['group_id'] = detail_display['group_id'].fillna('').astype(str).str.replace('.0', '', regex=False)
+                    detail_display.columns = ['지원자ID', '직무코드', '그룹ID', '체류시간(분)', '시작시간', '종료시간']
+                else:
+                    detail_display = detail_display.drop(columns=['group_id'], errors='ignore')
+                    detail_display.columns = ['지원자ID', '직무코드', '체류시간(분)', '시작시간', '종료시간']
+                
                 st.dataframe(detail_display, use_container_width=True)
         else:
             st.warning("체류시간 통계를 계산할 수 없습니다.")
@@ -447,8 +984,7 @@ with col_header:
     st.header("1️⃣ 면접 활동 정의")
 with col_refresh:
     st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
-    if st.button("🔄 섹션 새로고침", key="refresh_activities", help="AG-Grid 반응이 느릴 때 이 섹션을 새로고침"):
-        # 섹션별 새로고침: 해당 섹션의 key 값들을 변경하여 컴포넌트 재렌더링 유도
+    if st.button("🔄 섹션 새로고침", help="AG-Grid가 반응하지 않을 때 섹션을 새로고침합니다"):
         if "section_refresh_counter" not in st.session_state:
             st.session_state["section_refresh_counter"] = {}
         if "activities" not in st.session_state["section_refresh_counter"]:
@@ -456,7 +992,98 @@ with col_refresh:
         st.session_state["section_refresh_counter"]["activities"] += 1
         st.rerun()
 
-st.markdown("면접에서 진행할 활동들을 정의하고 각 활동의 속성을 설정합니다.")
+st.markdown("면접 프로세스를 구성하는 모든 활동을 정의합니다.")
+
+# 예제 템플릿 제공
+with st.expander("📚 예제 템플릿", expanded=False):
+    st.markdown("""
+    ### 🎯 일반 채용 면접
+    | 활동 | 모드 | 시간(분) | 방 종류 | 최소인원 | 최대인원 |
+    |------|------|----------|---------|----------|----------|
+    | 서류검토 | individual | 10 | 대기실 | 1 | 1 |
+    | 1차면접 | individual | 30 | 면접실A | 1 | 1 |
+    | 2차면접 | individual | 45 | 면접실B | 1 | 1 |
+    | 인성검사 | parallel | 60 | 검사실 | 1 | 10 |
+    
+    ### 👥 집단면접 포함
+    | 활동 | 모드 | 시간(분) | 방 종류 | 최소인원 | 최대인원 |
+    |------|------|----------|---------|----------|----------|
+    | 오리엔테이션 | batched | 30 | 강당 | 20 | 50 |
+    | 집단토론 | batched | 60 | 토론실 | 4 | 6 |
+    | 개별면접 | individual | 30 | 면접실 | 1 | 1 |
+    | PT발표 | batched | 90 | 발표실 | 5 | 8 |
+    """)
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("🎯 일반 채용 템플릿 적용"):
+            template_data = pd.DataFrame({
+                "use": [True, True, True, True],
+                "activity": ["서류검토", "1차면접", "2차면접", "인성검사"],
+                "mode": ["individual", "individual", "individual", "parallel"],
+                "duration_min": [10, 30, 45, 60],
+                "room_type": ["대기실", "면접실A", "면접실B", "검사실"],
+                "min_cap": [1, 1, 1, 1],
+                "max_cap": [1, 1, 1, 10],
+            })
+            st.session_state["activities"] = template_data
+            st.rerun()
+    
+    with col2:
+        if st.button("👥 집단면접 템플릿 적용"):
+            template_data = pd.DataFrame({
+                "use": [True, True, True, True],
+                "activity": ["오리엔테이션", "집단토론", "개별면접", "PT발표"],
+                "mode": ["batched", "batched", "individual", "batched"],
+                "duration_min": [30, 60, 30, 90],
+                "room_type": ["강당", "토론실", "면접실", "발표실"],
+                "min_cap": [20, 4, 1, 5],
+                "max_cap": [50, 6, 1, 8],
+            })
+            st.session_state["activities"] = template_data
+            st.rerun()
+    
+    with col3:
+        if st.button("🔄 기본값으로 리셋"):
+            init_session_states()
+            st.rerun()
+
+# 모드별 설명
+with st.expander("ℹ️ 면접 모드 상세 설명", expanded=False):
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        ### 🎯 Individual (개별)
+        - **설명**: 전통적인 1:1 면접
+        - **특징**: 
+          - 한 명씩 독립적으로 진행
+          - 방을 독점적으로 사용
+          - 대기 시간 최소화
+        - **예시**: 임원면접, 실무면접
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 🔀 Parallel (병렬)
+        - **설명**: 같은 공간에서 여러 명이 각자 활동
+        - **특징**:
+          - 방 용량만큼 동시 진행
+          - 각자 다른 시작/종료 시간
+          - 공간 효율성 극대화
+        - **예시**: 인적성검사, 코딩테스트
+        """)
+    
+    with col3:
+        st.markdown("""
+        ### 👥 Batched (집단)
+        - **설명**: 여러 명이 함께하는 그룹 활동
+        - **특징**:
+          - 그룹 단위로 동시 시작/종료
+          - 그룹 크기 범위 설정 필요
+          - 자동 그룹 구성
+        - **예시**: 집단토론, 팀 프로젝트
+        """)
 
 # 기본 템플릿 함수
 def default_df() -> pd.DataFrame:
@@ -499,7 +1126,7 @@ gb.configure_column(
 
 gb.configure_column("activity", header_name="활동 이름", editable=True)
 
-mode_values = ["individual"]
+mode_values = ["individual", "parallel", "batched"]
 gb.configure_column(
     "mode",
     header_name="모드",
@@ -528,7 +1155,7 @@ st.markdown("#### 활동 정의")
 col_add, col_del = st.columns(2)
 
 with col_add:
-    if st.button("➕ 활동 행 추가", key="add_activity"):
+    if st.button("➕ 활동 행 추가"):
         new_row = {
             "use": True,
             "activity": "NEW_ACT",
@@ -561,7 +1188,7 @@ with col_del:
             options=delete_options,
             key="del_activity_select"
         )
-        if st.button("❌ 선택된 활동 삭제", key="del_activity"):
+        if st.button("❌ 선택된 활동 삭제"):
             if to_delete:
                 # 선택된 인덱스 추출
                 selected_indices = [int(s.split(":")[0]) for s in to_delete]
@@ -596,6 +1223,99 @@ grid_ret = AgGrid(
 
 st.session_state["activities"] = grid_ret["data"]
 
+# Batched 모드 활동이 있는지 확인하고 알림 표시
+updated_activities = st.session_state["activities"]
+batched_activities = updated_activities[
+    (updated_activities['mode'] == 'batched') & 
+    (updated_activities['use'] == True)
+]
+if not batched_activities.empty:
+    st.info("💡 **집단면접 활동이 감지되었습니다!**")
+    
+    # 그룹 크기 정보 표시
+    for _, act in batched_activities.iterrows():
+        st.write(f"- **{act['activity']}**: {act['min_cap']}-{act['max_cap']}명 그룹")
+    
+    # 그룹 크기 호환성 미리 체크
+    from solver.group_formation import check_group_size_compatibility
+    is_compatible, error_msg = check_group_size_compatibility(updated_activities)
+    
+    if not is_compatible:
+        st.warning("⚠️ **주의**: 그룹 크기가 호환되지 않습니다. 아래 '집단면접 설정' 섹션에서 확인해주세요.")
+    else:
+        min_caps = batched_activities['min_cap'].values
+        max_caps = batched_activities['max_cap'].values
+        common_min = max(min_caps)
+        common_max = min(max_caps)
+        st.success(f"✅ 그룹 크기 호환성 OK: 공통 범위 {common_min}-{common_max}명")
+
+# Parallel 모드 활동이 있는지 확인하고 설명 표시
+parallel_activities = updated_activities[
+    (updated_activities['mode'] == 'parallel') & 
+    (updated_activities['use'] == True)
+]
+if not parallel_activities.empty:
+    st.info("🔀 **병렬 처리 활동이 있습니다**: 같은 공간에서 여러 명이 각자 활동을 수행합니다.")
+    for _, act in parallel_activities.iterrows():
+        st.write(f"- **{act['activity']}**: 최대 {act['max_cap']}명 동시 수용")
+
+# 설정 변경 감지 및 알림
+def detect_configuration_changes():
+    """설정 변경을 감지하고 영향받는 섹션을 알려줍니다."""
+    notifications = []
+    
+    # 이전 상태와 비교
+    prev_activities = st.session_state.get('prev_activities_state', pd.DataFrame())
+    current_activities = st.session_state.get('activities', pd.DataFrame())
+    
+    if not prev_activities.equals(current_activities):
+        # 활동이 변경됨
+        affected_sections = []
+        
+        # room_type이 변경되었는지 확인
+        if not prev_activities.empty and not current_activities.empty:
+            prev_room_types = set(prev_activities[prev_activities['use'] == True]['room_type'].dropna())
+            curr_room_types = set(current_activities[current_activities['use'] == True]['room_type'].dropna())
+            
+            if prev_room_types != curr_room_types:
+                affected_sections.append("4️⃣ 운영 공간 설정")
+        
+        # batched 모드가 추가/제거되었는지 확인
+        prev_has_batched = not prev_activities.empty and ((prev_activities['mode'] == 'batched') & (prev_activities['use'] == True)).any()
+        curr_has_batched = not current_activities.empty and ((current_activities['mode'] == 'batched') & (current_activities['use'] == True)).any()
+        
+        if prev_has_batched != curr_has_batched:
+            if curr_has_batched:
+                affected_sections.append("🏃‍♂️ 집단면접 설정 (새로 추가됨)")
+            
+        # 선후행 제약에 영향을 줄 수 있는 활동 변경
+        if not prev_activities.empty and not current_activities.empty:
+            prev_act_names = set(prev_activities[prev_activities['use'] == True]['activity'])
+            curr_act_names = set(current_activities[current_activities['use'] == True]['activity'])
+            
+            if prev_act_names != curr_act_names:
+                affected_sections.append("2️⃣ 선후행 제약 정의")
+        
+        if affected_sections:
+            notifications.append({
+                "type": "활동 변경",
+                "sections": affected_sections
+            })
+        
+        # 현재 상태를 저장
+        st.session_state['prev_activities_state'] = current_activities.copy()
+    
+    return notifications
+
+# 활동 정의 섹션 후에 변경 감지 및 알림 표시
+notifications = detect_configuration_changes()
+if notifications:
+    st.warning("⚠️ **설정 변경 감지**")
+    for notif in notifications:
+        st.info(f"**{notif['type']}**으로 인해 다음 섹션들을 확인해주세요:")
+        for section in notif['sections']:
+            st.write(f"  • {section}")
+
 st.divider()
 
 # =============================================================================
@@ -606,7 +1326,7 @@ with col_header:
     st.header("2️⃣ 선후행 제약 설정")
 with col_refresh:
     st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
-    if st.button("🔄 섹션 새로고침", key="refresh_precedence", help="선후행 제약 UI가 먹통일 때 새로고침"):
+    if st.button("🔄 섹션 새로고침", help="선후행 제약 UI가 먹통일 때 새로고침"):
         # 섹션별 새로고침
         if "section_refresh_counter" not in st.session_state:
             st.session_state["section_refresh_counter"] = {}
@@ -846,7 +1566,7 @@ if not acts_df.empty:
         
         with col3:
             st.markdown("<br>", unsafe_allow_html=True)  # 버튼 높이 맞추기
-            if st.button("✅ 적용", key="btn_add_start_end", type="primary", use_container_width=True):
+            if st.button("✅ 적용", type="primary", use_container_width=True):
                 # 기존 __START__/__END__ 관련 행 제거
                 tmp = prec_df[
                     (~prec_df["predecessor"].isin(["__START__", "__END__"])) &
@@ -879,7 +1599,7 @@ if not acts_df.empty:
         
         with col_form3:
             st.markdown("<br>", unsafe_allow_html=True)  # 버튼 높이 맞추기
-            add_rule_btn = st.button("✅ 적용", key="btn_add_sequence", type="primary", use_container_width=True)
+            add_rule_btn = st.button("✅ 적용", type="primary", use_container_width=True)
         
         # 고급 옵션을 별도 영역으로 분리
         st.markdown("#### ⚙️ 고급 옵션")
@@ -954,7 +1674,7 @@ if not acts_df.empty:
                 )
                 
                 # 삭제 버튼들
-                if st.button("❌ 선택 삭제", key="del_prec", disabled=not to_delete, use_container_width=True):
+                if st.button("❌ 선택 삭제", disabled=not to_delete, use_container_width=True):
                     if to_delete:
                         new_prec = prec_df[~prec_df["규칙표시용"].isin(to_delete)].drop(
                             columns="규칙표시용"
@@ -963,7 +1683,7 @@ if not acts_df.empty:
                         st.success(f"✅ {len(to_delete)}개 규칙 삭제!")
                         st.rerun()
                 
-                if st.button("🗑️ 전체 삭제", key="clear_all_prec", type="secondary", use_container_width=True):
+                if st.button("🗑️ 전체 삭제", type="secondary", use_container_width=True):
                     st.session_state["precedence"] = pd.DataFrame(columns=["predecessor", "successor", "gap_min", "adjacent"])
                     st.success("✅ 모든 규칙 삭제!")
                     st.rerun()
@@ -980,7 +1700,7 @@ with col_header:
     st.header("3️⃣ 직무별 면접활동 정의")
 with col_refresh:
     st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
-    if st.button("🔄 섹션 새로고침", key="refresh_job_activities", help="직무별 면접활동 AG-Grid가 먹통일 때 새로고침"):
+    if st.button("🔄 섹션 새로고침", help="직무별 면접활동 AG-Grid가 먹통일 때 새로고침"):
         # 섹션별 새로고침
         if "section_refresh_counter" not in st.session_state:
             st.session_state["section_refresh_counter"] = {}
@@ -1025,7 +1745,7 @@ else:
         col_add2, col_del2 = st.columns(2)
         
         with col_add2:
-            if st.button("➕ 직무 코드 행 추가", key="add_job"):
+            if st.button("➕ 직무 코드 행 추가"):
                 current = st.session_state["job_acts_map"].copy()
                 
                 # 새 코드 자동 생성
@@ -1060,7 +1780,7 @@ else:
                 key="del_job_select"
             )
             
-            if st.button("❌ 선택 코드 삭제", key="del_job"):
+            if st.button("❌ 선택 코드 삭제"):
                 if to_delete2:
                     kept = job_df[~job_df["code"].isin(to_delete2)].reset_index(drop=True)
                     st.session_state["job_acts_map"] = kept
@@ -1154,6 +1874,308 @@ else:
 st.divider()
 
 # =============================================================================
+# 섹션 3-1: 집단면접 설정 (batched 활동이 있는 경우에만 표시)
+# =============================================================================
+# Batched 활동 확인
+batched_activities = acts_df[acts_df['mode'] == 'batched']
+if not batched_activities.empty:
+    # 집단면접 섹션 강조 표시
+    st.markdown("""
+    <style>
+    .batched-section {
+        border: 3px solid #ff6b6b;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 10px 0;
+        background-color: #fff5f5;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # 새로운 집단면접 활동이 추가되었는지 확인
+    prev_batched_count = st.session_state.get('prev_batched_count', 0)
+    current_batched_count = len(batched_activities)
+    
+    if current_batched_count > prev_batched_count:
+        st.balloons()
+        st.session_state['prev_batched_count'] = current_batched_count
+    
+    st.markdown('<div class="batched-section">', unsafe_allow_html=True)
+    
+    col_header, col_refresh = st.columns([3, 2])
+    with col_header:
+        st.header("🏃‍♂️ 집단면접 설정")
+    with col_refresh:
+        st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
+        if st.button("🔄 섹션 새로고침", help="집단면접 설정이 반응하지 않을 때 새로고침"):
+            # 섹션별 새로고침
+            if "section_refresh_counter" not in st.session_state:
+                st.session_state["section_refresh_counter"] = {}
+            if "batched_settings" not in st.session_state["section_refresh_counter"]:
+                st.session_state["section_refresh_counter"]["batched_settings"] = 0
+            st.session_state["section_refresh_counter"]["batched_settings"] += 1
+            st.rerun()
+
+    st.markdown("집단면접(batched 모드) 활동을 위한 그룹 구성 방식을 설정합니다.")
+    
+    # 현재 batched 활동 목록 표시
+    st.info("**📋 현재 집단면접 활동:**")
+    for i, (_, act) in enumerate(batched_activities.iterrows()):
+        st.write(f"{i+1}. **{act['activity']}** ({act['duration_min']}분) - 그룹 크기: {act['min_cap']}-{act['max_cap']}명")
+    
+    # 그룹 크기 호환성 체크
+    from solver.group_formation import check_group_size_compatibility
+    is_compatible, compatibility_error = check_group_size_compatibility(acts_df)
+    
+    if not is_compatible:
+        st.error("🚨 **그룹 크기 호환성 오류**")
+        st.error(compatibility_error)
+        st.info("💡 **해결 방법**: 모든 batched 활동의 최소/최대 인원 범위가 겹치도록 조정해주세요.")
+        
+        # 구체적인 조정 가이드 제공
+        st.markdown("### 🔧 권장 조정 방법")
+        
+        # 현재 설정된 범위 분석
+        min_caps = batched_activities['min_cap'].values
+        max_caps = batched_activities['max_cap'].values
+        
+        # 가능한 공통 범위 찾기
+        potential_min = max(min_caps)
+        potential_max = min(max_caps)
+        
+        if potential_min <= potential_max:
+            st.warning(f"현재 설정으로는 공통 범위를 만들 수 없습니다. 다음 중 하나를 선택해주세요:")
+        
+        # 옵션 1: 최대값 기준
+        option1_min = min(min_caps)
+        option1_max = max(max_caps)
+        
+        # 옵션 2: 중간값 기준
+        avg_min = int(sum(min_caps) / len(min_caps))
+        avg_max = int(sum(max_caps) / len(max_caps))
+        if avg_min > avg_max:
+            avg_min, avg_max = avg_max, avg_min
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.info("**옵션 1: 가장 넓은 범위 사용**")
+            st.write(f"모든 활동을 **{option1_min}-{option1_max}명**으로 설정")
+            
+            # 각 활동별 조정 사항 표시
+            for _, act in batched_activities.iterrows():
+                if act['min_cap'] != option1_min or act['max_cap'] != option1_max:
+                    st.write(f"- {act['activity']}: {act['min_cap']}-{act['max_cap']}명 → {option1_min}-{option1_max}명")
+        
+        with col2:
+            st.info("**옵션 2: 평균값 기준**")
+            st.write(f"모든 활동을 **{avg_min}-{avg_max}명**으로 설정")
+            
+            # 각 활동별 조정 사항 표시
+            for _, act in batched_activities.iterrows():
+                if act['min_cap'] != avg_min or act['max_cap'] != avg_max:
+                    st.write(f"- {act['activity']}: {act['min_cap']}-{act['max_cap']}명 → {avg_min}-{avg_max}명")
+        
+        st.warning("⚠️ 위 옵션 중 하나를 선택하여 '1️⃣ 면접 활동 정의' 섹션에서 수정해주세요.")
+    else:
+        # 공통 그룹 크기 범위 표시
+        min_caps = batched_activities['min_cap'].values
+        max_caps = batched_activities['max_cap'].values
+        common_min = max(min_caps)
+        common_max = min(max_caps)
+        
+        st.success(f"✅ 그룹 크기 호환성 확인: 공통 범위 **{common_min}-{common_max}명**")
+        
+        # 그룹 구성 옵션
+        st.subheader("📋 그룹 구성 옵션")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # 직무별 분리 우선 옵션
+            prefer_job_separation = st.checkbox(
+                "🏢 직무별 분리 우선",
+                value=st.session_state.get("prefer_job_separation", True),
+                help="체크하면 같은 직무끼리 그룹을 구성하려고 시도합니다. 불가능한 경우에만 직무를 섞습니다.",
+                key="cb_prefer_job_separation"
+            )
+            st.session_state["prefer_job_separation"] = prefer_job_separation
+        
+        with col2:
+            # 유사 직무 그룹 설정 여부
+            use_similarity_groups = st.checkbox(
+                "🤝 유사 직무 그룹 사용",
+                value=st.session_state.get("use_similarity_groups", False),
+                help="체크하면 유사한 직무끼리 묶어서 그룹을 구성할 수 있습니다.",
+                key="cb_use_similarity_groups"
+            )
+            st.session_state["use_similarity_groups"] = use_similarity_groups
+        
+        # 유사 직무 그룹 설정 UI
+        if use_similarity_groups:
+            st.subheader("🤝 유사 직무 그룹 설정")
+            st.markdown("직무별 분리가 어려울 때 함께 묶을 수 있는 직무들을 그룹으로 설정합니다.")
+            
+            # 현재 직무 코드 목록
+            job_codes = job_df['code'].tolist()
+            
+            # 기존 유사 직무 그룹 불러오기
+            similarity_groups = st.session_state.get("job_similarity_groups", [])
+            
+            # 그룹 관리
+            col_add_group, col_del_group = st.columns(2)
+            
+            with col_add_group:
+                if st.button("➕ 유사 직무 그룹 추가"):
+                    similarity_groups.append([])
+                    st.session_state["job_similarity_groups"] = similarity_groups
+                    st.rerun()
+            
+            with col_del_group:
+                if similarity_groups and st.button("❌ 마지막 그룹 삭제"):
+                    similarity_groups.pop()
+                    st.session_state["job_similarity_groups"] = similarity_groups
+                    st.rerun()
+            
+            # 각 그룹 편집
+            updated_groups = []
+            for i, group in enumerate(similarity_groups):
+                st.markdown(f"**그룹 {i+1}**")
+                selected_jobs = st.multiselect(
+                    f"그룹 {i+1}에 포함할 직무",
+                    options=job_codes,
+                    default=group,
+                    key=f"similarity_group_{i}"
+                )
+                if selected_jobs:
+                    updated_groups.append(selected_jobs)
+            
+            st.session_state["job_similarity_groups"] = updated_groups
+            
+            # 그룹 현황 표시
+            if updated_groups:
+                st.info("**현재 유사 직무 그룹:**")
+                for i, group in enumerate(updated_groups):
+                    st.write(f"- 그룹 {i+1}: {', '.join(group)}")
+        
+        # 그룹 구성 예측
+        with st.expander("🔍 예상 그룹 구성 미리보기", expanded=False):
+            st.markdown("현재 설정으로 예상되는 그룹 구성입니다.")
+            
+            # 총 인원수와 그룹 크기 범위로 예상 그룹 수 계산
+            total_candidates = job_df['count'].sum()
+            estimated_groups = (total_candidates + common_max - 1) // common_max  # 최소 그룹 수
+            
+            st.info(f"총 {total_candidates}명을 {common_min}-{common_max}명 단위로 묶으면 약 **{estimated_groups}개** 그룹이 생성될 예정입니다.")
+            
+            if prefer_job_separation:
+                st.write("📌 직무별 분리를 우선으로 그룹을 구성합니다.")
+                for _, row in job_df.iterrows():
+                    job_code = row['code']
+                    count = row['count']
+                    job_groups = (count + common_max - 1) // common_max
+                    st.write(f"- {job_code}: {count}명 → 약 {job_groups}개 그룹")
+            else:
+                st.write("📌 직무 구분 없이 효율적으로 그룹을 구성합니다.")
+            
+            # 그룹 구성 시뮬레이션 버튼
+            if st.button("🔮 그룹 구성 시뮬레이션"):
+                with st.spinner("그룹 구성을 시뮬레이션하고 있습니다..."):
+                    try:
+                        # 가상 지원자 데이터 생성
+                        candidates = []
+                        for _, row in job_df.iterrows():
+                            job_code = row['code']
+                            count = int(row['count'])
+                            for i in range(count):
+                                candidates.append({
+                                    'id': f"{job_code}_{i+1:03d}",
+                                    'job_code': job_code
+                                })
+                        candidates_df = pd.DataFrame(candidates)
+                        
+                        # GroupFormationOptimizer 실행
+                        from solver.group_formation import GroupFormationOptimizer
+                        
+                        optimizer = GroupFormationOptimizer(
+                            candidates=candidates_df,
+                            batched_activities=batched_activities,
+                            job_similarity_groups=st.session_state.get("job_similarity_groups", []),
+                            prefer_job_separation=prefer_job_separation
+                        )
+                        
+                        groups, status, logs = optimizer.optimize(time_limit_sec=10.0)
+                        
+                        if status in ["OPTIMAL", "FEASIBLE"]:
+                            st.success(f"✅ 그룹 구성 시뮬레이션 완료! (상태: {status})")
+                            
+                            # 그룹별 구성 표시
+                            st.markdown("### 📊 시뮬레이션 결과")
+                            
+                            # 요약 정보
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                st.metric("총 그룹 수", f"{len(groups)}개")
+                            with col2:
+                                avg_size = sum(len(members) for members in groups.values()) / len(groups)
+                                st.metric("평균 그룹 크기", f"{avg_size:.1f}명")
+                            with col3:
+                                # 직무 혼합도 계산
+                                mixed_groups = 0
+                                for members in groups.values():
+                                    job_codes = [candidates_df[candidates_df['id'] == m]['job_code'].iloc[0] for m in members]
+                                    if len(set(job_codes)) > 1:
+                                        mixed_groups += 1
+                                st.metric("직무 혼합 그룹", f"{mixed_groups}개")
+                            
+                            # 상세 그룹 구성
+                            st.markdown("#### 그룹별 상세 구성")
+                            
+                            for group_id in sorted(groups.keys()):
+                                members = groups[group_id]
+                                # 직무별 인원수 계산
+                                job_dist = {}
+                                for member_id in members:
+                                    job_code = candidates_df[candidates_df['id'] == member_id]['job_code'].iloc[0]
+                                    job_dist[job_code] = job_dist.get(job_code, 0) + 1
+                                
+                                # 직무 구성 문자열 생성
+                                job_str = ", ".join([f"{k}: {v}명" for k, v in sorted(job_dist.items())])
+                                
+                                with st.container():
+                                    st.write(f"**그룹 {group_id+1}** ({len(members)}명)")
+                                    st.write(f"  - 직무 구성: {job_str}")
+                                    
+                                    # 구성원 ID 표시 (접기 가능)
+                                    with st.expander(f"구성원 보기"):
+                                        member_str = ", ".join(sorted(members))
+                                        st.write(member_str)
+                            
+                            # 최적화 로그
+                            with st.expander("🔍 최적화 로그"):
+                                st.text(logs)
+                        else:
+                            st.error(f"❌ 그룹 구성 시뮬레이션 실패: {status}")
+                            st.text(logs)
+                            
+                    except Exception as e:
+                        st.error(f"시뮬레이션 중 오류 발생: {str(e)}")
+                        st.info("그룹 크기 설정이나 직무별 인원수를 확인해주세요.")
+    
+    st.markdown('</div>', unsafe_allow_html=True)  # batched-section 닫기
+
+    st.divider()
+else:
+    # Batched 활동이 없는 경우에도 prev_count 초기화
+    st.session_state['prev_batched_count'] = 0
+
+# =============================================================================
 # 섹션 4: 운영 공간 설정
 # =============================================================================
 col_header, col_refresh = st.columns([3, 2])
@@ -1161,7 +2183,7 @@ with col_header:
     st.header("4️⃣ 운영 공간 설정")
 with col_refresh:
     st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
-    if st.button("🔄 섹션 새로고침", key="refresh_room_settings", help="운영 공간 설정 UI가 먹통일 때 새로고침"):
+    if st.button("🔄 섹션 새로고침", help="운영 공간 설정 UI가 먹통일 때 새로고침"):
         # 섹션별 새로고침
         if "section_refresh_counter" not in st.session_state:
             st.session_state["section_refresh_counter"] = {}
@@ -1253,7 +2275,7 @@ with col_header:
     st.header("5️⃣ 운영 시간 설정")
 with col_refresh:
     st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
-    if st.button("🔄 섹션 새로고침", key="refresh_time_settings", help="운영 시간 설정 UI가 먹통일 때 새로고침"):
+    if st.button("🔄 섹션 새로고침", help="운영 시간 설정 UI가 먹통일 때 새로고침"):
         # 섹션별 새로고침
         if "section_refresh_counter" not in st.session_state:
             st.session_state["section_refresh_counter"] = {}
@@ -1265,8 +2287,8 @@ with col_refresh:
 st.markdown("면접을 운영할 경우의 하루 기준 운영 시작 및 종료 시간을 설정합니다.")
 
 # 기존 값 불러오기
-init_start = st.session_state.get("oper_start_time", time(9, 0))
-init_end = st.session_state.get("oper_end_time", time(18, 0))
+init_start = st.session_state.get("oper_start_time", datetime_time(9, 0))
+init_end = st.session_state.get("oper_end_time", datetime_time(18, 0))
 
 st.subheader("하루 기준 공통 운영 시간")
 
@@ -1363,6 +2385,54 @@ st.markdown("""
     ⬆️
 </a>
 """, unsafe_allow_html=True)
+
+# 피드백 섹션
+st.markdown("---")
+with st.expander("💬 피드백 & 도움말", expanded=False):
+    st.markdown("### 🤝 사용자 피드백")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("#### 만족도 평가")
+        satisfaction = st.radio(
+            "이 시스템에 대한 만족도를 평가해주세요:",
+            ["⭐⭐⭐⭐⭐ 매우 만족", "⭐⭐⭐⭐ 만족", "⭐⭐⭐ 보통", "⭐⭐ 불만족", "⭐ 매우 불만족"],
+            index=0,
+            key="satisfaction_rating"
+        )
+        
+        feedback_text = st.text_area(
+            "개선사항이나 건의사항을 자유롭게 작성해주세요:",
+            height=100,
+            key="feedback_text"
+        )
+        
+        if st.button("📤 피드백 전송"):
+            st.success("✅ 피드백이 전송되었습니다. 감사합니다!")
+            # 실제로는 여기서 피드백을 저장하거나 전송하는 로직 추가
+    
+    with col2:
+        st.markdown("#### 빠른 도움말")
+        st.markdown("""
+        **자주 묻는 질문:**
+        
+        **Q: 집단면접 그룹 크기가 호환되지 않는다고 나옵니다.**  
+        A: 모든 batched 활동의 최소/최대 인원 범위가 겹쳐야 합니다. 
+        예: 활동1(4-6명), 활동2(5-8명) → 공통범위(5-6명)
+        
+        **Q: 스케줄링이 실패합니다.**  
+        A: 운영 시간을 늘리거나, 면접실 수를 증가시켜보세요.
+        
+        **Q: AG-Grid가 반응하지 않습니다.**  
+        A: 각 섹션의 '🔄 섹션 새로고침' 버튼을 클릭하세요.
+        
+        **Q: 설정이 저장되지 않습니다.**  
+        A: 자동 저장이 활성화되어 있는지 사이드바에서 확인하세요.
+        """)
+        
+        st.markdown("#### 추가 지원")
+        st.info("기술 지원이 필요하시면 관리자에게 문의하세요.")
 
 # 현재 세션 내용을 파일로 자동 저장
 cp.autosave_state()

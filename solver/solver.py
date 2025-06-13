@@ -13,6 +13,13 @@ import pandas as pd
 import streamlit as st
 from interview_opt_test_v4 import build_model
 
+# 계층적 솔버 임포트
+try:
+    from .hierarchical_solver import HierarchicalSolver
+    HIERARCHICAL_SOLVER_AVAILABLE = True
+except ImportError:
+    HIERARCHICAL_SOLVER_AVAILABLE = False
+
 
 
 
@@ -192,6 +199,117 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
     if "candidates_exp" not in cfg_ui or cfg_ui["candidates_exp"].empty:
         st.error("⛔ 지원자 데이터가 없습니다. 'Candidates' 페이지에서 데이터를 업로드해주세요.")
         return "NO_DATA", None, ""
+    
+    # Batched 활동이 있는지 확인
+    activities_df = cfg_ui.get("activities", pd.DataFrame())
+    if not activities_df.empty and HIERARCHICAL_SOLVER_AVAILABLE:
+        batched_activities = activities_df[
+            (activities_df.get('mode', 'individual') == 'batched') & 
+            (activities_df.get('use', True) == True)
+        ]
+        
+        if not batched_activities.empty:
+            # 계층적 솔버 사용
+            logger.info("Batched 활동이 감지되었습니다. 계층적 솔버를 사용합니다.")
+            
+            # 날짜별로 처리 (기존 로직과 동일)
+            df_raw_all = cfg_ui["candidates_exp"].copy()
+            df_raw_all["interview_date"] = pd.to_datetime(df_raw_all["interview_date"])
+            candidate_dates = set(df_raw_all["interview_date"].dt.date)
+
+            room_plan_df = cfg_ui["room_plan"].copy()
+            if "date" not in room_plan_df.columns:
+                st.error("⛔ 'Room Plan'에 'date' 컬럼이 없습니다. 설정을 확인해주세요.")
+                return "ERR_NO_ROOM_DATE", None, ""
+            room_plan_df["date"] = pd.to_datetime(room_plan_df["date"])
+            room_plan_dates = set(room_plan_df["date"].dt.date)
+
+            date_list_obj = sorted(list(candidate_dates.intersection(room_plan_dates)))
+
+            if not date_list_obj:
+                st.error(
+                    "**설정 오류:** 지원자가 배정된 날짜와 'Room Plan'에 설정된 날짜가 일치하지 않습니다. "
+                    f"지원자 날짜: `{sorted(list(candidate_dates))}`, "
+                    f"Room Plan 날짜: `{sorted(list(room_plan_dates))}`. "
+                    "두 설정의 날짜가 적어도 하루는 일치해야 스케줄링이 가능합니다."
+                )
+                return "NO_VALID_DATE", None, ""
+
+            date_list = [pd.to_datetime(d) for d in date_list_obj]
+            
+            all_wide = []
+            all_logs = []
+            
+            for the_date in date_list:
+                # 하루치 지원자만 필터
+                day_df_raw = df_raw_all[df_raw_all["interview_date"] == the_date]
+                
+                # 지원자 정보를 candidates 형식으로 변환
+                candidates_df = day_df_raw[['id', 'code']].drop_duplicates().rename(columns={'code': 'job_code'})
+                
+                # room_info 구성
+                internal = _derive_internal_tables(cfg_ui, the_date, debug=debug)
+                cfg_avail_day = internal['cfg_avail'][internal['cfg_avail']['date'] == the_date]
+                room_info = {
+                    row['loc']: {'capacity': int(row['capacity_max'])}
+                    for _, row in cfg_avail_day.iterrows()
+                }
+                
+                # oper_hours 구성
+                cfg_oper_day = internal['cfg_oper'][internal['cfg_oper']['date'] == the_date]
+                oper_hours = {}
+                base_time = pd.to_datetime(the_date.date().strftime('%Y-%m-%d') + ' 00:00:00')
+                for _, row in cfg_oper_day.iterrows():
+                    start_dt = pd.to_datetime(f"{the_date.date()} {row['start_time']}")
+                    end_dt = pd.to_datetime(f"{the_date.date()} {row['end_time']}")
+                    start_minutes = int((start_dt - base_time).total_seconds() / 60)
+                    end_minutes = int((end_dt - base_time).total_seconds() / 60)
+                    oper_hours[row['code']] = (start_minutes, end_minutes)
+                
+                # precedence 변환
+                precedence_list = []
+                for _, rule in cfg_ui['precedence'].iterrows():
+                    precedence_list.append((
+                        rule['predecessor'],
+                        rule['successor'],
+                        rule.get('gap_min', 0),
+                        rule.get('adjacent', False)
+                    ))
+                
+                # 계층적 솔버 설정
+                hierarchical_config = {
+                    'activities': activities_df,
+                    'candidates': candidates_df,
+                    'room_info': room_info,
+                    'oper_hours': oper_hours,
+                    'precedence': precedence_list,
+                    'job_similarity_groups': cfg_ui.get('job_similarity_groups', []),
+                    'prefer_job_separation': cfg_ui.get('prefer_job_separation', True),
+                    'min_gap_min': params.get('min_gap_min', 5) if params else 5,
+                    'the_date': the_date,
+                    'time_limit_sec': 180.0  # 3분
+                }
+                
+                # 계층적 솔버 실행
+                solver = HierarchicalSolver(hierarchical_config)
+                wide_df, status, logs = solver.solve()
+                
+                all_logs.append(f"=== {the_date.date()} ===")
+                all_logs.append(logs)
+                
+                if status in ["OPTIMAL", "FEASIBLE"]:
+                    all_wide.append(wide_df)
+                else:
+                    st.error(f"⚠️ 계층적 솔버 실패: {status} (date {the_date.date()})")
+                    st.code(logs)
+                    return status, None, "\n".join(all_logs)
+            
+            # 결과 통합
+            if all_wide:
+                final_wide = pd.concat(all_wide, ignore_index=True)
+                return "OK", final_wide, "\n".join(all_logs)
+            else:
+                return "NO_FEASIBLE", None, "\n".join(all_logs)
 
     # --- room_cap vs activity.max_cap 하드-검증 -----------------
     room_types_ui = cfg_ui["activities"]["room_type"].dropna().unique()
@@ -284,8 +402,9 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
             end_minutes = int((end_dt - base_time).total_seconds() / 60)
             oper_hours[row['code']] = (start_minutes, end_minutes)
         
+        # precedence 규칙 변환 (gap_min 포함, adjacent는 build_model에서 사용 안 함)
         rules = [
-            (row['predecessor'], row['successor'], 'direct')
+            (row['predecessor'], row['successor'], row.get('gap_min', 0))
             for _, row in cfg_ui['precedence'].iterrows()
         ]
         
@@ -520,6 +639,15 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
     max_days = 30
     all_scheduled_ids = set()
     
+    # Batched 활동이 있는지 확인
+    has_batched = False
+    if HIERARCHICAL_SOLVER_AVAILABLE and not activities_df.empty:
+        batched_activities = activities_df[
+            (activities_df.get('mode', 'individual') == 'batched') & 
+            (activities_df.get('use', True) == True)
+        ]
+        has_batched = not batched_activities.empty
+
     for day_num in range(1, max_days + 1):
         the_date = pd.to_datetime("2025-01-01") + timedelta(days=day_num - 1)
 
@@ -583,7 +711,43 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
         log_messages.append(f"일일 최대 처리 가능 인원: {daily_candidate_limit}명")
         log_messages.append(f"시도 대상 지원자 수: {len(candidate_info)}")
 
-        model, status, wide_df, build_model_logs = build_model(config, logger)
+        if has_batched:
+            # 계층적 솔버 사용
+            candidates_for_hierarchical = pd.DataFrame([
+                {'id': cid, 'job_code': info['job_code']}
+                for cid, info in candidate_info.items()
+            ])
+            
+            # precedence 규칙 변환 (gap_min과 adjacent 포함)
+            precedence_list = []
+            for _, rule in cfg_ui['precedence'].iterrows():
+                precedence_list.append((
+                    rule['predecessor'],
+                    rule['successor'],
+                    rule.get('gap_min', 0),
+                    rule.get('adjacent', False)
+                ))
+            
+            hierarchical_config = {
+                'activities': activities_df,
+                'candidates': candidates_for_hierarchical,
+                'room_info': room_info,
+                'oper_hours': oper_hours,
+                'precedence': precedence_list,
+                'job_similarity_groups': cfg_ui.get('job_similarity_groups', []),
+                'prefer_job_separation': cfg_ui.get('prefer_job_separation', True),
+                'min_gap_min': params.get('min_gap_min', 5),
+                'the_date': the_date,
+                'time_limit_sec': 60.0
+            }
+            
+            solver = HierarchicalSolver(hierarchical_config)
+            wide_df, status, solver_logs = solver.solve()
+            
+            build_model_logs = [solver_logs]
+        else:
+            # 기존 솔버 사용
+            model, status, wide_df, build_model_logs = build_model(config, logger)
         
         if build_model_logs:
             log_messages.extend(build_model_logs)

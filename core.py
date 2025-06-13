@@ -34,6 +34,10 @@ def build_config(state: dict) -> dict:
         "precedence": state.get("precedence", empty()),
         "candidates": state.get("candidates", empty()),
         "candidates_exp": state.get("candidates_exp", empty()),
+        # 집단면접 관련 설정 추가
+        "job_similarity_groups": state.get("job_similarity_groups", []),
+        "prefer_job_separation": state.get("prefer_job_separation", True),
+        "use_similarity_groups": state.get("use_similarity_groups", False),
     }
     cfg["group_meta"] = cfg["activities"].copy()
     return cfg
