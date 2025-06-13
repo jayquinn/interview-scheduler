@@ -1,13 +1,15 @@
-#config.toml
+# config.toml
+# Streamlit 애플리케이션 설정
+
 [client]
 # 사이드바에 자동 생성되는 페이지 내비게이션을 감춥니다.
 showSidebarNav = false
 
 [ui]
-# 사이드바 숨기기
+# UI 관련 설정
 hideTopBar = false
 hideSidebarNav = true
 
 [server]
-# 메인 페이지 설정
+# 서버 설정
 headless = false
