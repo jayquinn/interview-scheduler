@@ -51,13 +51,12 @@ Interview Schedule Optimiser – multi-date / multi-grid
 # ────────────────────────────────
 # 0. 공통 import & 상수
 # ────────────────────────────────
-import sys, itertools, time
+import itertools
 from datetime import timedelta
 from pathlib import Path
 from collections import defaultdict
 import yaml
-import pandas as pd, yaml
-from pandas.api.types import is_integer_dtype
+import pandas as pd
 from ortools.sat.python import cp_model
 from tqdm import tqdm
 import traceback
@@ -65,102 +64,10 @@ import traceback
 # 고정 파일 경로
 CAND_CSV = Path("candidate_activities_input_before_test_v4_HF.csv")
 GRID_CSV = Path("parameter_grid_test_v4.csv")
-YAML_FILE = Path("precedence_config_test_v4_HF.yaml")
 
 OUT_WIDE = Path("schedule_wide_test_v4_HF.csv")
 OUT_LOG  = Path("log/run_log_test_v4_HF.csv")
 Path("log").mkdir(exist_ok=True)          # log 폴더 보장
-from types import SimpleNamespace
-
-def load_params(row):
-    """grid CSV 한 행 → 네임스페이스 객체"""
-    return SimpleNamespace(
-        wave_len     = int(row.wave_len),
-        max_wave     = int(row.max_wave),
-        br_offset_A  = int(row.br_offset_A),
-        br_offset_B  = int(row.br_offset_B),
-        min_gap_min  = int(row.min_gap_min),
-        tl_sec       = int(row.tl_sec),
-    )
-# ── activities helper ─────────────────────────────────────
-def get_all_activities(yaml_path: Path, df_candidates: pd.DataFrame) -> list[str]:
-    """precedence YAML + CSV에서 활동명 set 추출 → 알파벳순 list"""
-    prec = yaml.safe_load(open(yaml_path, encoding="utf-8"))
-
-    acts = set(df_candidates["activity"].unique())          # ① CSV에 실제 등장
-    # ② YAML – common
-    for r in prec.get("common", []):
-        acts.update([r["predecessor"], r["successor"]])
-    # ③ YAML – by_code
-    for branches in prec.get("by_code", {}).values():
-        for rules in branches.values():
-            for r in rules:
-                acts.update([r["predecessor"], r["successor"]])
-    return sorted(acts)
-# ───────────────────────────────────────────────────────────
-
-# ─────────── 사이클 검증 함수 정의 ───────────
-def detect_cycle(edges):
-    """
-    edges: [(pred, succ), …] 리스트.
-    순환이 있으면 True 반환.
-    """
-    # 1) 그래프 생성
-    g = defaultdict(list)
-    nodes = set()
-    for u, v in edges:
-        g[u].append(v)
-        nodes.add(u)
-        nodes.add(v)
-
-    visited, onstack = set(), set()
-    def dfs(u):
-        visited.add(u)
-        onstack.add(u)
-        for w in g.get(u, []):
-            if w not in visited:
-                if dfs(w):
-                    return True
-            elif w in onstack:
-                return True
-        onstack.remove(u)
-        return False
-
-    # 2) 미리 추출한 노드 집합으로 순환 검사
-    return any(dfs(node) for node in nodes if node not in visited)
-# ───────────────────────────────────────────────
-def expand_availability(df_raw: pd.DataFrame) -> pd.DataFrame:
-    """
-    UI 에서 받은 집계형 space_availability
-      (date · *_count · *_cap · 사용여부 …)
-    → solver 가 요구하는
-      (date · loc · capacity_max/override) 행 단위 DF 로 변환
-    """
-    rows = []
-    ROOM_TYPES = [
-        ("발표면접실", "발표면접실_cap",   "발표면접실_count"),
-        ("심층면접실", "심층면접실_cap",   "심층면접실_count"),
-        ("커피챗실",   "커피챗실_cap",     "커피챗실_count"),
-        ("발표준비실", "발표준비실_cap",   "발표준비실_count"),
-        ("인인검사실", "인인검사실_cap",   "인인검사실_count"),   # ← 추가
-        ("토토면접실", "토토면접실_cap",   "토토면접실_count"),   # ← 추가
-    ]
-
-    for _, r in df_raw.iterrows():
-        if str(r.get("사용여부", "TRUE")).upper() == "FALSE":
-            continue                      # 사용 안 하는 날짜면 skip
-        date = pd.to_datetime(r["date"])
-        for base, cap_col, cnt_col in ROOM_TYPES:
-            n_room = int(r[cnt_col])
-            cap    = int(r[cap_col])
-            for i in range(1, n_room + 1):
-                loc = f"{base}{chr(64+i)}"        # A,B,C…
-                rows.append({
-                    "date":           date,
-                    "loc":            loc,
-                    "capacity_max":   cap,        # capacity_override 로 쓰셔도 OK
-                })
-    return pd.DataFrame(rows)
 
 # ────────────────────────────────
 # 1. 하드-룰 검증 함수 (순서 + Wave 정렬)

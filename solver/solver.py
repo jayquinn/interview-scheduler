@@ -1,11 +1,10 @@
 # solver/solver.py  –  UI 데이터만으로 OR-Tools 실행
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 import pandas as pd
 import traceback, sys, streamlit as st
 from interview_opt_test_v4 import build_model   # ← 원본 거대한 함수 재사용
 import contextlib, io
 import yaml
-from interview_opt_test_v4 import YAML_FILE
 import itertools
 from pathlib import Path
 
@@ -75,8 +74,6 @@ def _derive_internal_tables(cfg_ui: dict, the_date: pd.Timestamp, *, debug: bool
     Streamlit UI 값으로부터 build_model 이 바로 쓸 4개 표를 생성.
     debug=True 이면 브라우저에 cfg_map / cfg_avail 미리보기 출력.
     """
-    import pandas as pd
-    import streamlit as st
 
     # ① 활동 ↔ 소요시간 ----------------------------
     cfg_duration = cfg_ui["activities"][["activity", "duration_min"]].copy()
@@ -224,10 +221,6 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
     params : wave_len·max_wave … 등 시나리오 한 줄(dict)
     반환   : (status:str, wide:pd.DataFrame|None, logs:str)
     """
-    import io, contextlib, traceback, sys
-    import pandas as pd
-    import streamlit as st
-    from interview_opt_test_v4 import build_model
 
     logger = st.logger.get_logger("solver")
 
@@ -446,7 +439,6 @@ def _calculate_dynamic_daily_limit(
     job_acts_map: pd.DataFrame
 ) -> int:
     """사용 가능한 자원(시간, 공간)과 지원자별 필요 자원을 기반으로 일일 처리 가능 인원을 동적으로 추정합니다."""
-    from datetime import date, datetime
     
     # 1. 총 가용 시간 계산
     start_time_str = oper_window_tpl['start_time'].iloc[0]

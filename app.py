@@ -15,11 +15,15 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import PatternFill
 import core
 from solver.solver import solve_for_days, load_param_grid
+import core_persist as cp
 
 st.set_page_config(
     page_title="면접운영스케줄링",
     layout="wide"
 )
+
+# 이전 세션 내용 자동 복원
+cp.autoload_state()
 
 # 사이드바에서 app 페이지 숨기기
 st.markdown("""
@@ -1194,3 +1198,6 @@ st.markdown("""
     ⬆️
 </a>
 """, unsafe_allow_html=True)
+
+# 현재 세션 내용을 파일로 자동 저장
+cp.autosave_state()

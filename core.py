@@ -2,16 +2,15 @@
 from io import BytesIO
 from datetime import datetime, timedelta
 import pandas as pd
+
 # OR-Tools 래퍼 ───────────────────────────────────────────
 from solver.solver import solve, load_param_grid   # solve()만 쓰면 충분
-from interview_opt_test_v4 import prepare_schedule
-from io import BytesIO
-import pandas as pd
 import interview_opt_test_v4 as iv4   # prepare_schedule, df_to_excel 모두 여기 들어있음
+
 # core.py  ────────────────────────────────────────
 def should_use_wave(df: pd.DataFrame) -> bool:
     """
-    ‘wave 팔레트’를 쓸지 판단한다.
+    'wave 팔레트'를 쓸지 판단한다.
 
     * wave 컬럼이 없으면   → False
     * 값이 전부 NaN/음수   → False
@@ -54,7 +53,6 @@ def run_solver(cfg: dict, params: dict | None = None, *, debug=False):
 # ────────────────────────────────────────────────────────
 # 3) DataFrame → Excel(bytes) 변환 (다운로드용)
 # ────────────────────────────────────────────────────────
-from interview_opt_test_v4 import prepare_schedule   # <- 새로 import!
 
 def to_excel(wide_df: pd.DataFrame) -> bytes:
     pretty = iv4.prepare_schedule(wide_df)
