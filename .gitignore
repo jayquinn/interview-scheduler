@@ -1,16 +1,23 @@
-# ── Python 가상환경 ───────────────────────
+# Python 가상환경
 .venv/
 venv/
 interview-scheduler/venv/
 
-# ── Python 캐시 & 컴파일 파일 ─────────────
+# Python 캐시 & 컴파일 파일
 __pycache__/
 *.py[cod]
-# ── 플랫폼 우연 파일(선택) ────────────────
+*.pyc
+
+# 플랫폼 관련 파일
 .DS_Store
-".autosave.pkl"        
-"__pycache__/"         
-"*.pyc"                
-# ── 데이터 파일 제외 ─────────────────────
+
+# 자동 저장 파일
+.autosave.pkl
+
+# 데이터 파일 (필요시 주석 해제)
 #*.csv
 #*.xlsx
+
+# 로그 파일
+log/
+*.log

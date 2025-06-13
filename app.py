@@ -15,6 +15,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.styles import PatternFill
 import core
 from solver.solver import solve_for_days, load_param_grid
+from core import df_to_excel_internal
 
 st.set_page_config(
     page_title="면접운영스케줄링",
@@ -146,51 +147,7 @@ if st.session_state.get('solver_status', '미실행') == '미실행':
     st.info("👋 **처음 방문하셨나요?** 바로 아래 '운영일정추정 시작' 버튼을 눌러보세요! 기본 설정으로 데모를 체험할 수 있습니다.")
     st.markdown("💡 **팁:** 추정 후 아래 섹션들에서 세부 설정을 조정하여 더 정확한 결과를 얻을 수 있습니다.")
 
-# Excel 출력 함수
-def df_to_excel(df: pd.DataFrame, stream=None) -> None:
-    wb = Workbook()
-    ws = wb.active
-    ws.title = 'Schedule'
-    df = df.copy()
-    
-    PALETTE = ['E3F2FD', 'FFF3E0', 'E8F5E9', 'FCE4EC', 'E1F5FE', 'F3E5F5', 'FFFDE7', 'E0F2F1', 'EFEBE9', 'ECEFF1']
-    
-    # 날짜별로 색상 지정
-    unique_dates = df['interview_date'].dt.date.unique()
-    date_color_map = {date: PALETTE[i % len(PALETTE)] for i, date in enumerate(unique_dates)}
-    
-    df = df.astype(object).where(pd.notna(df), None)
-    for r in dataframe_to_rows(df, index=False, header=True):
-        ws.append(r)
-    
-    header_fill = PatternFill('solid', fgColor='D9D9D9')
-    for cell in ws[1]:
-        cell.fill = header_fill
-    
-    # 날짜 열 찾기
-    date_col_idx = -1
-    for j, col_name in enumerate(df.columns, 1):
-        if col_name == 'interview_date':
-            date_col_idx = j
-            break
-    
-    for i, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row), 2):
-        if date_col_idx != -1:
-            date_val = row[date_col_idx - 1].value
-            if date_val and hasattr(date_val, 'date'):
-                row_color = date_color_map.get(date_val.date())
-                if row_color:
-                    row_fill = PatternFill('solid', fgColor=row_color)
-                    for cell in row:
-                        cell.fill = row_fill
-    
-    # 시간 형식 지정
-    for j, col_name in enumerate(df.columns, 1):
-        if 'start' in col_name or 'end' in col_name:
-            for i in range(2, ws.max_row + 1):
-                ws.cell(i, j).number_format = 'hh:mm'
-    
-    wb.save(stream or "recommended_schedule.xlsx")
+
 
 def reset_run_state():
     st.session_state['final_schedule'] = None
@@ -452,7 +409,7 @@ if final_schedule is not None and not final_schedule.empty:
     
     # Excel 다운로드
     excel_buffer = BytesIO()
-    df_to_excel(final_schedule, excel_buffer)
+    df_to_excel_internal(final_schedule, excel_buffer)
     excel_data = excel_buffer.getvalue()
     
     st.download_button(

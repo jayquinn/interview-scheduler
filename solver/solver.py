@@ -1,25 +1,17 @@
-# solver/solver.py  –  UI 데이터만으로 OR-Tools 실행
+# solver/solver.py
+"""
+UI 데이터만으로 OR-Tools 실행하는 솔버 모듈
+"""
+
+import contextlib
+import io
+import traceback
 from datetime import timedelta, datetime
-import pandas as pd
-import traceback, sys, streamlit as st
-from interview_opt_test_v4 import build_model   # ← 원본 거대한 함수 재사용
-import contextlib, io
-import yaml
-from interview_opt_test_v4 import YAML_FILE
-import itertools
 from pathlib import Path
 
-def df_to_yaml_dict(df: pd.DataFrame) -> dict:
-    rules = []
-    for r in df.itertuples(index=False):
-        rule = {
-            "predecessor": r.predecessor,
-            "successor": r.successor,
-            "min_gap_min": int(r.gap_min),
-            "adjacent": bool(getattr(r, "adjacent", False))
-        }
-        rules.append(rule)
-    return {"common": rules, "by_code": {}}
+import pandas as pd
+import streamlit as st
+from interview_opt_test_v4 import build_model
 
 
 
@@ -28,36 +20,8 @@ def df_to_yaml_dict(df: pd.DataFrame) -> dict:
 
 
 
-# ────────────────────────────────────────────────────────
-# 0. 시나리오(파라미터) 그리드 로더  ★ RunScheduler 페이지에서 사용
-# ────────────────────────────────────────────────────────
-def _build_param_grid() -> pd.DataFrame:
-    """기본 파라미터 그리드를 생성합니다."""
-    seed_rows = [
-        dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
-             br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
-    ]
-    grid = []
-    for wl, mw, brA, brB, mg in itertools.product(
-            [35], [18], [-2, -1, 0, 1, 2], [-2, -1, 0, 1, 2], [5]):
-        if wl == 50 and mw == 16 and brA == 3 and brB == 2 and mg == 5:
-            continue
-        pr = 1
-        if wl > 35: pr += 1
-        if mw < 14: pr += 1
-        if mg > 10: pr += 1
-        grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
-                         br_offset_A=brA, br_offset_B=brB,
-                         min_gap_min=mg, tl_sec=30))
-    df = (pd.DataFrame(seed_rows + grid)
-            .sort_values(["priority", "wave_len", "min_gap_min", "max_wave"])
-            .reset_index(drop=True))
-    if "scenario_id" not in df.columns:
-        df.insert(0, "scenario_id", [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
-    else:
-        mask = df["scenario_id"].isna() | (df["scenario_id"] == "")
-        df.loc[mask, "scenario_id"] = [f"S{str(i+1).zfill(3)}" for i in range(mask.sum())]
-    return df
+# 시나리오(파라미터) 그리드 로더
+from interview_opt_test_v4 import _build_param_grid
 
 def load_param_grid(csv_path: str = "parameter_grid_test_v4.csv") -> pd.DataFrame:
     """
@@ -224,11 +188,6 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
     params : wave_len·max_wave … 등 시나리오 한 줄(dict)
     반환   : (status:str, wide:pd.DataFrame|None, logs:str)
     """
-    import io, contextlib, traceback, sys
-    import pandas as pd
-    import streamlit as st
-    from interview_opt_test_v4 import build_model
-
     logger = st.logger.get_logger("solver")
 
     # 0) 지원자 데이터 유무 체크
