@@ -129,38 +129,6 @@ def detect_cycle(edges):
     # 2) 미리 추출한 노드 집합으로 순환 검사
     return any(dfs(node) for node in nodes if node not in visited)
 # ───────────────────────────────────────────────
-def expand_availability(df_raw: pd.DataFrame) -> pd.DataFrame:
-    """
-    UI 에서 받은 집계형 space_availability
-      (date · *_count · *_cap · 사용여부 …)
-    → solver 가 요구하는
-      (date · loc · capacity_max/override) 행 단위 DF 로 변환
-    """
-    rows = []
-    ROOM_TYPES = [
-        ("발표면접실", "발표면접실_cap",   "발표면접실_count"),
-        ("심층면접실", "심층면접실_cap",   "심층면접실_count"),
-        ("커피챗실",   "커피챗실_cap",     "커피챗실_count"),
-        ("발표준비실", "발표준비실_cap",   "발표준비실_count"),
-        ("인인검사실", "인인검사실_cap",   "인인검사실_count"),   # ← 추가
-        ("토토면접실", "토토면접실_cap",   "토토면접실_count"),   # ← 추가
-    ]
-
-    for _, r in df_raw.iterrows():
-        if str(r.get("사용여부", "TRUE")).upper() == "FALSE":
-            continue                      # 사용 안 하는 날짜면 skip
-        date = pd.to_datetime(r["date"])
-        for base, cap_col, cnt_col in ROOM_TYPES:
-            n_room = int(r[cnt_col])
-            cap    = int(r[cap_col])
-            for i in range(1, n_room + 1):
-                loc = f"{base}{chr(64+i)}"        # A,B,C…
-                rows.append({
-                    "date":           date,
-                    "loc":            loc,
-                    "capacity_max":   cap,        # capacity_override 로 쓰셔도 OK
-                })
-    return pd.DataFrame(rows)
 
 # ────────────────────────────────
 # 1. 하드-룰 검증 함수 (순서 + Wave 정렬)

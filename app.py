@@ -827,15 +827,12 @@ if not acts_df.empty:
                     st.info(f"💡 총 {len(flows)}가지 가능한 활동 순서가 있습니다.")
         else:
             st.warning("활성화된 활동이 없습니다. 먼저 활동을 정의해주세요.")
-    
-    st.markdown("---")
+
     
     # ═══════════════════════════════════════════
     # 🎯 면접 순서 설정 (단계별 가이드)
     # ═══════════════════════════════════════════
-    st.subheader("🎯 면접 순서 설정")
-    st.markdown("면접 활동들의 순서를 설정합니다. 아래 단계를 따라 진행하세요.")
-    
+
     # 현재 설정된 START/END 규칙 확인
     current_start = None
     current_end = None
