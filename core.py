@@ -3,7 +3,7 @@ from io import BytesIO
 from datetime import datetime, timedelta
 import pandas as pd
 # OR-Tools 래퍼 ───────────────────────────────────────────
-from solver.solver import solve, load_param_grid   # solve()만 쓰면 충분
+from solver.solver import solve
 from interview_opt_test_v4 import prepare_schedule
 from io import BytesIO
 import pandas as pd

@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import re
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 from st_aggrid import (
     AgGrid,
     GridOptionsBuilder,
@@ -12,9 +12,10 @@ from st_aggrid import (
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.styles import PatternFill
+from openpyxl.styles import PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 import core
-from solver.solver import solve_for_days, load_param_grid
+from solver.solver import solve_for_days
 
 st.set_page_config(
     page_title="면접운영스케줄링",
@@ -146,35 +147,38 @@ if st.session_state.get('solver_status', '미실행') == '미실행':
     st.info("👋 **처음 방문하셨나요?** 바로 아래 '운영일정추정 시작' 버튼을 눌러보세요! 기본 설정으로 데모를 체험할 수 있습니다.")
     st.markdown("💡 **팁:** 추정 후 아래 섹션들에서 세부 설정을 조정하여 더 정확한 결과를 얻을 수 있습니다.")
 
-# Excel 출력 함수
+# Excel 출력 함수 (타임슬롯 기능 통합)
 def df_to_excel(df: pd.DataFrame, stream=None) -> None:
     wb = Workbook()
-    ws = wb.active
-    ws.title = 'Schedule'
-    df = df.copy()
     
+    # 기본 팔레트
     PALETTE = ['E3F2FD', 'FFF3E0', 'E8F5E9', 'FCE4EC', 'E1F5FE', 'F3E5F5', 'FFFDE7', 'E0F2F1', 'EFEBE9', 'ECEFF1']
     
+    # ===== 1) 기본 스케줄 시트 =====
+    ws1 = wb.active
+    ws1.title = 'Schedule'
+    df_copy = df.copy()
+    
     # 날짜별로 색상 지정
-    unique_dates = df['interview_date'].dt.date.unique()
+    unique_dates = df_copy['interview_date'].dt.date.unique()
     date_color_map = {date: PALETTE[i % len(PALETTE)] for i, date in enumerate(unique_dates)}
     
-    df = df.astype(object).where(pd.notna(df), None)
-    for r in dataframe_to_rows(df, index=False, header=True):
-        ws.append(r)
+    df_copy = df_copy.astype(object).where(pd.notna(df_copy), None)
+    for r in dataframe_to_rows(df_copy, index=False, header=True):
+        ws1.append(r)
     
     header_fill = PatternFill('solid', fgColor='D9D9D9')
-    for cell in ws[1]:
+    for cell in ws1[1]:
         cell.fill = header_fill
     
     # 날짜 열 찾기
     date_col_idx = -1
-    for j, col_name in enumerate(df.columns, 1):
+    for j, col_name in enumerate(df_copy.columns, 1):
         if col_name == 'interview_date':
             date_col_idx = j
             break
     
-    for i, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row), 2):
+    for i, row in enumerate(ws1.iter_rows(min_row=2, max_row=ws1.max_row), 2):
         if date_col_idx != -1:
             date_val = row[date_col_idx - 1].value
             if date_val and hasattr(date_val, 'date'):
@@ -185,12 +189,128 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
                         cell.fill = row_fill
     
     # 시간 형식 지정
-    for j, col_name in enumerate(df.columns, 1):
+    for j, col_name in enumerate(df_copy.columns, 1):
         if 'start' in col_name or 'end' in col_name:
-            for i in range(2, ws.max_row + 1):
-                ws.cell(i, j).number_format = 'hh:mm'
+            for i in range(2, ws1.max_row + 1):
+                ws1.cell(i, j).number_format = 'hh:mm'
     
-    wb.save(stream or "recommended_schedule.xlsx")
+    # ===== 2) 타임슬롯 시트들 추가 =====
+    def _color_picker():
+        """활동명 → 고정 색상 매핑"""
+        mapping = {}
+        def _pick(act: str) -> str:
+            if act not in mapping:
+                mapping[act] = PALETTE[len(mapping) % len(PALETTE)]
+            return mapping[act]
+        return _pick
+    
+    def _build_timeslot_sheet(ws, df_day: pd.DataFrame, pick_color):
+        """단일 날짜 스케줄 → 타임슬롯 매트릭스"""
+        loc_cols = [c for c in df_day.columns if c.startswith("loc_")]
+        start_cols = [c for c in df_day.columns if c.startswith("start_")]
+        end_cols = [c for c in df_day.columns if c.startswith("end_")]
+        
+        # 공간 목록
+        locs = sorted(set(df_day[loc_cols].stack().dropna().unique()))
+        if not locs:
+            return
+        
+        # 시간 범위 계산
+        t_min = t_max = None
+        for col in start_cols + end_cols:
+            ts = pd.to_datetime(df_day[col], errors="coerce").dropna()
+            if ts.empty:
+                continue
+            t_min = ts.min() if t_min is None else min(t_min, ts.min())
+            t_max = ts.max() if t_max is None else max(t_max, ts.max())
+        if t_min is None or t_max is None:
+            return
+        
+        TIME_STEP_MIN = 5
+        t_min = t_min.floor(f"{TIME_STEP_MIN}min")
+        t_max = (t_max.ceil(f"{TIME_STEP_MIN}min") + timedelta(minutes=TIME_STEP_MIN))
+        times = pd.date_range(t_min, t_max, freq=f"{TIME_STEP_MIN}min")
+        
+        # 헤더 작성
+        ws.cell(1, 1, "Time")
+        for j, loc in enumerate(locs, start=2):
+            cell = ws.cell(1, j, loc)
+            cell.alignment = Alignment(horizontal="center")
+        
+        for i, t in enumerate(times, start=2):
+            ws.cell(i, 1, t.strftime("%H:%M"))
+            ws.cell(i, 1).alignment = Alignment(horizontal="right")
+        
+        # 셀 채우기
+        for _, row in df_day.iterrows():
+            for st_col in start_cols:
+                suffix = st_col[len("start_"):]
+                end_col = f"end_{suffix}"
+                loc_col = f"loc_{suffix}"
+                if end_col not in df_day.columns or loc_col not in df_day.columns:
+                    continue
+                st = row[st_col]
+                ed = row[end_col]
+                loc = row[loc_col]
+                if pd.isna(st) or pd.isna(ed) or loc in ("", None):
+                    continue
+                st_dt = pd.to_datetime(st, errors="coerce")
+                ed_dt = pd.to_datetime(ed, errors="coerce")
+                if pd.isna(st_dt) or pd.isna(ed_dt):
+                    continue
+                base_act = suffix
+                color = pick_color(base_act)
+                if loc not in locs:
+                    continue
+                col_idx = locs.index(loc) + 2
+                cur = st_dt.floor(f"{TIME_STEP_MIN}min")
+                while cur < ed_dt:
+                    if cur < t_min or cur > t_max:
+                        cur += timedelta(minutes=TIME_STEP_MIN)
+                        continue
+                    row_idx = times.get_loc(cur) + 2
+                    cell = ws.cell(row_idx, col_idx)
+                    if cell.value in (None, ""):
+                        cell.value = str(row["id"])
+                        cell.fill = PatternFill("solid", fgColor=color)
+                    else:
+                        existing = str(cell.value)
+                        if str(row["id"]) not in existing.split("\n"):
+                            cell.value = existing + "\n" + str(row["id"])
+                    cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+                    cur += timedelta(minutes=TIME_STEP_MIN)
+        
+        # 열 너비·행 높이 자동 조정
+        for j, loc in enumerate(locs, start=2):
+            max_len = len(str(loc))
+            for i in range(2, ws.max_row + 1):
+                val = ws.cell(i, j).value
+                if val is None:
+                    continue
+                for part in str(val).split("\n"):
+                    max_len = max(max_len, len(part))
+            col_letter = get_column_letter(j)
+            ws.column_dimensions[col_letter].width = max(10, min(1.2 * max_len, 30))
+        
+        default_ht = 15
+        for i in range(2, ws.max_row + 1):
+            max_lines = 1
+            for j in range(2, ws.max_column + 1):
+                val = ws.cell(i, j).value
+                if val is None:
+                    continue
+                lines = str(val).count("\n") + 1
+                max_lines = max(max_lines, lines)
+            ws.row_dimensions[i].height = default_ht * max_lines
+    
+    # 날짜별 타임슬롯 시트 생성
+    pick_color = _color_picker()
+    for the_date, df_day in df.groupby("interview_date"):
+        ws_name = f"TS_{pd.to_datetime(the_date).strftime('%m%d')}"
+        ws_ts = wb.create_sheet(ws_name)
+        _build_timeslot_sheet(ws_ts, df_day.copy(), pick_color)
+    
+    wb.save(stream or "interview_schedule.xlsx")
 
 def reset_run_state():
     st.session_state['final_schedule'] = None
@@ -198,24 +318,11 @@ def reset_run_state():
     st.session_state['solver_status'] = "미실행"
     st.session_state['daily_limit'] = 0
 
-# 사이드바 파라미터
-with st.sidebar:
-    st.markdown("## 파라미터")
-    debug_mode = st.checkbox("🐞 디버그 모드", value=False)
-    param_grid = load_param_grid()
-    
-    if not param_grid.empty:
-        scenario_options = param_grid['scenario_id'].tolist()
-        selected_scenario_id = st.selectbox(
-            "시나리오 선택",
-            options=scenario_options,
-            index=0,
-            help="파라미터 시나리오를 선택합니다."
-        )
-        params = param_grid[param_grid['scenario_id'] == selected_scenario_id].iloc[0].to_dict()
-    else:
-        st.warning("파라미터 파일을 찾을 수 없습니다.")
-        params = {}
+# 기본 파라미터 설정 (하드코딩)
+params = {
+    "min_gap_min": 5,
+    "time_limit_sec": 60
+}
 
 # 데이터 검증
 acts_df = st.session_state.get("activities", pd.DataFrame())
@@ -255,7 +362,7 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
         with st.spinner("최적의 운영 일정을 계산 중입니다..."):
             try:
                 cfg = core.build_config(st.session_state)
-                status, final_wide, logs, limit = solve_for_days(cfg, params, debug=debug_mode)
+                status, final_wide, logs, limit = solve_for_days(cfg, params, debug=False)
                 
                 st.session_state['last_solve_logs'] = logs
                 st.session_state['solver_status'] = status
@@ -298,20 +405,13 @@ if final_schedule is not None and not final_schedule.empty:
     # 체류시간 분석 추가
     st.subheader("⏱️ 직무별 체류시간 분석")
     
-    # 디버깅 모드 토글 (개발용)
-    with st.expander("🔧 개발자 옵션"):
-        debug_stay_time = st.checkbox("체류시간 분석 디버깅 모드", key="debug_stay_time", help="데이터 구조를 확인하기 위한 디버깅 정보를 표시합니다.")
+
     
     def calculate_stay_duration_stats(schedule_df):
         """각 지원자의 체류시간을 계산하고 직무별 통계를 반환"""
         stats_data = []
         
-        # 실제 데이터 구조 확인을 위한 디버깅 정보 (개발용)
-        if st.session_state.get('debug_stay_time', False):
-            st.write("**디버깅: 스케줄 데이터 구조**")
-            st.write(f"컬럼들: {list(schedule_df.columns)}")
-            st.write(f"데이터 샘플 (첫 3행):")
-            st.dataframe(schedule_df.head(3))
+
         
         # 컬럼명 매핑 (실제 데이터에 맞게 조정)
         id_col = 'id' if 'id' in schedule_df.columns else 'candidate_id'
@@ -456,12 +556,13 @@ if final_schedule is not None and not final_schedule.empty:
     excel_data = excel_buffer.getvalue()
     
     st.download_button(
-        label="📊 Excel 파일 다운로드",
+        label="📊 Excel 파일 다운로드 (일정표 + 타임슬롯)",
         data=excel_data,
         file_name=f"interview_schedule_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True,
-        type="secondary"  # 빨간색 버튼으로 변경
+        type="secondary",
+        help="기본 일정표와 함께 타임슬롯 매트릭스 시트가 포함됩니다"
     )
 
 elif status == "MAX_DAYS_EXCEEDED":

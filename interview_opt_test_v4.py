@@ -1,140 +1,19 @@
-# %%
-# ──────────────────────────────────────
-import itertools, pandas as pd        # ← import 는 그대로
-
-def _build_param_grid() -> pd.DataFrame:       # ★ 새 함수
-    seed_rows = [
-        dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
-             br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
-    ]
-
-    grid = []
-    for wl, mw, brA, brB, mg in itertools.product(
-            [35], [18], [-2,-1,0,1,2], [-2,-1,0,1,2], [5]):
-        if wl==50 and mw==16 and brA==3 and brB==2 and mg==5:
-            continue
-        pr = 1
-        if wl > 35: pr += 1
-        if mw < 14: pr += 1
-        if mg > 10: pr += 1
-        grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
-                         br_offset_A=brA, br_offset_B=brB,
-                         min_gap_min=mg, tl_sec=30))
-
-    df = (pd.DataFrame(seed_rows + grid)
-            .sort_values(["priority","wave_len","min_gap_min","max_wave"])
-            .reset_index(drop=True))
-
-    if "scenario_id" not in df.columns:
-        df.insert(0, "scenario_id",
-                  [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
-    else:
-        mask = df["scenario_id"].isna() | (df["scenario_id"]=="")
-        df.loc[mask, "scenario_id"] = [
-            f"S{str(i+1).zfill(3)}" for i in range(mask.sum())
-        ]
-    return df
-# ──────────────────────────────────────
-
-
-# %%
-# interview_opt_test_v4.py
-# -*- coding: utf-8 -*-
 """
-============================================================
-Interview Schedule Optimiser – multi-date / multi-grid
-============================================================
-* parameter_grid_test_v4.csv 에 정의된 파라미터 세트 × 날짜를 순차 탐색
-* 첫 SAT+하드룰 통과 해를 찾으면 그 날짜는 종료
-* 결과는 schedule_wide.csv 로 누적 저장, 시도 내역은 run_log.csv 기록
+간소화된 면접 스케줄 최적화 도구 - 핵심 엔진만 포함
 """
-# ────────────────────────────────
-# 0. 공통 import & 상수
-# ────────────────────────────────
-import sys, itertools, time
-from datetime import timedelta
+import logging
+import traceback
+from datetime import timedelta, datetime
 from pathlib import Path
 from collections import defaultdict
-import yaml
-import pandas as pd, yaml
-from pandas.api.types import is_integer_dtype
+import pandas as pd
 from ortools.sat.python import cp_model
-from tqdm import tqdm
-import traceback
 
-# 고정 파일 경로
-CAND_CSV = Path("candidate_activities_input_before_test_v4_HF.csv")
-GRID_CSV = Path("parameter_grid_test_v4.csv")
-YAML_FILE = Path("precedence_config_test_v4_HF.yaml")
+# 기본 파라미터 (하드코딩)
+DEFAULT_MIN_GAP_MIN = 5          # 활동 간 최소 간격(분)
+TIME_LIMIT_SEC     = 60.0        # OR-Tools 시간 제한(초)
 
-OUT_WIDE = Path("schedule_wide_test_v4_HF.csv")
-OUT_LOG  = Path("log/run_log_test_v4_HF.csv")
-Path("log").mkdir(exist_ok=True)          # log 폴더 보장
-from types import SimpleNamespace
-
-def load_params(row):
-    """grid CSV 한 행 → 네임스페이스 객체"""
-    return SimpleNamespace(
-        wave_len     = int(row.wave_len),
-        max_wave     = int(row.max_wave),
-        br_offset_A  = int(row.br_offset_A),
-        br_offset_B  = int(row.br_offset_B),
-        min_gap_min  = int(row.min_gap_min),
-        tl_sec       = int(row.tl_sec),
-    )
-# ── activities helper ─────────────────────────────────────
-def get_all_activities(yaml_path: Path, df_candidates: pd.DataFrame) -> list[str]:
-    """precedence YAML + CSV에서 활동명 set 추출 → 알파벳순 list"""
-    prec = yaml.safe_load(open(yaml_path, encoding="utf-8"))
-
-    acts = set(df_candidates["activity"].unique())          # ① CSV에 실제 등장
-    # ② YAML – common
-    for r in prec.get("common", []):
-        acts.update([r["predecessor"], r["successor"]])
-    # ③ YAML – by_code
-    for branches in prec.get("by_code", {}).values():
-        for rules in branches.values():
-            for r in rules:
-                acts.update([r["predecessor"], r["successor"]])
-    return sorted(acts)
-# ───────────────────────────────────────────────────────────
-
-# ─────────── 사이클 검증 함수 정의 ───────────
-def detect_cycle(edges):
-    """
-    edges: [(pred, succ), …] 리스트.
-    순환이 있으면 True 반환.
-    """
-    # 1) 그래프 생성
-    g = defaultdict(list)
-    nodes = set()
-    for u, v in edges:
-        g[u].append(v)
-        nodes.add(u)
-        nodes.add(v)
-
-    visited, onstack = set(), set()
-    def dfs(u):
-        visited.add(u)
-        onstack.add(u)
-        for w in g.get(u, []):
-            if w not in visited:
-                if dfs(w):
-                    return True
-            elif w in onstack:
-                return True
-        onstack.remove(u)
-        return False
-
-    # 2) 미리 추출한 노드 집합으로 순환 검사
-    return any(dfs(node) for node in nodes if node not in visited)
-# ───────────────────────────────────────────────
-
-# ────────────────────────────────
-# 1. 하드-룰 검증 함수 (순서 + Wave 정렬)
-# ────────────────────────────────
-# --- 간결해진 verify_rules ---
-# ─── PATCH-3 : 기존 verify_rules() 함수 통째로 갈아끼우기 ───
+# 규칙 검증 함수
 def verify_rules(wide_df: pd.DataFrame, rules: list) -> list:
     """
     wide_df에 선후행 규칙이 지켜졌는지 검증합니다.
@@ -244,9 +123,39 @@ def prepare_schedule(solver, intervals, presences, room_assignments, CANDIDATE_S
     return wide_df, {}
 
 
-# ────────────────────────────────
-# 2. build_model() –  **엔진**
-# ────────────────────────────────
+def prepare_schedule_long(solver, intervals, presences, room_assignments, CANDIDATE_SPACE, ACT_SPACE, ROOM_SPACE, the_date, logger):
+    """'long-form' DataFrame을 생성합니다."""
+    
+    rows = []
+    for (cid, act_name), iv in intervals.items():
+        if solver.Value(presences[(cid, act_name)]):
+            start_time = timedelta(minutes=solver.Value(iv.StartExpr()))
+            end_time = timedelta(minutes=solver.Value(iv.EndExpr()))
+            
+            room_name = "N/A"
+            for r_name, p_var in room_assignments.items():
+                if r_name[0] == cid and r_name[1] == act_name and solver.Value(p_var):
+                    room_name = r_name[2]
+                    break
+
+            rows.append({
+                'id': cid,
+                'activity': act_name,
+                'start_time': the_date + start_time,
+                'end_time': the_date + end_time,
+                'room': room_name,
+                'job_code': CANDIDATE_SPACE[cid]['job_code'],
+                'interview_date': the_date.date()
+            })
+            
+    if not rows:
+        return pd.DataFrame()
+        
+    df = pd.DataFrame(rows)
+    return df
+
+
+# OR-Tools 모델 빌드 및 실행
 def build_model(config, logger):
     """
     주어진 설정을 바탕으로 CP-MODEL을 빌드합니다.
@@ -429,128 +338,3 @@ def build_model(config, logger):
         all_logs.append(f"\n--- EXCEPTION TRACEBACK ---\n{traceback.format_exc()}")
 
     return model, status_name, final_report_df_long, all_logs
-
-
-def prepare_schedule_long(solver, intervals, presences, room_assignments, CANDIDATE_SPACE, ACT_SPACE, ROOM_SPACE, the_date, logger):
-    """'long-form' DataFrame을 생성합니다."""
-    
-    rows = []
-    for (cid, act_name), iv in intervals.items():
-        if solver.Value(presences[(cid, act_name)]):
-            start_time = timedelta(minutes=solver.Value(iv.StartExpr()))
-            end_time = timedelta(minutes=solver.Value(iv.EndExpr()))
-            
-            room_name = "N/A"
-            for r_name, p_var in room_assignments.items():
-                if r_name[0] == cid and r_name[1] == act_name and solver.Value(p_var):
-                    room_name = r_name[2]
-                    break
-
-            rows.append({
-                'id': cid,
-                'activity': act_name,
-                'start_time': the_date + start_time,
-                'end_time': the_date + end_time,
-                'room': room_name,
-                'job_code': CANDIDATE_SPACE[cid]['job_code'],
-                'interview_date': the_date.date()
-            })
-            
-    if not rows:
-        return pd.DataFrame()
-        
-    df = pd.DataFrame(rows)
-    return df
-
-
-# ────────────────────────────────
-# 3. main –  날짜 × 파라미터 루프
-# ────────────────────────────────
-def main():
-    # ── 0) 지원자 CSV 한 번만 읽기 ──────────────────────────────
-    df_raw = (
-        pd.read_csv(CAND_CSV, encoding="utf-8-sig")      # 필요하면 utf-8-sig, cp949
-          .assign(activity=lambda d: d["activity"].str.split(","))
-          .explode("activity")
-          .assign(activity=lambda d: d["activity"].str.strip())
-          .assign(
-              interview_date=lambda d:
-                  pd.to_datetime(d["interview_date"], errors="coerce")
-          )
-    )
-
-    # ── 1) 날짜 리스트 자동 생성 ────────────────────────────────
-    date_list = (
-        pd.to_datetime(df_raw["interview_date"].dropna().unique())
-    )
-    date_list = pd.DatetimeIndex(date_list).sort_values()
-
-    # ── 2) 공통 cfg 모음 ───────────────────────────────────────
-    cfg = {
-        "df_raw"       : df_raw,                              # ← 재활용
-        "cfg_duration" : pd.read_csv("duration_config_test_v4_HF.csv"),
-        "cfg_avail"    : pd.read_csv("space_availability_test_v4_HF.csv",
-                                     parse_dates=["date"]),
-        "cfg_map"      : pd.read_csv("activity_space_map_test_v4_HF.csv"),
-        "cfg_oper"     : pd.read_csv("operating_config_test_v4_HF.csv",
-                                     parse_dates=["date"]),
-    }
-
-    # (3) 파라미터 그리드
-    grid = pd.read_csv(GRID_CSV, dtype=str).fillna('')
-    if 'scenario_id' not in grid.columns:
-        grid.insert(0, 'scenario_id', range(1, len(grid)+1))
-    if 'tl_sec' not in grid.columns:
-        grid['tl_sec'] = '30'
-    for col, default in [("br_offset_A", "2"), ("br_offset_B", "1")]:
-        if col not in grid.columns:
-            grid[col] = default
-
-    # (4) 실행
-    all_wides, log_rows = [], []
-    for d in tqdm(date_list, desc="Dates"):
-
-        ok_found = False
-        for _, p in grid.iterrows():
-            params = {k: (int(v) if str(v).lstrip('-').isdigit() else v) for k,v in p.items()}
-            status, wide = build_model(d, params, cfg)
-            if status == "NO_DATA":
-                continue      # 해당 날짜에 지원자 없음
-            log_rows.append({
-                "date"    : d.date(),
-                "scenario": p["scenario_id"],
-                "status"  : status,
-                "success" : 1 if status == "OK" else 0
-            })
-
-
-            if status == "OK":
-                all_wides.append(wide)
-                ok_found = True
-                break   # 다음 날짜
-
-        if not ok_found:
-            print(f"[WARN] {d.date()} – feasible 해 없음")
-
-    # (5) 저장
-    pd.DataFrame(log_rows).to_csv(OUT_LOG, mode='w', index=False,
-                              encoding="utf-8-sig")
-
-    if all_wides:
-        pd.concat(all_wides).to_csv(OUT_WIDE, index=False, encoding="utf-8-sig")
-        print(f"[SAVE] {OUT_WIDE}")
-    print("[SAVE] run_log_test_v4.csv")
-
-
-# ────────────────────────────────
-# 4. 실행
-# ────────────────────────────────
-if __name__ == "__main__":
-    # (1) 파라미터 그리드 csv 저장 – 스크립트를 직접 실행할 때만
-    _build_param_grid().to_csv(
-        "parameter_grid_test_v4.csv",
-        index=False, encoding="utf-8-sig")
-    print("📝 parameter_grid_test_v4.csv 생성 완료")
-
-    # (2) 기존 main() 호출
-    main()

@@ -2,74 +2,12 @@
 from datetime import timedelta, datetime
 import pandas as pd
 import traceback, sys, streamlit as st
-from interview_opt_test_v4 import build_model   # ← 원본 거대한 함수 재사용
+from interview_opt_test_v4 import build_model
 import contextlib, io
-import yaml
-from interview_opt_test_v4 import YAML_FILE
-import itertools
 from pathlib import Path
 
-def df_to_yaml_dict(df: pd.DataFrame) -> dict:
-    rules = []
-    for r in df.itertuples(index=False):
-        rule = {
-            "predecessor": r.predecessor,
-            "successor": r.successor,
-            "min_gap_min": int(r.gap_min),
-            "adjacent": bool(getattr(r, "adjacent", False))
-        }
-        rules.append(rule)
-    return {"common": rules, "by_code": {}}
 
 
-
-
-
-
-
-
-# ────────────────────────────────────────────────────────
-# 0. 시나리오(파라미터) 그리드 로더  ★ RunScheduler 페이지에서 사용
-# ────────────────────────────────────────────────────────
-def _build_param_grid() -> pd.DataFrame:
-    """기본 파라미터 그리드를 생성합니다."""
-    seed_rows = [
-        dict(priority=0, scenario_id="S_SAFE", wave_len=35, max_wave=18,
-             br_offset_A=4, br_offset_B=3, min_gap_min=5, tl_sec=30)
-    ]
-    grid = []
-    for wl, mw, brA, brB, mg in itertools.product(
-            [35], [18], [-2, -1, 0, 1, 2], [-2, -1, 0, 1, 2], [5]):
-        if wl == 50 and mw == 16 and brA == 3 and brB == 2 and mg == 5:
-            continue
-        pr = 1
-        if wl > 35: pr += 1
-        if mw < 14: pr += 1
-        if mg > 10: pr += 1
-        grid.append(dict(priority=pr, wave_len=wl, max_wave=mw,
-                         br_offset_A=brA, br_offset_B=brB,
-                         min_gap_min=mg, tl_sec=30))
-    df = (pd.DataFrame(seed_rows + grid)
-            .sort_values(["priority", "wave_len", "min_gap_min", "max_wave"])
-            .reset_index(drop=True))
-    if "scenario_id" not in df.columns:
-        df.insert(0, "scenario_id", [f"S{str(i+1).zfill(3)}" for i in range(len(df))])
-    else:
-        mask = df["scenario_id"].isna() | (df["scenario_id"] == "")
-        df.loc[mask, "scenario_id"] = [f"S{str(i+1).zfill(3)}" for i in range(mask.sum())]
-    return df
-
-def load_param_grid(csv_path: str = "parameter_grid_test_v4.csv") -> pd.DataFrame:
-    """
-    parameter_grid_test_v4.csv를 읽어서 반환합니다.
-    파일이 없으면 기본값으로 생성합니다.
-    """
-    if not Path(csv_path).exists():
-        df = _build_param_grid()
-        df.to_csv(csv_path, index=False, encoding="utf-8-sig")
-    return pd.read_csv(csv_path).fillna("")
-
-# ──────────────────────────────────────────────
 def _derive_internal_tables(cfg_ui: dict, the_date: pd.Timestamp, *, debug: bool = False) -> dict:
     """
     Streamlit UI 값으로부터 build_model 이 바로 쓸 4개 표를 생성.
@@ -177,7 +115,6 @@ def _derive_internal_tables(cfg_ui: dict, the_date: pd.Timestamp, *, debug: bool
 
         st.markdown("---")
 
-
     # 결과 반환 --------------------------------------
     return dict(
         cfg_duration=cfg_duration,
@@ -186,240 +123,6 @@ def _derive_internal_tables(cfg_ui: dict, the_date: pd.Timestamp, *, debug: bool
         cfg_oper=cfg_oper,
         group_meta=cfg_ui["activities"].copy(),
     )
-
-# ──────────────────────────────────────────────
-# ★ 빈 칼럼 자동 삭제용 헬퍼 ★
-# ──────────────────────────────────────────────
-def _drop_useless_cols(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    값이 하나도 없거나(전부 NaN/빈칸) 정보량이 0인 열을 제거한다.
-    (loc_/start_/end_ 같은 이름이라도 전부 비어 있으면 삭제)
-    """
-    def useless(s: pd.Series) -> bool:
-        return s.replace('', pd.NA).nunique(dropna=True) == 0
-    return df.drop(columns=[c for c in df.columns if useless(df[c])])
-
-def sort_activities_by_time(df: pd.DataFrame, activity_cols: list) -> list:
-    """활동(activity) 컬럼들을 평균 시작 시간순으로 정렬"""
-    avg_start_times = {}
-    for act in activity_cols:
-        start_col = f'start_{act}'
-        if start_col in df.columns:
-            # SettingWithCopyWarning을 피하기 위해 .loc 사용 및 타입 변환
-            times = pd.to_datetime(df[start_col], errors='coerce').dropna()
-            if not times.empty:
-                avg_start_times[act] = times.mean()
-
-    sorted_activities = sorted(avg_start_times.keys(), key=lambda k: avg_start_times[k])
-    time_missing_activities = sorted([act for act in activity_cols if act not in avg_start_times])
-    return sorted_activities + time_missing_activities
-
-# ──────────────────────────────────────────────
-# 3) 최상위 호출 함수 – Streamlit에서 여기만 사용
-#    ★ 여러 날짜(6/4‥6/7 등)를 모두 처리하도록 수정 버전 ★
-# ──────────────────────────────────────────────
-def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
-    """
-    cfg_ui : core.build_config()가 넘긴 UI 데이터 묶음(dict)
-    params : wave_len·max_wave … 등 시나리오 한 줄(dict)
-    반환   : (status:str, wide:pd.DataFrame|None, logs:str)
-    """
-    import io, contextlib, traceback, sys
-    import pandas as pd
-    import streamlit as st
-    from interview_opt_test_v4 import build_model
-
-    logger = st.logger.get_logger("solver")
-
-    # 0) 지원자 데이터 유무 체크
-    if "candidates_exp" not in cfg_ui or cfg_ui["candidates_exp"].empty:
-        st.error("⛔ 지원자 데이터가 없습니다. 'Candidates' 페이지에서 데이터를 업로드해주세요.")
-        return "NO_DATA", None, ""
-
-    # --- room_cap vs activity.max_cap 하드-검증 -----------------
-    room_types_ui = cfg_ui["activities"]["room_type"].dropna().unique()
-    room_max = {}
-    for _, rp in cfg_ui["room_plan"].iterrows():
-        for rt in room_types_ui:
-            col = f"{rt}_cap"
-            if col in rp and pd.notna(rp[col]):
-                room_max[rt] = max(room_max.get(rt, 0), int(rp[col]))
-    bad = [
-        (row.activity, row.max_cap, room_max.get(row.room_type, 0))
-        for _, row in cfg_ui["activities"].iterrows()
-        if "max_cap" in row and "room_type" in row and pd.notna(row.max_cap) and pd.notna(row.room_type) and row.max_cap > room_max.get(row.room_type, 0)
-    ]
-    if bad:
-        msg = ", ".join(f"{a}(max {mc}>{rc})" for a,mc,rc in bad)
-        st.error(f"⛔ room_plan cap 부족: {msg}")
-        return "ERR", None, ""
-    # ----------------------------------------------------------
-
-    # 날짜 리스트 추출: 지원자 날짜와 Room Plan 날짜의 교집합만 사용
-    df_raw_all = cfg_ui["candidates_exp"].copy()
-    df_raw_all["interview_date"] = pd.to_datetime(df_raw_all["interview_date"])
-    candidate_dates = set(df_raw_all["interview_date"].dt.date)
-
-    room_plan_df = cfg_ui["room_plan"].copy()
-    if "date" not in room_plan_df.columns:
-        st.error("⛔ 'Room Plan'에 'date' 컬럼이 없습니다. 설정을 확인해주세요.")
-        return "ERR_NO_ROOM_DATE", None, ""
-    room_plan_df["date"] = pd.to_datetime(room_plan_df["date"])
-    room_plan_dates = set(room_plan_df["date"].dt.date)
-
-    date_list_obj = sorted(list(candidate_dates.intersection(room_plan_dates)))
-
-    if not date_list_obj:
-        st.error(
-            "**설정 오류:** 지원자가 배정된 날짜와 'Room Plan'에 설정된 날짜가 일치하지 않습니다. "
-            f"지원자 날짜: `{sorted(list(candidate_dates))}`, "
-            f"Room Plan 날짜: `{sorted(list(room_plan_dates))}`. "
-            "두 설정의 날짜가 적어도 하루는 일치해야 스케줄링이 가능합니다."
-        )
-        return "NO_VALID_DATE", None, ""
-
-    date_list = [pd.to_datetime(d) for d in date_list_obj]
-
-    all_wide = []
-    all_logs = []
-    for the_date in date_list:
-        # (1) 하루치 지원자만 필터
-        day_df_raw = df_raw_all[df_raw_all["interview_date"] == the_date]
-
-        # (2) 내부 표 4개 생성 (기존 로직 재활용)
-        internal = _derive_internal_tables(cfg_ui, the_date, debug=debug)
-        
-        # ----------------------------------------------------------
-        # build_model에 필요한 데이터 구조 생성
-        # ----------------------------------------------------------
-        activities_df = cfg_ui['activities']
-        act_info = {
-            row['activity']: {
-                'duration': int(row['duration_min']),
-                'min_ppl': int(row.get('min_cap', 1)),
-                'max_ppl': int(row.get('max_cap', 1)),
-                'required_rooms': [row['room_type']]
-            }
-            for _, row in activities_df.iterrows()
-        }
-
-        candidate_info = {
-            cid: {
-                'job_code': group['code'].iloc[0],
-                'activities': group['activity'].tolist()
-            }
-            for cid, group in day_df_raw.groupby('id')
-        }
-
-        cfg_avail_day = internal['cfg_avail'][internal['cfg_avail']['date'] == the_date]
-        room_info = {
-            row['loc']: {'capacity': int(row['capacity_max'])}
-            for _, row in cfg_avail_day.iterrows()
-        }
-
-        cfg_oper_day = internal['cfg_oper'][internal['cfg_oper']['date'] == the_date]
-        oper_hours = {}
-        base_time = pd.to_datetime(the_date.date().strftime('%Y-%m-%d') + ' 00:00:00')
-        for _, row in cfg_oper_day.iterrows():
-            start_dt = pd.to_datetime(f"{the_date.date()} {row['start_time']}")
-            end_dt = pd.to_datetime(f"{the_date.date()} {row['end_time']}")
-            start_minutes = int((start_dt - base_time).total_seconds() / 60)
-            end_minutes = int((end_dt - base_time).total_seconds() / 60)
-            oper_hours[row['code']] = (start_minutes, end_minutes)
-        
-        rules = [
-            (row['predecessor'], row['successor'], 'direct')
-            for _, row in cfg_ui['precedence'].iterrows()
-        ]
-        
-        config = {
-            **(params or {}),
-            'the_date': the_date,
-            'debug_mode': debug,
-            'num_cpus': 8,
-            'act_info': act_info,
-            'candidate_info': candidate_info,
-            'room_info': room_info,
-            'oper_hours': oper_hours,
-            'rules': rules,
-            'min_gap_min': params.get('min_gap_min', 5) if params else 5,
-            'time_limit_sec': 60.0
-        }
-        
-        log_buf = io.StringIO()
-        try:
-            with contextlib.redirect_stdout(log_buf):
-                model, status_name, final_report_df, logs = build_model(config, logger)
-                if logs:
-                    all_logs.extend(logs)
-                wide = final_report_df
-        except Exception:
-            tb_str = traceback.format_exc()
-            st.error("❌ Solver exception:")
-            st.code(tb_str)
-            st.code(log_buf.getvalue())
-            return "ERR", None, log_buf.getvalue()
-
-        all_logs.append(log_buf.getvalue())
-        if status_name not in ["OPTIMAL", "FEASIBLE"]:
-            st.error(f"⚠️ Solver status: {status_name} (date {the_date.date()})")
-            st.code(log_buf.getvalue())
-            return status_name, None, "\n".join(all_logs)
-
-        all_wide.append(wide)
-
-    if not all_wide:
-        st.info("ℹ️ 해당 조건으로 배치 가능한 지원자가 없습니다.")
-        return "NO_FEASIBLE_DATE", None, "\n".join(all_logs)
-
-    all_long = []
-    for df_w in all_wide:
-        id_vars = [c for c in df_w.columns if not (c.startswith('start_') or c.startswith('end_') or c.startswith('loc_'))]
-        # end_D -> end_ 로 미리 변경
-        df_w.columns = df_w.columns.str.replace("end_D", "end_")
-        
-        activities_in_df = set()
-        for c in df_w.columns:
-            if c.startswith('start_'): activities_in_df.add(c.replace('start_',''))
-            elif c.startswith('end_'): activities_in_df.add(c.replace('end_',''))
-            elif c.startswith('loc_'): activities_in_df.add(c.replace('loc_',''))
-
-        if not activities_in_df:
-            continue
-
-        df_l = pd.wide_to_long(df_w,
-                               stubnames=['start', 'end', 'loc'],
-                               i=id_vars,
-                               j='activity',
-                               sep='_',
-                               suffix='(' + '|'.join(activities_in_df) + ')').reset_index()
-        all_long.append(df_l)
-
-    if not all_long:
-        st.info("ℹ️ 조건에 맞는 스케줄 생성에 실패했습니다.")
-        return "NO_FEASIBLE_SCHEDULE", None, "\n".join(all_logs)
-
-    final_long = pd.concat(all_long, ignore_index=True)
-    
-    final_wide = final_long.pivot_table(
-        index=[c for c in final_long.columns if c not in ['activity', 'start', 'end', 'loc']],
-        columns='activity',
-        values=['start', 'end', 'loc']
-    ).reset_index()
-
-    final_wide.columns = [f'{v}_{c}' if c else v for v,c in final_wide.columns]
-    
-    activity_cols = sorted(list(final_long['activity'].unique()))
-    # copy()를 사용하여 SettingWithCopyWarning 방지
-    sorted_activity_cols = sort_activities_by_time(final_wide.copy(), activity_cols)
-
-    base_cols = [c for c in ['id', 'interview_date', 'code'] if c in final_wide.columns]
-    ordered_cols = base_cols + [f'{prefix}{act}' for act in sorted_activity_cols for prefix in ['start_', 'end_', 'loc_']]
-    
-    final_ordered_cols = [c for c in ordered_cols if c in final_wide.columns]
-    final_wide = final_wide[final_ordered_cols]
-    
-    return "OK", _drop_useless_cols(final_wide), "\n".join(all_logs)
 
 def generate_virtual_candidates(job_acts_map: pd.DataFrame) -> pd.DataFrame:
     """'직무별 면접활동' 설정으로부터 가상 지원자 목록을 생성합니다."""
@@ -707,3 +410,230 @@ def solve_for_days(cfg_ui: dict, params: dict, debug: bool):
     final_wide = final_wide[final_ordered_cols]
 
     return "OK", _drop_useless_cols(final_wide), "\n".join(log_messages), daily_candidate_limit
+
+def _drop_useless_cols(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    값이 하나도 없거나(전부 NaN/빈칸) 정보량이 0인 열을 제거한다.
+    (loc_/start_/end_ 같은 이름이라도 전부 비어 있으면 삭제)
+    """
+    def useless(s: pd.Series) -> bool:
+        return s.replace('', pd.NA).nunique(dropna=True) == 0
+    return df.drop(columns=[c for c in df.columns if useless(df[c])])
+
+def sort_activities_by_time(df: pd.DataFrame, activity_cols: list) -> list:
+    """활동(activity) 컬럼들을 평균 시작 시간순으로 정렬"""
+    avg_start_times = {}
+    for act in activity_cols:
+        start_col = f'start_{act}'
+        if start_col in df.columns:
+            # SettingWithCopyWarning을 피하기 위해 .loc 사용 및 타입 변환
+            times = pd.to_datetime(df[start_col], errors='coerce').dropna()
+            if not times.empty:
+                avg_start_times[act] = times.mean()
+
+    sorted_activities = sorted(avg_start_times.keys(), key=lambda k: avg_start_times[k])
+    time_missing_activities = sorted([act for act in activity_cols if act not in avg_start_times])
+    return sorted_activities + time_missing_activities
+
+def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
+    """
+    cfg_ui : core.build_config()가 넘긴 UI 데이터 묶음(dict)
+    params : 스케줄링 파라미터 (dict)
+    반환   : (status:str, wide:pd.DataFrame|None, logs:str)
+    """
+    import io, contextlib, traceback, sys
+    import pandas as pd
+    import streamlit as st
+    from interview_opt_test_v4 import build_model
+
+    logger = st.logger.get_logger("solver")
+
+    # 0) 지원자 데이터 유무 체크
+    if "candidates_exp" not in cfg_ui or cfg_ui["candidates_exp"].empty:
+        st.error("⛔ 지원자 데이터가 없습니다. 'Candidates' 페이지에서 데이터를 업로드해주세요.")
+        return "NO_DATA", None, ""
+
+    # --- room_cap vs activity.max_cap 하드-검증 -----------------
+    room_types_ui = cfg_ui["activities"]["room_type"].dropna().unique()
+    room_max = {}
+    for _, rp in cfg_ui["room_plan"].iterrows():
+        for rt in room_types_ui:
+            col = f"{rt}_cap"
+            if col in rp and pd.notna(rp[col]):
+                room_max[rt] = max(room_max.get(rt, 0), int(rp[col]))
+    bad = [
+        (row.activity, row.max_cap, room_max.get(row.room_type, 0))
+        for _, row in cfg_ui["activities"].iterrows()
+        if "max_cap" in row and "room_type" in row and pd.notna(row.max_cap) and pd.notna(row.room_type) and row.max_cap > room_max.get(row.room_type, 0)
+    ]
+    if bad:
+        msg = ", ".join(f"{a}(max {mc}>{rc})" for a,mc,rc in bad)
+        st.error(f"⛔ room_plan cap 부족: {msg}")
+        return "ERR", None, ""
+    # ----------------------------------------------------------
+
+    # 날짜 리스트 추출: 지원자 날짜와 Room Plan 날짜의 교집합만 사용
+    df_raw_all = cfg_ui["candidates_exp"].copy()
+    df_raw_all["interview_date"] = pd.to_datetime(df_raw_all["interview_date"])
+    candidate_dates = set(df_raw_all["interview_date"].dt.date)
+
+    room_plan_df = cfg_ui["room_plan"].copy()
+    if "date" not in room_plan_df.columns:
+        st.error("⛔ 'Room Plan'에 'date' 컬럼이 없습니다. 설정을 확인해주세요.")
+        return "ERR_NO_ROOM_DATE", None, ""
+    room_plan_df["date"] = pd.to_datetime(room_plan_df["date"])
+    room_plan_dates = set(room_plan_df["date"].dt.date)
+
+    date_list_obj = sorted(list(candidate_dates.intersection(room_plan_dates)))
+
+    if not date_list_obj:
+        st.error(
+            "**설정 오류:** 지원자가 배정된 날짜와 'Room Plan'에 설정된 날짜가 일치하지 않습니다. "
+            f"지원자 날짜: `{sorted(list(candidate_dates))}`, "
+            f"Room Plan 날짜: `{sorted(list(room_plan_dates))}`. "
+            "두 설정의 날짜가 적어도 하루는 일치해야 스케줄링이 가능합니다."
+        )
+        return "NO_VALID_DATE", None, ""
+
+    date_list = [pd.to_datetime(d) for d in date_list_obj]
+
+    all_wide = []
+    all_logs = []
+    for the_date in date_list:
+        # (1) 하루치 지원자만 필터
+        day_df_raw = df_raw_all[df_raw_all["interview_date"] == the_date]
+
+        # (2) 내부 표 4개 생성 (기존 로직 재활용)
+        internal = _derive_internal_tables(cfg_ui, the_date, debug=debug)
+        
+        # ----------------------------------------------------------
+        # build_model에 필요한 데이터 구조 생성
+        # ----------------------------------------------------------
+        activities_df = cfg_ui['activities']
+        act_info = {
+            row['activity']: {
+                'duration': int(row['duration_min']),
+                'min_ppl': int(row.get('min_cap', 1)),
+                'max_ppl': int(row.get('max_cap', 1)),
+                'required_rooms': [row['room_type']]
+            }
+            for _, row in activities_df.iterrows()
+        }
+
+        candidate_info = {
+            cid: {
+                'job_code': group['code'].iloc[0],
+                'activities': group['activity'].tolist()
+            }
+            for cid, group in day_df_raw.groupby('id')
+        }
+
+        cfg_avail_day = internal['cfg_avail'][internal['cfg_avail']['date'] == the_date]
+        room_info = {
+            row['loc']: {'capacity': int(row['capacity_max'])}
+            for _, row in cfg_avail_day.iterrows()
+        }
+
+        cfg_oper_day = internal['cfg_oper'][internal['cfg_oper']['date'] == the_date]
+        oper_hours = {}
+        base_time = pd.to_datetime(the_date.date().strftime('%Y-%m-%d') + ' 00:00:00')
+        for _, row in cfg_oper_day.iterrows():
+            start_dt = pd.to_datetime(f"{the_date.date()} {row['start_time']}")
+            end_dt = pd.to_datetime(f"{the_date.date()} {row['end_time']}")
+            start_minutes = int((start_dt - base_time).total_seconds() / 60)
+            end_minutes = int((end_dt - base_time).total_seconds() / 60)
+            oper_hours[row['code']] = (start_minutes, end_minutes)
+        
+        rules = [
+            (row['predecessor'], row['successor'], 'direct')
+            for _, row in cfg_ui['precedence'].iterrows()
+        ]
+        
+        config = {
+            **(params or {}),
+            'the_date': the_date,
+            'debug_mode': debug,
+            'num_cpus': 8,
+            'act_info': act_info,
+            'candidate_info': candidate_info,
+            'room_info': room_info,
+            'oper_hours': oper_hours,
+            'rules': rules,
+            'min_gap_min': params.get('min_gap_min', 5) if params else 5,
+            'time_limit_sec': 60.0
+        }
+        
+        log_buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(log_buf):
+                model, status_name, final_report_df, logs = build_model(config, logger)
+                if logs:
+                    all_logs.extend(logs)
+                wide = final_report_df
+        except Exception:
+            tb_str = traceback.format_exc()
+            st.error("❌ Solver exception:")
+            st.code(tb_str)
+            st.code(log_buf.getvalue())
+            return "ERR", None, log_buf.getvalue()
+
+        all_logs.append(log_buf.getvalue())
+        if status_name not in ["OPTIMAL", "FEASIBLE"]:
+            st.error(f"⚠️ Solver status: {status_name} (date {the_date.date()})")
+            st.code(log_buf.getvalue())
+            return status_name, None, "\n".join(all_logs)
+
+        all_wide.append(wide)
+
+    if not all_wide:
+        st.info("ℹ️ 해당 조건으로 배치 가능한 지원자가 없습니다.")
+        return "NO_FEASIBLE_DATE", None, "\n".join(all_logs)
+
+    all_long = []
+    for df_w in all_wide:
+        id_vars = [c for c in df_w.columns if not (c.startswith('start_') or c.startswith('end_') or c.startswith('loc_'))]
+        # end_D -> end_ 로 미리 변경
+        df_w.columns = df_w.columns.str.replace("end_D", "end_")
+        
+        activities_in_df = set()
+        for c in df_w.columns:
+            if c.startswith('start_'): activities_in_df.add(c.replace('start_',''))
+            elif c.startswith('end_'): activities_in_df.add(c.replace('end_',''))
+            elif c.startswith('loc_'): activities_in_df.add(c.replace('loc_',''))
+
+        if not activities_in_df:
+            continue
+
+        df_l = pd.wide_to_long(df_w,
+                               stubnames=['start', 'end', 'loc'],
+                               i=id_vars,
+                               j='activity',
+                               sep='_',
+                               suffix='(' + '|'.join(activities_in_df) + ')').reset_index()
+        all_long.append(df_l)
+
+    if not all_long:
+        st.info("ℹ️ 조건에 맞는 스케줄 생성에 실패했습니다.")
+        return "NO_FEASIBLE_SCHEDULE", None, "\n".join(all_logs)
+
+    final_long = pd.concat(all_long, ignore_index=True)
+    
+    final_wide = final_long.pivot_table(
+        index=[c for c in final_long.columns if c not in ['activity', 'start', 'end', 'loc']],
+        columns='activity',
+        values=['start', 'end', 'loc']
+    ).reset_index()
+
+    final_wide.columns = [f'{v}_{c}' if c else v for v,c in final_wide.columns]
+    
+    activity_cols = sorted(list(final_long['activity'].unique()))
+    # copy()를 사용하여 SettingWithCopyWarning 방지
+    sorted_activity_cols = sort_activities_by_time(final_wide.copy(), activity_cols)
+
+    base_cols = [c for c in ['id', 'interview_date', 'code'] if c in final_wide.columns]
+    ordered_cols = base_cols + [f'{prefix}{act}' for act in sorted_activity_cols for prefix in ['start_', 'end_', 'loc_']]
+    
+    final_ordered_cols = [c for c in ordered_cols if c in final_wide.columns]
+    final_wide = final_wide[final_ordered_cols]
+    
+    return "OK", _drop_useless_cols(final_wide), "\n".join(all_logs)
