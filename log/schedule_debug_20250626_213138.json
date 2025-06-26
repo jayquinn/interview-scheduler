@@ -1,0 +1,234 @@
+{
+  "timestamp": "20250626_213138",
+  "config": {
+    "activities": {
+      "type": "DataFrame",
+      "shape": [
+        3,
+        7
+      ],
+      "data": [
+        {
+          "use": true,
+          "activity": "토론면접",
+          "mode": "batched",
+          "duration_min": 30,
+          "room_type": "토론면접실",
+          "min_cap": 4,
+          "max_cap": 6
+        },
+        {
+          "use": true,
+          "activity": "발표준비",
+          "mode": "parallel",
+          "duration_min": 5,
+          "room_type": "발표준비실",
+          "min_cap": 1,
+          "max_cap": 2
+        },
+        {
+          "use": true,
+          "activity": "발표면접",
+          "mode": "individual",
+          "duration_min": 15,
+          "room_type": "발표면접실",
+          "min_cap": 1,
+          "max_cap": 1
+        }
+      ]
+    },
+    "job_acts_map": {
+      "type": "DataFrame",
+      "shape": [
+        11,
+        5
+      ],
+      "data": [
+        {
+          "code": "JOB01",
+          "count": 23,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB02",
+          "count": 23,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB03",
+          "count": 20,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB04",
+          "count": 20,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB05",
+          "count": 12,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB06",
+          "count": 15,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB07",
+          "count": 6,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB08",
+          "count": 6,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB09",
+          "count": 6,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB10",
+          "count": 3,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        },
+        {
+          "code": "JOB11",
+          "count": 3,
+          "토론면접": true,
+          "발표준비": true,
+          "발표면접": true
+        }
+      ]
+    },
+    "room_plan": {
+      "type": "DataFrame",
+      "shape": [
+        1,
+        6
+      ],
+      "data": [
+        {
+          "발표면접실_count": 2,
+          "발표면접실_cap": 1,
+          "발표준비실_count": 1,
+          "발표준비실_cap": 2,
+          "토론면접실_count": 2,
+          "토론면접실_cap": 6
+        }
+      ]
+    },
+    "oper_window": {
+      "type": "DataFrame",
+      "shape": [
+        1,
+        2
+      ],
+      "data": [
+        {
+          "start_time": "09:00",
+          "end_time": "18:00"
+        }
+      ]
+    },
+    "precedence": {
+      "type": "DataFrame",
+      "shape": [
+        1,
+        4
+      ],
+      "data": [
+        {
+          "predecessor": "발표준비",
+          "successor": "발표면접",
+          "gap_min": 0,
+          "adjacent": true
+        }
+      ]
+    },
+    "candidates": {
+      "type": "DataFrame",
+      "shape": [
+        0,
+        0
+      ],
+      "data": []
+    },
+    "candidates_exp": {
+      "type": "DataFrame",
+      "shape": [
+        0,
+        0
+      ],
+      "data": []
+    },
+    "group_meta": {
+      "type": "DataFrame",
+      "shape": [
+        3,
+        7
+      ],
+      "data": [
+        {
+          "use": true,
+          "activity": "토론면접",
+          "mode": "batched",
+          "duration_min": 30,
+          "room_type": "토론면접실",
+          "min_cap": 4,
+          "max_cap": 6
+        },
+        {
+          "use": true,
+          "activity": "발표준비",
+          "mode": "parallel",
+          "duration_min": 5,
+          "room_type": "발표준비실",
+          "min_cap": 1,
+          "max_cap": 2
+        },
+        {
+          "use": true,
+          "activity": "발표면접",
+          "mode": "individual",
+          "duration_min": 15,
+          "room_type": "발표면접실",
+          "min_cap": 1,
+          "max_cap": 1
+        }
+      ]
+    }
+  },
+  "logs": [
+    {
+      "timestamp": "2025-06-26T21:31:38.434776",
+      "level": "INFO",
+      "message": "스케줄링 시작",
+      "data": {
+        "total_candidates": 411
+      }
+    }
+  ]
+}

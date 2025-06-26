@@ -174,6 +174,12 @@ def build_model(config, logger):
         CANDIDATE_ACTS = {cid: data['activities'] for cid, data in CANDIDATE_SPACE.items()}
         CIDS = list(CANDIDATE_SPACE.keys())
         
+        # 고정된 스케줄 (batched 활동 등)
+        fixed_schedule = config.get('fixed_schedule', {})
+        
+        # 그룹 제약 (batched → parallel → individual 흐름에서 사용)
+        group_constraints = config.get('group_constraints', {})
+        
         all_rule_activities = set()
         for rule in rules:
             if len(rule) == 4:
@@ -207,8 +213,17 @@ def build_model(config, logger):
                 if act_name in ACT_SPACE:
                     duration = ACT_SPACE[act_name]['duration']
                     suffix = f"{cid}_{act_name}"
-                    start_var = model.NewIntVar(0, horizon, f'start_{suffix}')
-                    end_var = model.NewIntVar(0, horizon, f'end_{suffix}')
+                    
+                    # 고정된 스케줄이 있는지 확인
+                    if cid in fixed_schedule and act_name in fixed_schedule[cid]:
+                        # 고정된 시간 사용
+                        fixed_info = fixed_schedule[cid][act_name]
+                        start_var = model.NewIntVar(fixed_info['start'], fixed_info['start'], f'start_{suffix}')
+                        end_var = model.NewIntVar(fixed_info['end'], fixed_info['end'], f'end_{suffix}')
+                    else:
+                        # 일반적인 변수 생성
+                        start_var = model.NewIntVar(0, horizon, f'start_{suffix}')
+                        end_var = model.NewIntVar(0, horizon, f'end_{suffix}')
                     
                     presence_var = model.NewBoolVar(f'presence_{suffix}')
                     model.Add(presence_var == master_presence_var)
@@ -216,6 +231,12 @@ def build_model(config, logger):
                     interval_var = model.NewOptionalIntervalVar(start_var, duration, end_var, presence_var, f'interval_{suffix}')
                     intervals[(cid, act_name)] = interval_var
                     presences[(cid, act_name)] = presence_var
+                    
+                    # 그룹 제약 적용 (최소 시작 시간)
+                    if cid in group_constraints and act_name in group_constraints[cid]:
+                        min_start = group_constraints[cid][act_name].get('min_start', 0)
+                        if min_start > 0:
+                            model.Add(start_var >= min_start)
 
         for cid in CIDS:
             cid_intervals = [iv for (c, _), iv in intervals.items() if c == cid]
@@ -239,16 +260,30 @@ def build_model(config, logger):
             required_rooms = ACT_SPACE[act_name].get('required_rooms', [])
             possible_rooms = [r_name for r_type in required_rooms for r_name in ROOM_SPACE if r_name.startswith(r_type)]
             
+            # 고정된 방이 있는지 확인
+            fixed_room = None
+            if cid in fixed_schedule and act_name in fixed_schedule[cid]:
+                fixed_room = fixed_schedule[cid][act_name].get('room')
+            
             room_presence_vars = []
             for room_name in possible_rooms:
-                presence_var = model.NewBoolVar(f'presence_{cid}_{act_name}_{room_name}')
+                if fixed_room and room_name != fixed_room:
+                    # 고정된 방이 아니면 사용하지 않음
+                    presence_var = model.NewBoolVar(f'presence_{cid}_{act_name}_{room_name}')
+                    model.Add(presence_var == 0)
+                else:
+                    presence_var = model.NewBoolVar(f'presence_{cid}_{act_name}_{room_name}')
+                    if fixed_room and room_name == fixed_room:
+                        # 고정된 방이면 반드시 사용
+                        model.Add(presence_var == presences[(cid, act_name)])
+                
                 room_assignments[(cid, act_name, room_name)] = presence_var
                 room_presence_vars.append(presence_var)
                 
                 v_iv = model.NewOptionalIntervalVar(iv.StartExpr(), ACT_SPACE[act_name]['duration'], iv.EndExpr(), presence_var, f'v_iv_{cid}_{act_name}_{room_name}')
                 room_intervals[room_name].append(v_iv)
             
-            if room_presence_vars:
+            if room_presence_vars and not fixed_room:
                 model.AddExactlyOne(room_presence_vars)
 
         for room_name, iv_list in room_intervals.items():
@@ -270,10 +305,29 @@ def build_model(config, logger):
                 if pred == '__START__':
                     if succ in acts:
                         succ_iv = intervals[(cid, succ)]
+                        # fixed_schedule에서 이미 스케줄된 활동들의 최대 종료 시간 확인
+                        # 운영 시작 시간 가져오기
+                        job_code = CANDIDATE_SPACE[cid]['job_code']
+                        oper_start_time = OPER_HOURS[job_code][0] if job_code in OPER_HOURS else 0
+                        min_start_time = oper_start_time  # 기본 운영 시작 시간
+                        
+                        if cid in fixed_schedule:
+                            for fixed_act, fixed_info in fixed_schedule[cid].items():
+                                if 'end' in fixed_info:
+                                    # fixed 활동 종료 후에 시작해야 함 (gap은 precedence rule의 값 사용)
+                                    rule_gap = gap if len(rule) > 2 else MIN_GAP
+                                    min_start_time = max(min_start_time, fixed_info['end'] + rule_gap)
+                        
+                        # succ는 fixed 활동들 이후에 시작
+                        model.Add(succ_iv.StartExpr() >= min_start_time)
+                        
+                        # 다른 individual 활동들보다는 먼저
                         for other_act in acts:
-                            if other_act != succ:
+                            if other_act != succ and (cid, other_act) in intervals:
                                 other_iv = intervals[(cid, other_act)]
-                                model.Add(succ_iv.EndExpr() <= other_iv.StartExpr())
+                                # 다른 활동도 fixed가 아닌 경우에만
+                                if not (cid in fixed_schedule and other_act in fixed_schedule[cid]):
+                                    model.Add(succ_iv.EndExpr() <= other_iv.StartExpr())
 
                 # Rule 2: pred → __END__
                 elif succ == '__END__':
@@ -288,7 +342,23 @@ def build_model(config, logger):
                 elif pred in acts and succ in acts:
                     pred_iv = intervals[(cid, pred)]
                     succ_iv = intervals[(cid, succ)]
-                    if stick:
+                    
+                    # Parallel → Individual adjacent 특별 처리
+                    if stick and pred in ACT_SPACE and succ in ACT_SPACE:
+                        pred_mode = 'parallel' if ACT_SPACE[pred].get('max_ppl', 1) > 1 else 'individual'
+                        succ_mode = 'individual' if ACT_SPACE[succ].get('max_ppl', 1) == 1 else 'parallel'
+                        
+                        if pred_mode == 'parallel' and succ_mode == 'individual':
+                            # Parallel 활동을 같이 끝낸 사람들이 Individual로 순차적으로 이동
+                            # Adjacent를 "유연한 연속"으로 해석
+                            # 같은 시간에 pred를 끝낸 다른 사람들을 고려하여 유연한 gap 허용
+                            flexible_gap = gap + ACT_SPACE[succ]['duration'] * 2  # 여유 시간 추가
+                            model.Add(succ_iv.StartExpr() >= pred_iv.EndExpr() + gap)
+                            model.Add(succ_iv.StartExpr() <= pred_iv.EndExpr() + flexible_gap)
+                        else:
+                            # 일반적인 adjacent 제약
+                            model.Add(succ_iv.StartExpr() == pred_iv.EndExpr() + gap)
+                    elif stick:
                         model.Add(succ_iv.StartExpr() == pred_iv.EndExpr() + gap)
                     else:
                         model.Add(succ_iv.StartExpr() >= pred_iv.EndExpr() + gap)

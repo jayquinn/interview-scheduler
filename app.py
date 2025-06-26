@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import re
+import json
 from datetime import time, datetime, timedelta
 from st_aggrid import (
     AgGrid,
@@ -12,7 +13,7 @@ from st_aggrid import (
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.styles import PatternFill, Alignment
+from openpyxl.styles import PatternFill, Alignment, Font
 from openpyxl.utils import get_column_letter
 import core
 from solver.solver import solve_for_days
@@ -66,28 +67,30 @@ st.markdown("""
 def init_session_states():
     # 기본 활동 템플릿
     default_activities = pd.DataFrame({
-        "use": [True, True, True, True],
-        "activity": ["면접1", "면접2", "인성검사", "커피챗"],
-        "mode": ["individual"] * 4,
-        "duration_min": [10] * 4,
-        "room_type": ["면접1실", "면접2실", "인성검사실", "커피챗실"],
-        "min_cap": [1] * 4,
-        "max_cap": [1] * 4,
+        "use": [True, True, True],
+        "activity": ["토론면접", "발표준비", "발표면접"],
+        "mode": ["batched", "parallel", "individual"],
+        "duration_min": [30, 5, 15],
+        "room_type": ["토론면접실", "발표준비실", "발표면접실"],
+        "min_cap": [4, 1, 1],
+        "max_cap": [6, 2, 1],
     })
     st.session_state.setdefault("activities", default_activities)
     
-    # 스마트 직무 매핑 (모든 기본 활동 활성화 + 충분한 인원수)
+    # 스마트 직무 매핑 (모든 기본 활동 활성화 + 실제 인원수)
     if "job_acts_map" not in st.session_state:
         act_list = default_activities.query("use == True")["activity"].tolist()
-        job_data = {"code": ["JOB01"], "count": [20]}  # 기본 20명으로 설정
+        job_codes = ["JOB01", "JOB02", "JOB03", "JOB04", "JOB05", "JOB06", "JOB07", "JOB08", "JOB09", "JOB10", "JOB11"]
+        job_counts = [23, 23, 20, 20, 12, 15, 6, 6, 6, 3, 3]
+        
+        job_data = {"code": job_codes, "count": job_counts}
         for act in act_list:
-            job_data[act] = True
+            job_data[act] = [True] * len(job_codes)
         st.session_state["job_acts_map"] = pd.DataFrame(job_data)
     
-    # 기본 선후행 제약 (인성검사 첫 번째, 커피챗 마지막)
+    # 기본 선후행 제약 (발표준비 → 발표면접)
     default_precedence = pd.DataFrame([
-        {"predecessor": "__START__", "successor": "인성검사", "gap_min": 0, "adjacent": False},  # 인성검사가 가장 먼저
-        {"predecessor": "커피챗", "successor": "__END__", "gap_min": 0, "adjacent": False}     # 커피챗이 가장 마지막
+        {"predecessor": "발표준비", "successor": "발표면접", "gap_min": 0, "adjacent": True}  # 발표준비 → 발표면접 연속
     ])
     st.session_state.setdefault("precedence", default_precedence)
     
@@ -97,13 +100,11 @@ def init_session_states():
     
     # 스마트 방 템플릿 (기본 활동에 맞춰 자동 생성)
     if "room_template" not in st.session_state:
-        room_template = {}
-        for _, row in default_activities.iterrows():
-            if row["use"] and row["room_type"]:
-                room_template[row["room_type"]] = {
-                    "count": 3,  # 기본 3개 방으로 충분한 용량 확보
-                    "cap": row["max_cap"]
-                }
+        room_template = {
+            "토론면접실": {"count": 2, "cap": 6},
+            "발표준비실": {"count": 1, "cap": 2},
+            "발표면접실": {"count": 2, "cap": 1}
+        }
         st.session_state["room_template"] = room_template
     
     # 스마트 운영 공간 계획 (room_template 기반으로 자동 생성)
@@ -133,6 +134,12 @@ def init_session_states():
     st.session_state.setdefault('last_solve_logs', "")
     st.session_state.setdefault('solver_status', "미실행")
     st.session_state.setdefault('daily_limit', 0)
+    
+    # 집단면접 설정 초기화 (토론면접에 맞춰 설정)
+    st.session_state.setdefault('group_min_size', 4)
+    st.session_state.setdefault('group_max_size', 6)
+    st.session_state.setdefault('global_gap_min', 5)
+    st.session_state.setdefault('max_stay_hours', 5)  # 5시간으로 단축
 
 init_session_states()
 
@@ -148,16 +155,76 @@ if st.session_state.get('solver_status', '미실행') == '미실행':
     st.markdown("💡 **팁:** 추정 후 아래 섹션들에서 세부 설정을 조정하여 더 정확한 결과를 얻을 수 있습니다.")
 
 # Excel 출력 함수 (타임슬롯 기능 통합)
-def df_to_excel(df: pd.DataFrame, stream=None) -> None:
+def df_to_excel(df: pd.DataFrame, stream=None, group_info: dict = None) -> None:
     wb = Workbook()
     
     # 기본 팔레트
     PALETTE = ['E3F2FD', 'FFF3E0', 'E8F5E9', 'FCE4EC', 'E1F5FE', 'F3E5F5', 'FFFDE7', 'E0F2F1', 'EFEBE9', 'ECEFF1']
     
+    # 활동별 모드 정보 가져오기 (batched 활동 확인용)
+    activities_df = st.session_state.get("activities", pd.DataFrame())
+    activity_modes = {}
+    if not activities_df.empty:
+        for _, act in activities_df.iterrows():
+            if act["use"]:
+                activity_modes[act["activity"]] = act.get("mode", "individual")
+    
     # ===== 1) 기본 스케줄 시트 =====
     ws1 = wb.active
     ws1.title = 'Schedule'
     df_copy = df.copy()
+    
+    # 체류시간 계산 함수
+    def calculate_stay_time(row):
+        """각 지원자의 체류시간을 계산 (분 단위)"""
+        start_times = []
+        end_times = []
+        
+        for col in row.index:
+            if col.startswith('start_') and pd.notna(row[col]):
+                try:
+                    time_val = pd.to_datetime(row[col])
+                    start_times.append(time_val)
+                except:
+                    pass
+            elif col.startswith('end_') and pd.notna(row[col]):
+                try:
+                    time_val = pd.to_datetime(row[col])
+                    end_times.append(time_val)
+                except:
+                    pass
+        
+        if start_times and end_times:
+            first_start = min(start_times)
+            last_end = max(end_times)
+            stay_minutes = (last_end - first_start).total_seconds() / 60
+            return int(stay_minutes)
+        return 0
+    
+    # 체류시간 칼럼 추가
+    df_copy['체류시간(분)'] = df_copy.apply(calculate_stay_time, axis=1)
+    df_copy['체류시간(시:분)'] = df_copy['체류시간(분)'].apply(
+        lambda x: f"{int(x//60)}:{int(x%60):02d}" if x > 0 else ""
+    )
+    
+    # 그룹 정보 추가 (group_info가 제공된 경우)
+    if group_info:
+        df_copy['그룹번호'] = df_copy['id'].map(group_info.get('member_to_group', {}))
+        df_copy['그룹크기'] = df_copy['그룹번호'].map(group_info.get('group_sizes', {}))
+    else:
+        df_copy['그룹번호'] = ''
+        df_copy['그룹크기'] = ''
+    
+    # 칼럼 순서 재정렬 - 기본 정보 다음에 체류시간과 그룹 정보를 배치
+    base_cols = ['id', 'interview_date', 'code']
+    extra_cols = ['그룹번호', '그룹크기', '체류시간(분)', '체류시간(시:분)']
+    activity_cols = [col for col in df_copy.columns if col not in base_cols + extra_cols]
+    
+    # 새로운 칼럼 순서: 기본 정보 → 그룹 정보 → 체류시간 → 활동 정보
+    new_column_order = base_cols + [col for col in ['그룹번호', '그룹크기'] if col in df_copy.columns] + \
+                      [col for col in ['체류시간(분)', '체류시간(시:분)'] if col in df_copy.columns] + \
+                      activity_cols
+    df_copy = df_copy[new_column_order]
     
     # 날짜별로 색상 지정
     unique_dates = df_copy['interview_date'].dt.date.unique()
@@ -168,8 +235,14 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
         ws1.append(r)
     
     header_fill = PatternFill('solid', fgColor='D9D9D9')
+    special_header_fill = PatternFill('solid', fgColor='B8B8B8')  # 체류시간/그룹 정보는 진한 회색
+    
     for cell in ws1[1]:
-        cell.fill = header_fill
+        if cell.value in ['체류시간(분)', '체류시간(시:분)', '그룹번호', '그룹크기']:
+            cell.fill = special_header_fill
+            cell.font = Font(bold=True)
+        else:
+            cell.fill = header_fill
     
     # 날짜 열 찾기
     date_col_idx = -1
@@ -204,11 +277,17 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
             return mapping[act]
         return _pick
     
-    def _build_timeslot_sheet(ws, df_day: pd.DataFrame, pick_color):
+    def _build_timeslot_sheet(ws, df_day: pd.DataFrame, pick_color, group_info_param=None, activity_modes_param=None):
         """단일 날짜 스케줄 → 타임슬롯 매트릭스"""
         loc_cols = [c for c in df_day.columns if c.startswith("loc_")]
         start_cols = [c for c in df_day.columns if c.startswith("start_")]
         end_cols = [c for c in df_day.columns if c.startswith("end_")]
+        
+        # group_info 파라미터 사용
+        group_info = group_info_param
+        
+        # 활동별 모드 정보는 파라미터로 전달받음
+        activity_modes = activity_modes_param if activity_modes_param is not None else {}
         
         # 공간 목록
         locs = sorted(set(df_day[loc_cols].stack().dropna().unique()))
@@ -263,6 +342,16 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
                 if loc not in locs:
                     continue
                 col_idx = locs.index(loc) + 2
+                
+                # 표시할 내용 결정: batched 활동이면 그룹 번호, 아니면 ID
+                display_value = str(row["id"])
+                if group_info and base_act in activity_modes and activity_modes[base_act] == "batched":
+                    # batched 활동인 경우 그룹 번호 표시
+                    member_id = row["id"]
+                    if member_id in group_info.get('member_to_group', {}):
+                        group_num = group_info['member_to_group'][member_id]
+                        display_value = f"G{group_num}"
+                
                 cur = st_dt.floor(f"{TIME_STEP_MIN}min")
                 while cur < ed_dt:
                     if cur < t_min or cur > t_max:
@@ -271,12 +360,12 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
                     row_idx = times.get_loc(cur) + 2
                     cell = ws.cell(row_idx, col_idx)
                     if cell.value in (None, ""):
-                        cell.value = str(row["id"])
+                        cell.value = display_value
                         cell.fill = PatternFill("solid", fgColor=color)
                     else:
                         existing = str(cell.value)
-                        if str(row["id"]) not in existing.split("\n"):
-                            cell.value = existing + "\n" + str(row["id"])
+                        if display_value not in existing.split("\n"):
+                            cell.value = existing + "\n" + display_value
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                     cur += timedelta(minutes=TIME_STEP_MIN)
         
@@ -308,7 +397,7 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
     for the_date, df_day in df.groupby("interview_date"):
         ws_name = f"TS_{pd.to_datetime(the_date).strftime('%m%d')}"
         ws_ts = wb.create_sheet(ws_name)
-        _build_timeslot_sheet(ws_ts, df_day.copy(), pick_color)
+        _build_timeslot_sheet(ws_ts, df_day.copy(), pick_color, group_info, activity_modes)
     
     wb.save(stream or "interview_schedule.xlsx")
 
@@ -320,12 +409,21 @@ def reset_run_state():
 
 # 기본 파라미터 설정 (하드코딩)
 params = {
-    "min_gap_min": 5,
-    "time_limit_sec": 60
+    "min_gap_min": st.session_state.get('global_gap_min', 5),
+    "time_limit_sec": 120,
+    "max_stay_hours": st.session_state.get('max_stay_hours', 8)
 }
 
-# 데이터 검증
+# batched 모드가 있는지 확인
 acts_df = st.session_state.get("activities", pd.DataFrame())
+has_batched = any(acts_df["mode"] == "batched") if not acts_df.empty and "mode" in acts_df.columns else False
+
+# 집단면접 설정이 있으면 params에 추가
+if has_batched:
+    params["group_min_size"] = st.session_state.get('group_min_size', 4)
+    params["group_max_size"] = st.session_state.get('group_max_size', 6)
+
+# 데이터 검증
 job_df = st.session_state.get("job_acts_map", pd.DataFrame())
 room_plan = st.session_state.get("room_plan", pd.DataFrame())
 oper_df = st.session_state.get("oper_window", pd.DataFrame())
@@ -342,6 +440,26 @@ if job_df.empty or (job_df["count"].sum() == 0):
 
 if job_df["code"].duplicated().any():
     validation_errors.append("중복된 직무 코드가 있습니다.")
+
+# batched 모드가 있으면 그룹 크기 일관성 검증
+if has_batched:
+    batched_activities = acts_df[acts_df["mode"] == "batched"]
+    min_caps = batched_activities["min_cap"].unique()
+    max_caps = batched_activities["max_cap"].unique()
+    
+    if len(min_caps) > 1 or len(max_caps) > 1:
+        validation_errors.append("모든 batched 활동의 그룹 크기(min_cap, max_cap)는 동일해야 합니다.")
+    
+    # 방 용량 vs 그룹 크기 검증
+    for _, act in batched_activities.iterrows():
+        room_type = act["room_type"]
+        max_cap = act["max_cap"]
+        room_cap_col = f"{room_type}_cap"
+        
+        if room_cap_col in room_plan.columns:
+            room_cap = room_plan[room_cap_col].iloc[0] if not room_plan.empty else 0
+            if room_cap < max_cap:
+                validation_errors.append(f"{room_type}의 용량({room_cap})이 {act['activity']}의 최대 그룹 크기({max_cap})보다 작습니다.")
 
 # room_plan 검증: room_template이 있으면 유효한 것으로 간주
 room_template = st.session_state.get("room_template", {})
@@ -362,7 +480,10 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
         with st.spinner("최적의 운영 일정을 계산 중입니다..."):
             try:
                 cfg = core.build_config(st.session_state)
-                status, final_wide, logs, limit = solve_for_days(cfg, params, debug=False)
+                
+                # solve_for_days가 내부적으로 batched 모드를 처리하도록 함
+                # 디버그 모드 활성화 (문제 추적을 위해)
+                status, final_wide, logs, limit = solve_for_days(cfg, params, debug=True)
                 
                 st.session_state['last_solve_logs'] = logs
                 st.session_state['solver_status'] = status
@@ -389,8 +510,275 @@ with col2:
     if daily_limit > 0:
         st.info(f"계산된 일일 최대 처리 인원: **{daily_limit}명**")
 
+# 디버그 정보 생성 함수
+def generate_debug_info():
+    """문제 진단을 위한 종합 디버그 정보 생성"""
+    import json
+    from datetime import datetime
+    
+    debug_info = {
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "solver_status": st.session_state.get('solver_status', '미실행'),
+        "daily_limit": st.session_state.get('daily_limit', 0),
+        "total_candidates": 0,
+        "settings": {}
+    }
+    
+    # 1. 활동 정의
+    activities_df = st.session_state.get("activities", pd.DataFrame())
+    if not activities_df.empty:
+        debug_info["settings"]["activities"] = activities_df.to_dict('records')
+        
+        # 활동별 통계
+        active_activities = activities_df[activities_df["use"] == True]
+        debug_info["settings"]["active_activities_count"] = len(active_activities)
+        debug_info["settings"]["activity_modes"] = active_activities["mode"].value_counts().to_dict()
+    
+    # 2. 직무별 인원수와 활동
+    job_acts_df = st.session_state.get("job_acts_map", pd.DataFrame())
+    if not job_acts_df.empty:
+        debug_info["settings"]["job_activities"] = job_acts_df.to_dict('records')
+        debug_info["total_candidates"] = int(job_acts_df["count"].sum())
+        debug_info["settings"]["job_count"] = len(job_acts_df)
+    
+    # 3. 선후행 제약
+    precedence_df = st.session_state.get("precedence", pd.DataFrame())
+    if not precedence_df.empty:
+        debug_info["settings"]["precedence"] = precedence_df.to_dict('records')
+    else:
+        debug_info["settings"]["precedence"] = []
+    
+    # 4. 방 설정
+    room_template = st.session_state.get("room_template", {})
+    room_plan_df = st.session_state.get("room_plan", pd.DataFrame())
+    
+    debug_info["settings"]["room_template"] = room_template
+    if not room_plan_df.empty:
+        debug_info["settings"]["room_plan"] = room_plan_df.to_dict('records')
+    
+    # 방별 총 용량 계산
+    total_room_capacity = {}
+    for room_type, values in room_template.items():
+        total_room_capacity[room_type] = {
+            "count": values.get("count", 0),
+            "capacity_per_room": values.get("cap", 0),
+            "total_capacity": values.get("count", 0) * values.get("cap", 0)
+        }
+    debug_info["settings"]["room_capacity_summary"] = total_room_capacity
+    
+    # 5. 운영 시간
+    oper_window_df = st.session_state.get("oper_window", pd.DataFrame())
+    if not oper_window_df.empty:
+        debug_info["settings"]["operating_hours"] = oper_window_df.to_dict('records')[0]
+    else:
+        debug_info["settings"]["operating_hours"] = {
+            "start_time": st.session_state.get("oper_start_time", time(9, 0)).strftime("%H:%M"),
+            "end_time": st.session_state.get("oper_end_time", time(18, 0)).strftime("%H:%M")
+        }
+    
+    # 운영 시간 계산
+    start_time = st.session_state.get("oper_start_time", time(9, 0))
+    end_time = st.session_state.get("oper_end_time", time(18, 0))
+    operating_minutes = (end_time.hour * 60 + end_time.minute) - (start_time.hour * 60 + start_time.minute)
+    debug_info["settings"]["operating_minutes_per_day"] = operating_minutes
+    
+    # 6. 집단면접 설정 (batched 모드가 있을 때만)
+    if "batched" in debug_info["settings"].get("activity_modes", {}):
+        debug_info["settings"]["batched_settings"] = {
+            "group_min_size": st.session_state.get('group_min_size', 4),
+            "group_max_size": st.session_state.get('group_max_size', 6),
+            "global_gap_min": st.session_state.get('global_gap_min', 5),
+            "max_stay_hours": st.session_state.get('max_stay_hours', 8)
+        }
+    
+    # 7. 예상 처리량 분석
+    if activities_df.empty or room_template == {}:
+        debug_info["analysis"] = {"error": "활동 또는 방 설정이 없음"}
+    else:
+        analysis = {}
+        active_activities = activities_df[activities_df["use"] == True]
+        
+        # 각 활동별 병목 분석
+        for _, activity in active_activities.iterrows():
+            room_type = activity["room_type"]
+            if room_type in room_template:
+                room_count = room_template[room_type]["count"]
+                room_cap = room_template[room_type]["cap"]
+                duration = activity["duration_min"]
+                
+                # 하루 동안 한 방에서 처리 가능한 최대 인원
+                slots_per_day = operating_minutes // duration
+                max_per_room = slots_per_day * room_cap
+                max_total = max_per_room * room_count
+                
+                analysis[activity["activity"]] = {
+                    "duration_min": duration,
+                    "room_type": room_type,
+                    "room_count": room_count,
+                    "room_capacity": room_cap,
+                    "max_candidates_per_day": max_total,
+                    "slots_per_day_per_room": slots_per_day
+                }
+        
+        debug_info["analysis"] = analysis
+        
+        # 전체 병목 활동 찾기
+        if analysis:
+            bottleneck = min(analysis.items(), key=lambda x: x[1]["max_candidates_per_day"])
+            debug_info["analysis"]["bottleneck_activity"] = bottleneck[0]
+            debug_info["analysis"]["bottleneck_capacity"] = bottleneck[1]["max_candidates_per_day"]
+    
+    # 8. 마지막 실행 로그 (처음 100줄만)
+    last_logs = st.session_state.get('last_solve_logs', "")
+    if last_logs:
+        log_lines = last_logs.split('\n')[:100]
+        debug_info["last_logs_preview"] = '\n'.join(log_lines)
+        debug_info["total_log_lines"] = len(last_logs.split('\n'))
+    
+    return debug_info
+
+# 디버그 정보 표시 (NO_SOLUTION이거나 사용자가 원할 때)
+# NO_SOLUTION이나 ERROR일 때는 무조건 표시, 그 외에는 체크박스로 선택
+show_debug = False
+if status in ["NO_SOLUTION", "ERROR"]:
+    show_debug = True
+else:
+    show_debug = st.checkbox("🔍 디버그 정보 보기", value=False)
+
+if show_debug:
+    if status == "ERROR":
+        st.error("❌ 스케줄링 중 오류가 발생했습니다")
+    elif status == "NO_SOLUTION":
+        st.warning("⚠️ 문제 진단을 위한 디버그 정보")
+    
+    debug_info = generate_debug_info()
+    
+    # 주요 정보 요약
+    st.markdown("### 📊 주요 정보 요약")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("총 지원자", f"{debug_info['total_candidates']}명")
+    with col2:
+        st.metric("활성 활동", f"{debug_info['settings'].get('active_activities_count', 0)}개")
+    with col3:
+        st.metric("운영 시간", f"{debug_info['settings'].get('operating_minutes_per_day', 0)}분")
+    with col4:
+        st.metric("선후행 제약", f"{len(debug_info['settings'].get('precedence', []))}개")
+    
+    # 병목 분석
+    if "bottleneck_activity" in debug_info.get("analysis", {}):
+        st.error(f"🚨 병목 활동: **{debug_info['analysis']['bottleneck_activity']}** "
+                f"(일일 최대 {debug_info['analysis']['bottleneck_capacity']}명)")
+    
+    # 구조적 문제 확인
+    # Batched/Parallel → Individual adjacent 제약 검사
+    activities_df = st.session_state.get("activities", pd.DataFrame())
+    precedence_df = st.session_state.get("precedence", pd.DataFrame())
+    
+    if not activities_df.empty and not precedence_df.empty and 'mode' in activities_df.columns:
+        structural_problems = []
+        
+        for _, rule in precedence_df.iterrows():
+            if not rule.get('adjacent', False):
+                continue
+                
+            pred = rule['predecessor']
+            succ = rule['successor']
+            
+            pred_act = activities_df[activities_df['activity'] == pred]
+            succ_act = activities_df[activities_df['activity'] == succ]
+            
+            if pred_act.empty or succ_act.empty:
+                continue
+                
+            pred_mode = pred_act.iloc[0].get('mode', 'individual')
+            succ_mode = succ_act.iloc[0].get('mode', 'individual')
+            pred_cap = int(pred_act.iloc[0].get('max_cap', 1))
+            succ_cap = int(succ_act.iloc[0].get('max_cap', 1))
+            
+            # Batched → Individual/Parallel adjacent 문제
+            if pred_mode == 'batched' and succ_mode in ['individual', 'parallel']:
+                # 그룹 크기 확인
+                group_size = debug_info['settings'].get('batched_settings', {}).get('group_max_size', 6)
+                succ_room_type = succ_act.iloc[0]['room_type']
+                succ_room_count = debug_info['settings']['room_template'].get(succ_room_type, {}).get('count', 1)
+                
+                if group_size > succ_room_count * succ_cap:
+                    structural_problems.append({
+                        'type': 'batched_to_individual_adjacent',
+                        'pred': pred,
+                        'succ': succ,
+                        'group_size': group_size,
+                        'succ_capacity': succ_room_count * succ_cap,
+                        'message': f"{pred}(그룹 {group_size}명) → {succ}(동시 {succ_room_count * succ_cap}명) adjacent 불가능"
+                    })
+            
+            # Parallel → Individual adjacent 문제
+            elif pred_mode == 'parallel' and succ_mode == 'individual':
+                succ_room_type = succ_act.iloc[0]['room_type']
+                succ_room_count = debug_info['settings']['room_template'].get(succ_room_type, {}).get('count', 1)
+                
+                if pred_cap > succ_room_count:
+                    structural_problems.append({
+                        'type': 'parallel_to_individual_adjacent',
+                        'pred': pred,
+                        'succ': succ,
+                        'pred_capacity': pred_cap,
+                        'succ_capacity': succ_room_count,
+                        'message': f"{pred}(동시 {pred_cap}명) → {succ}(동시 {succ_room_count}명) adjacent 불가능"
+                    })
+        
+        if structural_problems:
+            st.error("### 🚫 구조적 문제 발견")
+            for problem in structural_problems:
+                st.error(f"**{problem['message']}**")
+                
+                if problem['type'] == 'batched_to_individual_adjacent':
+                    st.markdown(f"""
+                    **문제 상세:**
+                    - {problem['pred']}은 **{problem['group_size']}명이 한 그룹**으로 활동
+                    - {problem['succ']}은 **동시에 {problem['succ_capacity']}명만** 수용 가능
+                    - Adjacent 제약으로 인해 {problem['pred']} 직후 {problem['succ']}를 해야 함
+                    - **{problem['group_size'] - problem['succ_capacity']}명이 대기**해야 하므로 adjacent 제약 위반
+                    
+                    **해결 방법:**
+                    1. **Adjacent 제약 제거**: {problem['pred']} → {problem['succ']}의 'adjacent'를 false로 변경
+                    2. **방 증설**: {problem['succ']} 방을 {problem['group_size'] // int(succ_cap) + (1 if problem['group_size'] % int(succ_cap) else 0)}개로 증가
+                    3. **그룹 크기 축소**: 집단면접 그룹을 {problem['succ_capacity']}명 이하로 설정
+                    """)
+                elif problem['type'] == 'parallel_to_individual_adjacent':
+                    st.markdown(f"""
+                    **문제 상세:**
+                    - {problem['pred']}은 **동시에 {problem['pred_capacity']}명** 진행
+                    - {problem['succ']}은 **동시에 {problem['succ_capacity']}명만** 수용 가능
+                    - Adjacent 제약으로 인해 나머지 **{problem['pred_capacity'] - problem['succ_capacity']}명이 대기**
+                    
+                    **해결 방법:**
+                    1. **Adjacent 제약 제거**: 더 유연한 스케줄링 허용
+                    2. **방 증설**: {problem['succ']} 방을 {problem['pred_capacity']}개로 증가
+                    3. **용량 조정**: {problem['pred']}의 max_cap을 {problem['succ_capacity']}로 축소
+                    """)
+            
+            st.info("💡 **권장사항**: Adjacent 제약은 물리적으로 연속된 공간이나 즉각적인 이동이 필요한 경우에만 사용하세요.")
+    
+    # 디버그 정보 JSON 표시
+    with st.expander("🔧 전체 디버그 정보 (복사해서 공유 가능)", expanded=True):
+        # JSON 형태로 예쁘게 출력
+        debug_json = json.dumps(debug_info, indent=2, ensure_ascii=False)
+        st.code(debug_json, language="json")
+        
+        # 복사 버튼
+        st.download_button(
+            label="📥 디버그 정보 다운로드",
+            data=debug_json,
+            file_name=f"debug_info_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json"
+        )
+    
+
+
 if "솔버 시간 초과" in st.session_state.get('last_solve_logs', ''):
-    st.warning("⚠️ 연산 시간이 1분(60초)을 초과하여, 현재까지 찾은 최적의 스케줄을 반환했습니다. 결과는 최상이 아닐 수 있습니다.")
+    st.warning("⚠️ 연산 시간이 2분(120초)을 초과하여, 현재까지 찾은 최적의 스케줄을 반환했습니다. 결과는 최상이 아닐 수 있습니다.")
 
 # 결과 출력
 final_schedule = st.session_state.get('final_schedule')
@@ -405,13 +793,9 @@ if final_schedule is not None and not final_schedule.empty:
     # 체류시간 분석 추가
     st.subheader("⏱️ 직무별 체류시간 분석")
     
-
-    
     def calculate_stay_duration_stats(schedule_df):
         """각 지원자의 체류시간을 계산하고 직무별 통계를 반환"""
         stats_data = []
-        
-
         
         # 컬럼명 매핑 (실제 데이터에 맞게 조정)
         id_col = 'id' if 'id' in schedule_df.columns else 'candidate_id'
@@ -528,67 +912,84 @@ if final_schedule is not None and not final_schedule.empty:
                 overall_max = job_stats_df['max_duration'].max()
                 st.metric("전체 최대 체류시간", f"{overall_max:.1f}분")
             with col3:
-                overall_avg = (individual_stats_df['stay_duration_minutes'].mean())
+                overall_avg = (job_stats_df['avg_duration'] * job_stats_df['count']).sum() / job_stats_df['count'].sum()
                 st.metric("전체 평균 체류시간", f"{overall_avg:.1f}분")
             
-            # 상세 정보를 expander로 제공
-            with st.expander("🔍 개별 지원자 체류시간 상세보기"):
-                detail_display = individual_stats_df.copy()
-                detail_display['stay_duration_minutes'] = detail_display['stay_duration_minutes'].round(1)
-                detail_display['start_time'] = detail_display['start_time'].dt.strftime('%H:%M')
-                detail_display['end_time'] = detail_display['end_time'].dt.strftime('%H:%M')
-                detail_display.columns = ['지원자ID', '직무코드', '체류시간(분)', '시작시간', '종료시간']
-                st.dataframe(detail_display, use_container_width=True)
-        else:
-            st.warning("체류시간 통계를 계산할 수 없습니다.")
-            
+            # 체류시간 제한 확인
+            max_stay_minutes = params.get('max_stay_hours', 8) * 60
+            if overall_max > max_stay_minutes:
+                st.warning(f"⚠️ 일부 지원자의 체류시간이 설정된 제한({params.get('max_stay_hours', 8)}시간)을 초과했습니다.")
+    
     except Exception as e:
-        st.error(f"체류시간 분석 중 오류가 발생했습니다: {str(e)}")
-        st.info("일정표에 필요한 컬럼(candidate_id, start_time, end_time, job_code)이 있는지 확인해주세요.")
+        st.error(f"체류시간 분석 중 오류 발생: {str(e)}")
     
-    # 결과 테이블
-    st.subheader("📋 상세 일정표")
-    st.dataframe(final_schedule, use_container_width=True)
+    # 스케줄 표시 옵션
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        # 날짜별 요약 정보
+        date_summary = final_schedule.groupby('interview_date').size().reset_index(name='인원수')
+        date_summary['interview_date'] = pd.to_datetime(date_summary['interview_date']).dt.strftime('%Y-%m-%d')
+        date_summary.columns = ['날짜', '인원수']
+        
+        st.markdown("**📅 날짜별 면접 인원**")
+        st.dataframe(date_summary, use_container_width=True, hide_index=True)
     
-    # Excel 다운로드
-    excel_buffer = BytesIO()
-    df_to_excel(final_schedule, excel_buffer)
-    excel_data = excel_buffer.getvalue()
+    with col2:
+        st.markdown("**💾 결과 다운로드**")
+        excel_buffer = BytesIO()
+        
+        # 그룹 정보 가져오기 (있다면)
+        group_info_data = st.session_state.get('last_group_info', None)
+        
+        df_to_excel(final_schedule, excel_buffer, group_info_data)
+        excel_buffer.seek(0)
+        
+        st.download_button(
+            label="📥 Excel 다운로드",
+            data=excel_buffer,
+            file_name=f"interview_schedule_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
     
-    st.download_button(
-        label="📊 Excel 파일 다운로드 (일정표 + 타임슬롯)",
-        data=excel_data,
-        file_name=f"interview_schedule_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
-        type="secondary",
-        help="기본 일정표와 함께 타임슬롯 매트릭스 시트가 포함됩니다"
-    )
-
-elif status == "MAX_DAYS_EXCEEDED":
-    st.error("❌ 설정된 최대 날짜 내에서 모든 지원자를 배정할 수 없습니다. 조건을 조정해주세요.")
-elif status == "INFEASIBLE":
-    st.error("❌ 현재 설정으로는 일정을 생성할 수 없습니다. 제약 조건을 확인해주세요.")
-elif status == "ERROR":
-    st.error("❌ 계산 중 오류가 발생했습니다.")
-
-# 로그 표시
-if st.session_state.get('last_solve_logs'):
-    with st.expander("🔍 상세 로그 보기"):
-        st.text(st.session_state['last_solve_logs'])
+    # 상세 스케줄 표시
+    with st.expander("📋 상세 스케줄 보기", expanded=False):
+        # 날짜별로 탭 생성
+        dates = sorted(final_schedule['interview_date'].unique())
+        tabs = st.tabs([pd.to_datetime(d).strftime('%Y-%m-%d') for d in dates])
+        
+        for i, (tab, date) in enumerate(zip(tabs, dates)):
+            with tab:
+                day_schedule = final_schedule[final_schedule['interview_date'] == date].copy()
+                
+                # 시간 컬럼들을 더 읽기 쉽게 표시
+                display_cols = ['id', 'code']
+                for col in day_schedule.columns:
+                    if col.startswith(('start_', 'end_', 'loc_')) and col not in display_cols:
+                        display_cols.append(col)
+                
+                day_schedule = day_schedule[display_cols]
+                
+                # 인덱스 숨기고 표시
+                st.dataframe(day_schedule, use_container_width=True, hide_index=True)
+                
+                # batched 모드가 있으면 그룹 정보도 표시
+                if has_batched:
+                    # TODO: 그룹 정보 표시 구현
+                    pass
 
 st.divider()
 
 # =============================================================================
-# 섹션 1: 면접 활동 정의
+# 섹션 1: 면접활동 정의
 # =============================================================================
 col_header, col_refresh = st.columns([3, 2])
 with col_header:
-    st.header("1️⃣ 면접 활동 정의")
+    st.header("1️⃣ 면접활동 정의")
 with col_refresh:
     st.markdown("<br>", unsafe_allow_html=True)  # 헤더와 높이 맞추기
-    if st.button("🔄 섹션 새로고침", key="refresh_activities", help="AG-Grid 반응이 느릴 때 이 섹션을 새로고침"):
-        # 섹션별 새로고침: 해당 섹션의 key 값들을 변경하여 컴포넌트 재렌더링 유도
+    if st.button("🔄 섹션 새로고침", key="refresh_activities", help="활동 정의 AG-Grid가 먹통일 때 새로고침"):
+        # 섹션별 새로고침
         if "section_refresh_counter" not in st.session_state:
             st.session_state["section_refresh_counter"] = {}
         if "activities" not in st.session_state["section_refresh_counter"]:
@@ -596,7 +997,7 @@ with col_refresh:
         st.session_state["section_refresh_counter"]["activities"] += 1
         st.rerun()
 
-st.markdown("면접에서 진행할 활동들을 정의하고 각 활동의 속성을 설정합니다.")
+st.markdown("면접 프로세스에 포함될 활동들을 정의합니다. 각 활동의 모드, 소요시간, 필요한 공간 등을 설정하세요.")
 
 # 기본 템플릿 함수
 def default_df() -> pd.DataFrame:
@@ -639,7 +1040,8 @@ gb.configure_column(
 
 gb.configure_column("activity", header_name="활동 이름", editable=True)
 
-mode_values = ["individual"]
+# mode_values에 parallel과 batched 추가
+mode_values = ["individual", "parallel", "batched"]
 gb.configure_column(
     "mode",
     header_name="모드",
@@ -649,13 +1051,37 @@ gb.configure_column(
     width=110,
 )
 
-for col, hdr in [("duration_min", "소요시간(분)"), ("min_cap", "최소 인원"), ("max_cap", "최대 인원")]:
+# duration_min은 항상 편집 가능
+gb.configure_column(
+    "duration_min",
+    header_name="소요시간(분)",
+    editable=True,
+    type=["numericColumn", "numberColumnFilter"],
+    width=120,
+)
+
+# min_cap, max_cap은 조건부 편집 가능 (individual 모드에서는 비활성화)
+for col, hdr in [("min_cap", "최소 인원"), ("max_cap", "최대 인원")]:
     gb.configure_column(
         col,
         header_name=hdr,
         editable=True,
         type=["numericColumn", "numberColumnFilter"],
         width=120,
+        cellEditor="agNumberCellEditor",
+        cellEditorParams={
+            "min": 1,
+            "max": 50
+        },
+        # individual 모드일 때 편집 불가능하게 하는 조건
+        cellClassRules={
+            "ag-cell-not-editable": "data.mode === 'individual'"
+        },
+        # individual 모드일 때 회색으로 표시
+        cellStyle={
+            "backgroundColor": "params.data.mode === 'individual' ? '#f0f0f0' : 'white'",
+            "color": "params.data.mode === 'individual' ? '#888' : 'black'"
+        }
     )
 
 gb.configure_column("room_type", header_name="면접실 이름", editable=True)
@@ -663,6 +1089,35 @@ gb.configure_column("room_type", header_name="면접실 이름", editable=True)
 grid_opts = gb.build()
 
 st.markdown("#### 활동 정의")
+
+# AG-Grid에서 비활성화된 셀 스타일링을 위한 CSS 추가
+st.markdown("""
+<style>
+.ag-cell-not-editable {
+    background-color: #f5f5f5 !important;
+    color: #999 !important;
+    cursor: not-allowed !important;
+}
+.ag-cell-not-editable:hover {
+    background-color: #f0f0f0 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# 모드 설명 추가
+with st.expander("ℹ️ 모드 설명", expanded=False):
+    st.markdown("""
+    - **individual**: 1명이 혼자 면접 (기존 방식)
+      - 최소/최대 인원이 자동으로 1명으로 고정됩니다 (수정 불가)
+    - **parallel**: 여러명이 같은 공간에서 각자 다른 활동 (예: 개별 작업)
+      - 최소/최대 인원을 자유롭게 설정 가능합니다
+    - **batched**: 여러명이 동시에 같은 활동 (예: 그룹토론, PT발표)
+      - 최소/최대 인원을 자유롭게 설정 가능합니다
+    
+    **주의**: 
+    - **individual 모드**: 인원수 수정 불가 (1명 고정)
+    - **batched 모드**: 모든 batched 활동의 min_cap, max_cap은 동일해야 합니다
+    """)
 
 # 행 추가/삭제 기능 (위로 이동)
 col_add, col_del = st.columns(2)
@@ -734,12 +1189,221 @@ grid_ret = AgGrid(
     key=f"activities_grid_{activities_refresh_count}",  # 동적 key로 강제 재렌더링
 )
 
-st.session_state["activities"] = grid_ret["data"]
+# 그리드 데이터 처리 및 individual 모드 강제 조정
+activities_data = pd.DataFrame(grid_ret["data"])
+
+# individual 모드인 행들의 min_cap, max_cap을 1로 고정
+individual_mask = activities_data["mode"] == "individual"
+activities_data.loc[individual_mask, "min_cap"] = 1
+activities_data.loc[individual_mask, "max_cap"] = 1
+
+st.session_state["activities"] = activities_data
+
+# Activities → Room Plan 자동 연동
+activities_df = st.session_state["activities"]
+room_plan_df = st.session_state.get("room_plan", pd.DataFrame())
+room_template = st.session_state.get("room_template", {})
+
+if not activities_df.empty and (not room_plan_df.empty or room_template):
+    # 각 room_type별 최대 max_cap 계산
+    room_capacity_updates = {}
+    
+    for room_type in activities_df["room_type"].unique():
+        if pd.notna(room_type) and room_type != "":
+            # 해당 room_type을 사용하는 활동들의 최대 max_cap
+            max_cap_for_room = activities_df[activities_df["room_type"] == room_type]["max_cap"].max()
+            
+            if pd.notna(max_cap_for_room):
+                room_capacity_updates[room_type] = int(max_cap_for_room)
+    
+    # room_template 업데이트
+    template_updated = False
+    for room_type, new_capacity in room_capacity_updates.items():
+        if room_type in room_template:
+            if room_template[room_type]["cap"] < new_capacity:
+                room_template[room_type]["cap"] = new_capacity
+                template_updated = True
+    
+    # room_plan DataFrame 업데이트
+    plan_updated = False
+    if not room_plan_df.empty:
+        for room_type, new_capacity in room_capacity_updates.items():
+            cap_col = f"{room_type}_cap"
+            if cap_col in room_plan_df.columns:
+                for idx in room_plan_df.index:
+                    current_cap = room_plan_df.at[idx, cap_col]
+                    if pd.notna(current_cap) and current_cap < new_capacity:
+                        room_plan_df.at[idx, cap_col] = new_capacity
+                        plan_updated = True
+    
+    # 변경사항 저장 및 알림
+    if template_updated:
+        st.session_state["room_template"] = room_template
+    if plan_updated:
+        st.session_state["room_plan"] = room_plan_df
+    
+    if template_updated or plan_updated:
+        updated_rooms = [f"{rt}({cap}명)" for rt, cap in room_capacity_updates.items()]
+        st.info(f"📝 활동 그룹 크기 변경에 따라 방 수용 인원이 자동 조정되었습니다: {', '.join(updated_rooms)}")
+
+# batched 모드 일관성 검증
+batched_acts = st.session_state["activities"][st.session_state["activities"]["mode"] == "batched"]
+if not batched_acts.empty:
+    min_caps = batched_acts["min_cap"].unique()
+    max_caps = batched_acts["max_cap"].unique()
+    
+    if len(min_caps) > 1 or len(max_caps) > 1:
+        st.error("⚠️ 모든 batched 활동의 그룹 크기(min_cap, max_cap)는 동일해야 합니다!")
+        st.info("현재 설정: " + 
+                f"min_cap = {list(min_caps)}, " +
+                f"max_cap = {list(max_caps)}")
 
 st.divider()
 
 # =============================================================================
-# 섹션 2: 선후행 제약 설정 (면접 활동 정의 바로 다음으로 이동)
+# 집단면접 설정 (batched 모드가 있을 때만 표시)
+# =============================================================================
+acts_df = st.session_state.get("activities", pd.DataFrame())
+has_batched = any(acts_df["mode"] == "batched") if not acts_df.empty and "mode" in acts_df.columns else False
+
+if has_batched:
+    with st.expander("🎯 집단면접 설정", expanded=True):
+        st.markdown("집단면접(batched) 활동에 대한 전역 설정을 관리합니다.")
+        
+        # batched 활동 목록 표시
+        batched_activities = acts_df[acts_df["mode"] == "batched"]["activity"].tolist()
+        st.info(f"집단면접 활동: {', '.join(batched_activities)}")
+        
+        # 그룹 크기 설정
+        col1, col2 = st.columns(2)
+        
+        # batched 활동 필터링 추가
+        batched_acts = acts_df[acts_df["mode"] == "batched"]
+        
+        with col1:
+            # 기존 값 가져오기
+            current_min = st.session_state.get('group_min_size', 4)
+            # batched 활동이 있으면 그 값 사용
+            if not batched_acts.empty:
+                current_min = int(batched_acts.iloc[0]['min_cap'])
+            
+            # min_value보다 작으면 기본값 사용
+            if current_min < 2:
+                current_min = 4
+            
+            group_min = st.number_input(
+                "그룹 최소 인원",
+                min_value=2,
+                max_value=20,
+                value=current_min,
+                key="group_min_input",
+                help="모든 집단면접 활동에 적용됩니다"
+            )
+        
+        with col2:
+            # 기존 값 가져오기
+            current_max = st.session_state.get('group_max_size', 6)
+            # batched 활동이 있으면 그 값 사용
+            if not batched_acts.empty:
+                current_max = int(batched_acts.iloc[0]['max_cap'])
+            
+            # min_value보다 작으면 기본값 사용
+            if current_max < group_min:
+                current_max = max(6, group_min)
+            
+            group_max = st.number_input(
+                "그룹 최대 인원",
+                min_value=group_min,
+                max_value=30,
+                value=current_max,
+                key="group_max_input",
+                help="모든 집단면접 활동에 적용됩니다"
+            )
+        
+        # 값이 변경되면 모든 batched 활동에 적용
+        if group_min != st.session_state.get('group_min_size') or group_max != st.session_state.get('group_max_size'):
+            st.session_state['group_min_size'] = group_min
+            st.session_state['group_max_size'] = group_max
+            
+            # activities DataFrame 업데이트
+            acts_df = st.session_state["activities"]
+            acts_df.loc[acts_df["mode"] == "batched", "min_cap"] = group_min
+            acts_df.loc[acts_df["mode"] == "batched", "max_cap"] = group_max
+            st.session_state["activities"] = acts_df
+            
+            # 집단면접 설정 → Room Plan 자동 연동
+            room_plan_df = st.session_state.get("room_plan", pd.DataFrame())
+            room_template = st.session_state.get("room_template", {})
+            
+            if not room_plan_df.empty and room_template:
+                # batched 활동이 사용하는 room_type들의 capacity 업데이트
+                batched_room_types = acts_df[acts_df["mode"] == "batched"]["room_type"].unique()
+                
+                room_updated = False
+                for room_type in batched_room_types:
+                    if pd.notna(room_type) and room_type != "":
+                        # room_template 업데이트
+                        if room_type in room_template:
+                            if room_template[room_type]["cap"] < group_max:
+                                room_template[room_type]["cap"] = group_max
+                                room_updated = True
+                        
+                        # room_plan DataFrame 업데이트
+                        cap_col = f"{room_type}_cap"
+                        if cap_col in room_plan_df.columns:
+                            for idx in room_plan_df.index:
+                                current_cap = room_plan_df.at[idx, cap_col]
+                                if pd.notna(current_cap) and current_cap < group_max:
+                                    room_plan_df.at[idx, cap_col] = group_max
+                                    room_updated = True
+                
+                if room_updated:
+                    st.session_state["room_template"] = room_template
+                    st.session_state["room_plan"] = room_plan_df
+                    st.info(f"📝 집단면접 그룹 크기 변경에 따라 관련 방의 수용 인원이 {group_max}명으로 자동 조정되었습니다.")
+            
+            st.success(f"✅ 모든 집단면접 활동의 그룹 크기가 {group_min}~{group_max}명으로 설정되었습니다.")
+        
+        # 추가 설정들
+        st.markdown("### 고급 설정")
+        
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            global_gap = st.number_input(
+                "전역 활동 간격(분)",
+                min_value=0,
+                max_value=60,
+                value=st.session_state.get('global_gap_min', 5),
+                key="global_gap_input",
+                help="모든 활동 간 기본 간격입니다. Precedence에서 개별 설정 가능합니다."
+            )
+            st.session_state['global_gap_min'] = global_gap
+        
+        with col4:
+            max_stay = st.number_input(
+                "최대 체류시간(시간)",
+                min_value=1,
+                max_value=12,
+                value=st.session_state.get('max_stay_hours', 8),
+                key="max_stay_input",
+                help="지원자가 면접장에 머무를 수 있는 최대 시간입니다."
+            )
+            st.session_state['max_stay_hours'] = max_stay
+        
+        # 직무별 분리 원칙 표시
+        st.markdown("### 그룹 구성 원칙")
+        st.info("""
+        ✅ **직무별 분리**: 같은 직무끼리만 그룹 구성
+        ✅ **그룹 일관성**: 한 번 구성된 그룹은 모든 batched 활동에서 유지
+        ✅ **동일 직무 동일 방**: 같은 직무는 모든 활동에서 동일한 접미사(A,B,C...) 사용
+        ✅ **그룹 수 최소화**: 더미 지원자를 활용하여 그룹 수 최소화
+        """)
+
+    st.divider()
+
+# =============================================================================
+# 섹션 2: 선후행 제약 설정
 # =============================================================================
 col_header, col_refresh = st.columns([3, 2])
 with col_header:
@@ -1378,6 +2042,28 @@ if acts_df is not None and not acts_df.empty:
         
         st.session_state['room_plan'] = pd.DataFrame([final_plan_dict])
         
+        # Room Plan → Activities 역방향 자동 연동
+        activities_df = st.session_state.get("activities", pd.DataFrame())
+        if not activities_df.empty:
+            capacity_changed = False
+            for rt, values in tpl_dict.items():
+                new_capacity = values['cap']
+                
+                # 해당 room_type을 사용하는 활동들의 max_cap 업데이트
+                room_activities = activities_df[activities_df["room_type"] == rt]
+                for idx in room_activities.index:
+                    current_max_cap = activities_df.at[idx, 'max_cap']
+                    if current_max_cap != new_capacity:
+                        activities_df.at[idx, 'max_cap'] = new_capacity
+                        # min_cap도 조정 (max_cap보다 크면 안됨)
+                        if activities_df.at[idx, 'min_cap'] > new_capacity:
+                            activities_df.at[idx, 'min_cap'] = new_capacity
+                        capacity_changed = True
+            
+            if capacity_changed:
+                st.session_state["activities"] = activities_df
+                st.info("📝 방 수용 인원 변경에 따라 활동의 그룹 크기가 자동 조정되었습니다.")
+        
         with st.expander("🗂 저장된 room_plan 데이터 미리보기"):
             st.dataframe(st.session_state.get('room_plan', pd.DataFrame()), use_container_width=True)
     else:
@@ -1503,3 +2189,5 @@ st.markdown("""
     ⬆️
 </a>
 """, unsafe_allow_html=True)
+
+# 섹션 6은 섹션 1 아래로 이동됨
