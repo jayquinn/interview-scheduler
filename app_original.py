@@ -337,6 +337,186 @@ if st.session_state.get('solver_status', '미실행') == '미실행':
     st.markdown("💡 **팁:** 추정 후 아래 섹션들에서 세부 설정을 조정하여 더 정확한 결과를 얻을 수 있습니다.")
 
 # Excel 출력 함수 (타임슬롯 기능 통합)
+
+# =============================================================================
+# 이중 스케줄 표시 헬퍼 함수들
+# =============================================================================
+
+def _convert_integrated_to_dual_display(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    🚀 이중 스케줄 표시: 통합된 활동을 원래 활동들로 분리하여 표시
+    
+    알고리즘은 통합 방식으로 처리하되, 사용자에게는 분리된 형태로 보여줍니다.
+    이를 통해 공간 정보를 보존하고 운영 투명성을 확보합니다.
+    """
+    if df.empty:
+        return df
+    
+    # 활동명 컬럼 찾기
+    activity_col = None
+    for col in ['activity_name', 'activity']:
+        if col in df.columns:
+            activity_col = col
+            break
+    
+    if not activity_col:
+        return df  # 활동 컬럼이 없으면 원본 반환
+    
+    # 통합된 활동 찾기 ('+' 포함된 활동명) - regex=False로 설정하여 문자 그대로 검색
+    integrated_activities = df[df[activity_col].str.contains('+', na=False, regex=False)]
+    
+    if integrated_activities.empty:
+        return df  # 통합된 활동이 없으면 원본 반환
+    
+    print(f"🔧 이중 스케줄 변환: {len(integrated_activities)}개 통합 활동 발견")
+    
+    # 분리된 스케줄 생성
+    dual_schedule = []
+    
+    for _, row in df.iterrows():
+        activity_name = str(row.get(activity_col, ''))
+        
+        if '+' in activity_name:
+            # 통합된 활동을 분리
+            parts = activity_name.split('+')
+            if len(parts) == 2:
+                pred_activity, succ_activity = parts[0].strip(), parts[1].strip()
+                
+                # 선행 활동 (발표준비)
+                prep_row = row.copy()
+                prep_row[activity_col] = pred_activity
+                prep_row['room_name'] = _infer_prep_room(pred_activity, row)
+                prep_row['duration_min'] = _get_activity_duration(pred_activity, default=5)
+                prep_row['activity_stage'] = 1
+                prep_row['original_integrated'] = activity_name
+                
+                # 후행 활동 (발표면접)
+                interview_row = row.copy()
+                interview_row[activity_col] = succ_activity
+                # 방 정보는 원본 유지 (발표면접실)
+                interview_row['duration_min'] = _get_activity_duration(succ_activity, default=15)
+                interview_row['activity_stage'] = 2
+                interview_row['original_integrated'] = activity_name
+                
+                # 시간 조정 (발표준비 → 발표면접 순서)
+                _adjust_stage_times(prep_row, interview_row)
+                
+                dual_schedule.extend([prep_row, interview_row])
+                
+                print(f"  분리: {activity_name} → {pred_activity} + {succ_activity}")
+            else:
+                # 복잡한 통합 활동은 원본 유지
+                dual_schedule.append(row)
+        else:
+            # 일반 활동은 그대로 유지
+            dual_schedule.append(row)
+    
+    result_df = pd.DataFrame(dual_schedule)
+    
+    # 인덱스 재설정
+    result_df = result_df.reset_index(drop=True)
+    
+    print(f"✅ 이중 스케줄 변환 완료: {len(df)} → {len(result_df)}개 항목")
+    
+    return result_df
+
+
+def _infer_prep_room(prep_activity: str, original_row) -> str:
+    """발표준비실 정보 추론"""
+    # 활동명에서 방 타입 추론
+    if '발표준비' in prep_activity:
+        return '발표준비실'
+    elif '면접준비' in prep_activity:
+        return '면접준비실'
+    elif '준비' in prep_activity:
+        return f"{prep_activity}실"
+    else:
+        # 기본값으로 발표준비실 사용
+        return '발표준비실'
+
+
+def _get_activity_duration(activity_name: str, default: int = 10) -> int:
+    """활동별 기본 소요시간 반환"""
+    duration_map = {
+        '발표준비': 5,
+        '면접준비': 5,
+        '발표면접': 15,
+        '개별면접': 15,
+        '토론면접': 30,
+        '그룹면접': 30,
+        '인성검사': 20,
+        '적성검사': 30,
+        '커피챗': 10
+    }
+    
+    # 정확한 매칭 먼저 시도
+    if activity_name in duration_map:
+        return duration_map[activity_name]
+    
+    # 부분 매칭 시도
+    for key, duration in duration_map.items():
+        if key in activity_name:
+            return duration
+    
+    return default
+
+
+def _adjust_stage_times(prep_row, interview_row):
+    """단계별 시간 조정"""
+    # 시작 시간 컬럼 찾기
+    start_col = None
+    end_col = None
+    
+    for col in ['start_time', 'start']:
+        if col in prep_row.index:
+            start_col = col
+            break
+    
+    for col in ['end_time', 'end']:
+        if col in prep_row.index:
+            end_col = col
+            break
+    
+    if not start_col:
+        return  # 시간 정보가 없으면 조정하지 않음
+    
+    # 원본 시작 시간
+    original_start = prep_row[start_col]
+    
+    # 발표준비: 원본 시작 시간부터 5분
+    prep_duration = prep_row.get('duration_min', 5)
+    
+    # 발표면접: 발표준비 종료 직후 시작
+    interview_start = _add_minutes_to_time(original_start, prep_duration)
+    interview_row[start_col] = interview_start
+    
+    # 종료 시간도 조정 (있는 경우)
+    if end_col:
+        prep_end = _add_minutes_to_time(original_start, prep_duration)
+        prep_row[end_col] = prep_end
+        
+        interview_duration = interview_row.get('duration_min', 15)
+        interview_end = _add_minutes_to_time(interview_start, interview_duration)
+        interview_row[end_col] = interview_end
+
+
+def _add_minutes_to_time(time_val, minutes: int):
+    """시간에 분을 추가"""
+    try:
+        if pd.isna(time_val):
+            return time_val
+        
+        if isinstance(time_val, pd.Timedelta):
+            return time_val + pd.Timedelta(minutes=minutes)
+        elif hasattr(time_val, 'hour'):  # datetime-like
+            return time_val + pd.Timedelta(minutes=minutes)
+        else:
+            # 문자열 등 기타 형식
+            return time_val
+    except Exception:
+        return time_val  # 변환 실패 시 원본 반환
+
+
 def df_to_excel(df: pd.DataFrame, stream=None) -> None:
     # 🚀 이중 스케줄 표시: 통합된 활동을 분리하여 공간 정보 보존
     df = _convert_integrated_to_dual_display(df)

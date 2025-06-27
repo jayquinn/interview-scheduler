@@ -1,0 +1,473 @@
+"""
+단일 날짜 스케줄러 - 3단계 계층적 스케줄링 구현
+"""
+from typing import List, Dict, Optional, Set
+from datetime import datetime, timedelta
+import logging
+import time as time_module
+
+from .types import (
+    DateConfig, SingleDateResult, Level1Result, Level2Result, Level3Result,
+    Applicant, Group, ScheduleItem, TimeSlot, Activity, ActivityMode,
+    ProgressInfo, ProgressCallback, SchedulingContext
+)
+from .group_optimizer_v2 import GroupOptimizerV2
+from .batched_scheduler import BatchedScheduler
+from .individual_scheduler import IndividualScheduler
+
+
+class SingleDateScheduler:
+    """단일 날짜에 대한 3단계 스케줄링을 수행하는 클래스"""
+    
+    # 각 레벨별 시간 제한 (초)
+    LEVEL1_TIME_LIMIT = 30
+    LEVEL2_TIME_LIMIT = 60  
+    LEVEL3_TIME_LIMIT = 30
+    
+    def __init__(self, logger: Optional[logging.Logger] = None):
+        self.logger = logger or logging.getLogger(__name__)
+        self.progress_callback: Optional[ProgressCallback] = None
+        self.context: Optional[SchedulingContext] = None
+        
+    def schedule(
+        self, 
+        config: DateConfig, 
+        context: Optional[SchedulingContext] = None
+    ) -> SingleDateResult:
+        """
+        3단계 계층적 스케줄링 실행
+        
+        Level 1: 그룹 구성 최적화
+        Level 2: Batched 활동 스케줄링
+        Level 3: Individual/Parallel 활동 스케줄링
+        """
+        self.context = context
+        self.progress_callback = context.progress_callback if context else None
+        
+        result = SingleDateResult(date=config.date, status="FAILED")
+        result.logs.append(f"=== {config.date.date()} 스케줄링 시작 ===")
+        
+        # 전체 시작 시간
+        overall_start_time = time_module.time()
+        
+        try:
+            # 진행 상황 초기화
+            self._report_progress("Level1", 0.0, "그룹 구성 최적화 시작")
+            
+            # Level 1: 그룹 구성
+            level1_start = time_module.time()
+            level1_result = self._run_level1(config)
+            level1_time = time_module.time() - level1_start
+            
+            if not level1_result:
+                result.error_message = "Level 1 실패: 그룹 구성 불가"
+                result.logs.append(f"Level 1 실패 ({level1_time:.1f}초)")
+                self._report_progress("Level1", 1.0, "그룹 구성 실패", {"error": result.error_message})
+                return result
+            
+            result.level1_result = level1_result
+            result.logs.append(
+                f"Level 1 완료 ({level1_time:.1f}초): "
+                f"{level1_result.group_count}개 그룹, {level1_result.dummy_count}명 더미"
+            )
+            self._report_progress("Level1", 1.0, "그룹 구성 완료", {
+                "groups": level1_result.group_count,
+                "dummies": level1_result.dummy_count,
+                "time": level1_time
+            })
+            
+            # Level 2: Batched 스케줄링
+            self._report_progress("Level2", 0.0, "Batched 활동 스케줄링 시작")
+            level2_start = time_module.time()
+            level2_result = self._run_level2(config, level1_result)
+            level2_time = time_module.time() - level2_start
+            
+            if not level2_result:
+                # Level 2 실패시 백트래킹
+                result.error_message = "Level 2 실패: Batched 활동 스케줄링 불가"
+                result.logs.append(f"Level 2 실패 ({level2_time:.1f}초) - 백트래킹 필요")
+                self._report_progress("Level2", 1.0, "Batched 스케줄링 실패 - 백트래킹 시작", {
+                    "error": result.error_message
+                })
+                return self._backtrack_from_level2(config, result)
+            
+            result.level2_result = level2_result
+            result.logs.append(
+                f"Level 2 완료 ({level2_time:.1f}초): "
+                f"{len(level2_result.schedule)}개 batched 스케줄"
+            )
+            self._report_progress("Level2", 1.0, "Batched 스케줄링 완료", {
+                "schedule_count": len(level2_result.schedule),
+                "time": level2_time
+            })
+            
+            # Level 3: Individual/Parallel 스케줄링
+            self._report_progress("Level3", 0.0, "Individual/Parallel 활동 스케줄링 시작")
+            level3_start = time_module.time()
+            level3_result = self._run_level3(config, level1_result, level2_result)
+            level3_time = time_module.time() - level3_start
+            
+            if not level3_result or level3_result.unscheduled:
+                # Level 3 실패시 백트래킹
+                unscheduled_count = len(level3_result.unscheduled) if level3_result else "전체"
+                result.error_message = f"Level 3 실패: {unscheduled_count}명 스케줄링 불가"
+                result.logs.append(f"Level 3 실패 ({level3_time:.1f}초) - 백트래킹 필요")
+                self._report_progress("Level3", 1.0, "Individual 스케줄링 실패 - 백트래킹 시작", {
+                    "unscheduled": unscheduled_count
+                })
+                return self._backtrack_from_level3(config, result)
+            
+            result.level3_result = level3_result
+            result.logs.append(
+                f"Level 3 완료 ({level3_time:.1f}초): "
+                f"{len(level3_result.schedule)}개 스케줄 항목"
+            )
+            self._report_progress("Level3", 1.0, "Individual 스케줄링 완료", {
+                "schedule_count": len(level3_result.schedule),
+                "time": level3_time
+            })
+            
+            # 전체 스케줄 통합
+            all_schedule = []
+            all_schedule.extend(level2_result.schedule)
+            all_schedule.extend(level3_result.schedule)
+            
+            result.schedule = all_schedule
+            result.status = "SUCCESS"
+            result.error_message = None
+            
+            total_time = time_module.time() - overall_start_time
+            result.logs.append(f"=== 스케줄링 성공 (총 {total_time:.1f}초) ===")
+            
+            # 최종 완료 보고
+            self._report_progress("Complete", 1.0, "스케줄링 성공", {
+                "total_time": total_time,
+                "level1_time": level1_time,
+                "level2_time": level2_time, 
+                "level3_time": level3_time,
+                "total_schedule": len(all_schedule)
+            })
+            
+        except Exception as e:
+            result.error_message = f"예외 발생: {str(e)}"
+            result.logs.append(f"예외: {str(e)}")
+            self.logger.exception("스케줄링 중 예외 발생")
+            self._report_progress("Error", 1.0, f"예외 발생: {str(e)}")
+        
+        return result
+    
+    def _run_level1(self, config: DateConfig, dummy_hint: int = 0) -> Optional[Level1Result]:
+        """Level 1: 그룹 구성 최적화"""
+        try:
+            optimizer = GroupOptimizerV2(self.logger)
+            
+            # 지원자 생성
+            applicants = self._create_applicants(config)
+            
+            # 그룹 최적화 (dummy_hint 전달)
+            result = optimizer.optimize(
+                applicants=applicants,
+                activities=config.activities,
+                time_limit=self.LEVEL1_TIME_LIMIT,
+                dummy_hint=dummy_hint
+            )
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Level 1 오류: {str(e)}")
+            return None
+    
+    def _run_level2(
+        self, 
+        config: DateConfig, 
+        level1_result: Level1Result
+    ) -> Optional[Level2Result]:
+        """Level 2: Batched 활동 스케줄링"""
+        try:
+            scheduler = BatchedScheduler(self.logger)
+            
+            result = scheduler.schedule(
+                groups=level1_result.groups,
+                config=config,
+                time_limit=self.LEVEL2_TIME_LIMIT
+            )
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Level 2 오류: {str(e)}")
+            return None
+    
+    def _run_level3(
+        self,
+        config: DateConfig,
+        level1_result: Level1Result,
+        level2_result: Level2Result
+    ) -> Optional[Level3Result]:
+        """Level 3: Individual/Parallel 활동 스케줄링"""
+        try:
+            # Individual/Parallel 활동이 있는지 확인
+            individual_activities = [
+                a for a in config.activities 
+                if a.mode.value in ['individual', 'parallel']
+            ]
+            
+            # Individual/Parallel 활동이 없으면 바로 성공 반환
+            if not individual_activities:
+                level3_result = Level3Result()
+                level3_result.schedule = []  
+                level3_result.unscheduled = []  # 빈 리스트로 설정
+                return level3_result
+            
+            scheduler = IndividualScheduler()
+            
+            # Level 1 결과에서 모든 지원자 가져오기 (더미 포함)
+            all_applicants = level1_result.applicants
+            
+            # Batched 스케줄 결과를 GroupScheduleResult 형태로 변환
+            batched_results = []
+            if level2_result and level2_result.group_results:
+                batched_results = level2_result.group_results
+            
+            # Individual 스케줄링 실행
+            result = scheduler.schedule_individuals(
+                applicants=all_applicants,
+                activities=config.activities,
+                rooms=config.rooms,
+                batched_results=batched_results,
+                start_time=config.operating_hours[0],
+                end_time=config.operating_hours[1],
+                date_str=config.date.strftime('%Y-%m-%d'),
+                precedence_rules=config.precedence_rules,
+                global_gap_min=config.global_gap_min
+            )
+            
+            if not result:
+                return None
+                
+            # IndividualScheduleResult를 Level3Result로 변환
+            level3_result = Level3Result()
+            
+            # 스케줄 항목 생성
+            for applicant_id, time_slots in result.schedule_by_applicant.items():
+                for slot in time_slots:
+                    schedule_item = ScheduleItem(
+                        applicant_id=applicant_id,
+                        activity_name=slot.activity_name,
+                        time_slot=slot,
+                        room_name=slot.room_name
+                    )
+                    level3_result.schedule.append(schedule_item)
+            
+            # 스케줄되지 않은 지원자 찾기 (Individual/Parallel 활동 대상자만)
+            # Individual/Parallel 활동을 수행해야 하는 지원자들만 체크
+            target_applicants = set()
+            for applicant in all_applicants:
+                if not applicant.is_dummy:
+                    for activity in individual_activities:
+                        if activity.name in applicant.activities:
+                            target_applicants.add(applicant.id)
+            
+            scheduled_ids = set(result.schedule_by_applicant.keys())
+            level3_result.unscheduled = list(target_applicants - scheduled_ids)
+            
+            return level3_result
+            
+        except Exception as e:
+            self.logger.error(f"Level 3 오류: {str(e)}")
+            return None
+    
+    def _create_applicants(self, config: DateConfig) -> List[Applicant]:
+        """설정을 기반으로 지원자 리스트 생성"""
+        applicants = []
+        
+        for job_code, count in config.jobs.items():
+            # 해당 직무가 수행할 활동 추출
+            activities = [
+                activity.name for activity in config.activities
+                if config.job_activity_matrix.get((job_code, activity.name), False)
+            ]
+            
+            # 실제 지원자 생성
+            for i in range(count):
+                applicants.append(Applicant(
+                    id=f"{job_code}_{str(i + 1).zfill(3)}",
+                    job_code=job_code,
+                    activities=activities,
+                    is_dummy=False
+                ))
+        
+        return applicants
+    
+    def _extract_batched_constraints(
+        self,
+        batched_schedule: List[ScheduleItem],
+        groups: Dict[str, List[Group]]
+    ) -> Dict[str, List[TimeSlot]]:
+        """
+        Batched 스케줄에서 개별 지원자의 시간 제약 추출
+        
+        Returns:
+            {applicant_id: [TimeSlot, ...]}
+        """
+        constraints = {}
+        
+        # 그룹 ID -> 멤버 매핑 생성
+        group_members = {}
+        for activity_groups in groups.values():
+            for group in activity_groups:
+                group_members[group.id] = group.members
+        
+        # Batched 스케줄에서 각 지원자의 시간 제약 추출
+        for item in batched_schedule:
+            if item.group_id and item.group_id in group_members:
+                members = group_members[item.group_id]
+                for member_id in members:
+                    if member_id not in constraints:
+                        constraints[member_id] = []
+                    constraints[member_id].append(item.time_slot)
+        
+        return constraints
+    
+    def _backtrack_from_level2(
+        self,
+        config: DateConfig,
+        result: SingleDateResult
+    ) -> SingleDateResult:
+        """Level 2 실패시 백트래킹 - Level 1부터 재시도"""
+        result.logs.append("=== Level 2 백트래킹 시작 ===")
+        result.backtrack_count += 1
+        
+        self._report_progress("Backtrack", 0.0, f"Level 2 백트래킹 시작 ({result.backtrack_count}회차)", {
+            "backtrack_count": result.backtrack_count,
+            "level": "Level2"
+        })
+        
+        # 최대 백트래킹 횟수 제한
+        MAX_BACKTRACK = 3
+        if result.backtrack_count > MAX_BACKTRACK:
+            result.logs.append(f"백트래킹 한계 도달 ({MAX_BACKTRACK}회)")
+            self._report_progress("Backtrack", 1.0, "백트래킹 한계 도달", {
+                "max_backtrack": MAX_BACKTRACK
+            })
+            return result
+            
+        # 이전 시도 저장
+        if result.level1_result:
+            result.attempted_configs.append({
+                'dummy_count': result.level1_result.dummy_count,
+                'group_count': result.level1_result.group_count
+            })
+        
+        # 더미 수 조정 전략
+        adjustment_strategies = [
+            lambda dc: dc + 1,      # 더미 1명 추가
+            lambda dc: dc + 2,      # 더미 2명 추가  
+            lambda dc: dc * 2,      # 더미 2배로
+            lambda dc: dc + 5,      # 더미 5명 추가
+        ]
+        
+        for strategy in adjustment_strategies:
+            # 이전 더미 수 계산
+            prev_dummy = result.level1_result.dummy_count if result.level1_result else 0
+            new_dummy_hint = strategy(prev_dummy)
+            
+            result.logs.append(f"백트래킹 시도 {result.backtrack_count}: 더미 {prev_dummy} → {new_dummy_hint}")
+            
+            # Level 1을 더미 힌트와 함께 재시도
+            level1_result = self._run_level1(config, dummy_hint=new_dummy_hint)
+            
+            if not level1_result:
+                continue
+                
+            # Level 2 재시도
+            level2_result = self._run_level2(config, level1_result)
+            
+            if level2_result:
+                result.logs.append(f"✅ 백트래킹 성공! 더미 {level1_result.dummy_count}명으로 해결")
+                result.level1_result = level1_result
+                result.level2_result = level2_result
+                
+                # Level 3 진행
+                level3_result = self._run_level3(config, level1_result, level2_result)
+                if level3_result and not level3_result.unscheduled:
+                    result.level3_result = level3_result
+                    result.status = "SUCCESS"
+                    result.error_message = None
+                    
+                    # 전체 스케줄 통합
+                    all_schedule = []
+                    all_schedule.extend(level2_result.schedule)
+                    all_schedule.extend(level3_result.schedule)
+                    result.schedule = all_schedule
+                    
+                return result
+                
+        result.logs.append("❌ 모든 백트래킹 전략 실패")
+        return result
+    
+    def _backtrack_from_level3(
+        self,
+        config: DateConfig,
+        result: SingleDateResult  
+    ) -> SingleDateResult:
+        """Level 3 실패시 백트래킹 - Level 2 또는 1부터 재시도"""
+        result.logs.append("=== Level 3 백트래킹 시작 ===")
+        result.backtrack_count += 1
+        
+        # 최대 백트래킹 횟수 제한
+        MAX_BACKTRACK = 5
+        if result.backtrack_count > MAX_BACKTRACK:
+            result.logs.append(f"백트래킹 한계 도달 ({MAX_BACKTRACK}회)")
+            return result
+            
+        # 전략 1: 방 재배치로 Level 3만 재시도
+        if result.backtrack_count <= 2:
+            result.logs.append("전략 1: 방 재배치로 재시도")
+            
+            # Individual 스케줄러에 다른 seed나 전략 적용
+            # (현재는 같은 방식으로 재시도하므로 효과 제한적)
+            level3_result = self._run_level3(config, result.level1_result, result.level2_result)
+            
+            if level3_result and not level3_result.unscheduled:
+                result.logs.append("✅ 방 재배치로 해결!")
+                result.level3_result = level3_result
+                result.status = "SUCCESS"
+                result.error_message = None
+                
+                # 전체 스케줄 통합
+                all_schedule = []
+                all_schedule.extend(result.level2_result.schedule)
+                all_schedule.extend(level3_result.schedule)
+                result.schedule = all_schedule
+                
+                return result
+                
+        # 전략 2: Level 2부터 재시도 (다른 시간대 배치)
+        result.logs.append("전략 2: Level 2부터 재시도")
+        return self._backtrack_from_level2(config, result)
+        
+    def _create_modified_config(self, config: DateConfig, dummy_hint: int) -> DateConfig:
+        """더미 힌트를 반영한 수정된 설정 생성"""
+        # 실제로는 GroupOptimizer가 자동으로 더미를 계산하므로
+        # 여기서는 config를 그대로 반환
+        # 향후 필요시 dummy_hint를 전달하는 메커니즘 추가 가능
+        return config 
+
+    def _report_progress(
+        self, 
+        stage: str, 
+        progress: float, 
+        message: str, 
+        details: Dict = None
+    ):
+        """진행 상황 보고"""
+        if self.progress_callback:
+            info = ProgressInfo(
+                stage=stage,
+                progress=progress,
+                message=message,
+                details=details or {}
+            )
+            self.progress_callback(info) 

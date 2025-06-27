@@ -39,6 +39,9 @@ def build_config(state: dict) -> dict:
         "precedence"     : state.get("precedence",     empty()),
         "candidates"     : state.get("candidates",     empty()),
         "candidates_exp" : state.get("candidates_exp", empty()),
+        "interview_date" : state.get("interview_date"),  # ← 면접 날짜 추가 (하위 호환성)
+        "interview_dates": state.get("interview_dates", [state.get("interview_date")]),  # ← 멀티 날짜 지원
+        "multidate_plans": state.get("multidate_plans", {}),  # ← 새로운 멀티 날짜 계획
     }
     cfg["group_meta"] = cfg["activities"].copy()
     return cfg

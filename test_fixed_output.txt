@@ -1,0 +1,89 @@
+INFO: 멀티 날짜 스케줄링 시작: 1개 날짜
+INFO: 그룹 최적화 시작 (V2): 20명 지원자
+INFO: JOB01: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 20명 → 4명 더미 추가 → 24명 → 4개 그룹
+INFO: 그룹 최적화 완료 (V2): 4개 그룹, 4명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 24
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', activities=['토론면접', '발표준비', '발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+ERROR: 활동 발표준비에 충분한 capacity의 방이 없음
+WARNING: 활동 발표준비 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+DEBUG: Applicants 수: 24
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', activities=['토론면접', '발표준비', '발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+ERROR: 활동 발표준비에 충분한 capacity의 방이 없음
+WARNING: 활동 발표준비 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+INFO: 그룹 최적화 시작 (V2): 20명 지원자
+INFO: JOB01: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 20명 → 4명 더미 추가 → 24명 → 4개 그룹
+INFO: 그룹 최적화 완료 (V2): 4개 그룹, 4명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 24
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', activities=['토론면접', '발표준비', '발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+ERROR: 활동 발표준비에 충분한 capacity의 방이 없음
+WARNING: 활동 발표준비 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+ERROR: 2025-06-28: 실패 - Level 3 실패: 20명 스케줄링 불가
+INFO: 멀티 날짜 스케줄링 시작: 1개 날짜
+INFO: 그룹 최적화 시작 (V2): 20명 지원자
+INFO: JOB01: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 20명 → 4명 더미 추가 → 24명 → 4개 그룹
+INFO: 그룹 최적화 완료 (V2): 4개 그룹, 4명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: Batched 스케줄링 완료: 0.0초
+INFO: 2025-06-28: 성공 - 18명 스케줄링
+1. 전체 활동 테스트
+=== 수정된 스케줄링 테스트 ===
+=== 수정된 데이터 확인 ===
+활동 설정:
+  activity        mode  duration_min  min_cap  max_cap
+0     토론면접     batched            30        4        6
+1     발표준비    parallel             5        1       10
+2     발표면접  individual            15        1        1
+
+방 계획:
+   토론면접실_count  토론면접실_cap  발표준비실_count  발표준비실_cap  발표면접실_count  발표면접실_cap
+0            2          6            2         10            3          1
+
+=== 스케줄링 실행 ===
+결과 상태: FAILED
+일일 한계: 0
+결과 DataFrame 없음
+
+=== 주요 로그 (마지막 20줄) ===
+활동 3개 로드: ['토론면접', '발표준비', '발표면접']
+방 타입 3개: {'토론면접실': {'count': 2, 'capacity': 6}, '발표준비실': {'count': 2, 'capacity': 10}, '발표면접실': {'count': 3, 'capacity': 1}}
+기존 job_acts_map 방식 사용
+날짜 계획 생성: 2025-06-28, 직무: {'JOB01': 20}, 활동: ['토론면접', '발표준비', '발표면접']
+=== 스케줄링 결과 ===
+전체 상태: FAILED
+총 지원자: 20명
+스케줄된 지원자: 0명
+성공률: 0.0%
+모든 날짜 스케줄링 실패
+  - 2025-06-28: Level 3 실패: 20명 스케줄링 불가
+
+==================================================
+2. 최소 설정 테스트
+
+=== 최소 설정 테스트 ===
+토론면접만 사용, 20명 처리
+결과 상태: SUCCESS
+일일 한계: 18
+성공! 18개 스케줄 생성
+
+최종 결과:
+전체 활동 테스트: 실패
+최소 설정 테스트: 성공
