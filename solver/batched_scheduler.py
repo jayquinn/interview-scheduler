@@ -68,28 +68,28 @@ class BatchedScheduler:
                 
             results.append(result)
             
-            # 방 배정 정보 통합
-            for group_id, room in result.room_assignments.items():
-                room_assignments[f"{activity.name}_{group_id}"] = room
+            # 방 배정 정보 통합 (GroupAssignment에서 추출)
+            for assignment in result.assignments:
+                room_assignments[f"{activity.name}_{assignment.group.id}"] = assignment.room
         
-        # 전체 스케줄 통합
+        # 전체 스케줄 통합 (GroupAssignment에서 ScheduleItem 생성)
         all_schedule = []
         for result in results:
-            for applicant_id, time_slots in result.schedule_by_applicant.items():
-                for slot in time_slots:
-                    # 해당 그룹의 그룹 ID 찾기
-                    group_id = None
-                    for key, assignment in result.assignments.items():
-                        if applicant_id in assignment.applicant_ids:
-                            group_id = assignment.group_id
-                            break
-                            
+            for assignment in result.assignments:
+                # 그룹의 모든 지원자에 대해 ScheduleItem 생성
+                applicant_ids = [app.id for app in assignment.group.applicants]
+                if hasattr(assignment.group, 'dummy_ids'):
+                    applicant_ids.extend(assignment.group.dummy_ids)
+                
+                for applicant_id in applicant_ids:
                     all_schedule.append(ScheduleItem(
                         applicant_id=applicant_id,
-                        activity_name=slot.activity_name,
-                        time_slot=slot,
-                        room_name=slot.room_name,
-                        group_id=group_id
+                        job_code=assignment.group.job_code,
+                        activity_name=assignment.group.activity_name,
+                        room_name=assignment.room.name,
+                        start_time=assignment.start_time,
+                        end_time=assignment.end_time,
+                        group_id=assignment.group.id
                     ))
         
         elapsed = time_module.time() - start_time
@@ -303,29 +303,32 @@ class BatchedScheduler:
                     current_slot_groups = []
                     continue
             
-            # TimeSlot 생성
+            # 그룹의 지원자 ID 리스트 생성
+            applicant_ids = [app.id for app in group.applicants]
+            if hasattr(group, 'dummy_ids'):
+                applicant_ids.extend(group.dummy_ids)
+            
+            # TimeSlot 생성 (단일 지원자ID만 지원하므로 대표 ID 사용)
+            representative_id = applicant_ids[0] if applicant_ids else None
             time_slot = TimeSlot(
                 activity_name=activity.name,
                 start_time=start_time,
                 end_time=end_time,
                 room_name=assigned_room.name,
-                applicant_ids=group.members,
-                date=config.date.strftime('%Y-%m-%d')
+                applicant_id=representative_id,
+                group_id=group.id
             )
             
             # GroupAssignment 생성
             assignment = GroupAssignment(
-                group_id=group.id,
-                activity_name=activity.name,
-                job_code=job_code,
-                applicant_ids=group.members,
+                group=group,
+                room=assigned_room,
                 start_time=start_time,
-                end_time=end_time,
-                room_name=assigned_room.name
+                end_time=end_time
             )
             
             # 결과 저장
-            for member_id in group.members:
+            for member_id in applicant_ids:
                 key = f"{member_id}_{activity.name}"
                 assignments[key] = assignment
                 schedule_by_applicant[member_id].append(time_slot)
@@ -339,11 +342,12 @@ class BatchedScheduler:
             # 현재 시간대 그룹에 추가
             current_slot_groups.append(group)
         
+        # assignments를 GroupAssignment 리스트로 변환
+        group_assignments = list(assignments.values())
+        
         return GroupScheduleResult(
-            assignments=assignments,
-            schedule_by_applicant=dict(schedule_by_applicant),
-            schedule_by_room=dict(schedule_by_room),
-            room_assignments=room_assignments,
+            activity_name=activity.name,
+            assignments=group_assignments,
             success=True
         )
     

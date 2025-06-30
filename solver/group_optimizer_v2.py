@@ -68,7 +68,7 @@ class GroupOptimizerV2:
             job_batched_activities = []
             for activity in batched_activities:
                 # 이 직무에서 이 활동을 수행하는 지원자가 있는지 확인
-                has_activity = any(activity.name in app.activities for app in job_applicants)
+                has_activity = any(activity.name in app.required_activities for app in job_applicants)
                 if has_activity:
                     job_batched_activities.append(activity)
             
@@ -105,16 +105,16 @@ class GroupOptimizerV2:
             for job_code, groups in job_groups.items():
                 # 이 직무에서 이 활동을 수행하는지 확인
                 job_applicants = applicants_by_job[job_code]
-                has_activity = any(activity.name in app.activities for app in job_applicants)
+                has_activity = any(activity.name in app.required_activities for app in job_applicants)
                 
                 if has_activity:
                                          # 그룹 ID를 동일하게 유지 (precedence를 위해)
                      for group in groups:
                          activity_group = Group(
                              id=f"{job_code}_{group.id}",  # 활동명 제외하고 동일한 ID 유지
-                             activity=activity.name,
+                             activity_name=activity.name,
                              job_code=job_code,
-                             members=group.members.copy(),  # 동일한 멤버
+                             applicants=group.applicants.copy(),  # 동일한 멤버
                              size=group.size
                          )
                          activity_groups.append(activity_group)
@@ -129,11 +129,13 @@ class GroupOptimizerV2:
         added_dummies = set()
         for activity_groups in all_groups.values():
             for group in activity_groups:
-                # 더미 멤버만 추출
-                dummy_members = [
-                    mid for mid in group.members
-                    if mid.startswith("DUMMY_") and mid not in added_dummies
-                ]
+                # 더미 멤버만 추출 (dummy_ids 속성 사용)
+                dummy_members = []
+                if hasattr(group, 'dummy_ids'):
+                    dummy_members = [
+                        mid for mid in group.dummy_ids
+                        if mid not in added_dummies
+                    ]
                 
                 # 더미 지원자 객체 생성
                 for dummy_id in dummy_members:
@@ -147,13 +149,13 @@ class GroupOptimizerV2:
                     job_activities = []
                     for app in applicants:
                         if app.job_code == dummy_job:
-                            job_activities = app.activities
+                            job_activities = app.required_activities
                             break
                     
                     dummy = Applicant(
                         id=dummy_id,
                         job_code=dummy_job,
-                        activities=job_activities,
+                        required_activities=job_activities,
                         is_dummy=True
                     )
                     all_applicants.append(dummy)
@@ -168,8 +170,7 @@ class GroupOptimizerV2:
         return Level1Result(
             groups=all_groups,
             applicants=all_applicants,
-            dummy_count=total_dummy_count,
-            group_count=len(job_groups)  # 실제 물리적 그룹 수
+            dummy_count=total_dummy_count
         )
     
     def _classify_by_job(self, applicants: List[Applicant]) -> Dict[str, List[Applicant]]:
@@ -231,14 +232,29 @@ class GroupOptimizerV2:
             group_member_ids = all_member_ids[current_idx:current_idx + size]
             current_idx += size
             
+            # 실제 Applicant 객체들 찾기
+            group_applicants = []
+            for member_id in group_member_ids:
+                if member_id.startswith("DUMMY_"):
+                    # 더미 지원자는 나중에 생성되므로 일단 빈 리스트
+                    continue
+                else:
+                    # 실제 지원자 찾기
+                    for app in job_applicants:
+                        if app.id == member_id:
+                            group_applicants.append(app)
+                            break
+            
             # 그룹 생성 (활동명 없이, 나중에 각 활동별로 복사됨)
             group = Group(
                 id=f"G{i+1:03d}",  # 단순한 ID
-                activity="COMMON",  # 공통 그룹 표시
+                activity_name="COMMON",  # 공통 그룹 표시
                 job_code=job_code,
-                members=group_member_ids,
-                size=len(group_member_ids)
+                applicants=group_applicants,
+                size=len(group_member_ids)  # 더미 포함 전체 크기
             )
+            # 더미 ID들을 따로 저장 (나중에 더미 지원자 생성용)
+            group.dummy_ids = [mid for mid in group_member_ids if mid.startswith("DUMMY_")]
             groups.append(group)
         
         return groups, dummy_count 

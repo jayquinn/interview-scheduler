@@ -294,8 +294,8 @@ def solve_for_days_v2(
         # 스케줄링 컨텍스트 생성
         context = SchedulingContext(
             progress_callback=progress_callback,
-            enable_detailed_logging=debug,
-            real_time_updates=True
+            debug=debug,
+            time_limit_sec=params.get('time_limit_sec', 120.0)
         )
         
         # UI 데이터 변환
@@ -665,12 +665,12 @@ def _convert_result_to_ui_format(result, logs_buffer: List[str]) -> pd.DataFrame
             schedule_data.append({
                 "interview_date": date,
                 "applicant_id": item.applicant_id,
-                "job_code": item.applicant_id.split("_")[0],
+                "job_code": item.job_code,
                 "activity_name": item.activity_name,
                 "room_name": item.room_name,
-                "start_time": item.time_slot.start_time,
-                "end_time": item.time_slot.end_time,
-                "duration_min": int((item.time_slot.end_time - item.time_slot.start_time).total_seconds() / 60)
+                "start_time": item.start_time,
+                "end_time": item.end_time,
+                "duration_min": int((item.end_time - item.start_time).total_seconds() / 60)
             })
     
     if not schedule_data:

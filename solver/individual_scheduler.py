@@ -11,7 +11,7 @@ from collections import defaultdict
 from ortools.sat.python import cp_model
 
 from .types import (
-    Activity, Room, Applicant, Group, ActivityType,
+    Activity, Room, Applicant, Group, ActivityMode,
     GroupScheduleResult, IndividualScheduleResult, 
     TimeSlot, GroupAssignment, RoomAssignment,
     PrecedenceRule
@@ -49,7 +49,7 @@ class IndividualScheduler:
         # Individual/Parallel 활동만 필터링
         individual_activities = [
             a for a in activities 
-            if a.mode in [ActivityType.INDIVIDUAL, ActivityType.PARALLEL]
+            if a.mode in [ActivityMode.INDIVIDUAL, ActivityMode.PARALLEL]
         ]
         
         if not individual_activities:
@@ -141,7 +141,7 @@ class IndividualScheduler:
             
             # 활동별로 처리 (기본 방식)
             for activity in ordered_activities:
-                if activity.mode == ActivityType.INDIVIDUAL:
+                if activity.mode == ActivityMode.INDIVIDUAL:
                     success = self._schedule_individual_activity(
                         activity, applicants, rooms, room_availability,
                         batched_blocks, assignments, schedule_by_applicant,
@@ -267,7 +267,7 @@ class IndividualScheduler:
         # 대상 지원자 필터
         target_applicants = [
             a for a in applicants 
-            if pred_activity.name in a.activities and succ_activity.name in a.activities
+            if pred_activity.name in a.required_activities and succ_activity.name in a.required_activities
         ]
         
         if not target_applicants:
@@ -410,8 +410,8 @@ class IndividualScheduler:
             start_time=pred_start,
             end_time=pred_end,
             room_name=pred_room.name,
-            applicant_ids=[a.id for a in group],
-            date=date_str
+            applicant_id=group[0].id if group else None,  # 그룹의 첫 번째 지원자 ID 사용
+            group_id=f"group_{pred_activity.name}_{pred_start.total_seconds()}"
         )
         
         # 발표준비 저장
@@ -437,8 +437,7 @@ class IndividualScheduler:
                     start_time=succ_start,
                     end_time=succ_end,
                     room_name=succ_room.name,
-                    applicant_ids=[applicant.id],
-                    date=date_str
+                    applicant_id=applicant.id
                 )
                 
                 key = f"{applicant.id}_{succ_activity.name}"
@@ -476,13 +475,13 @@ class IndividualScheduler:
         # 활동 수행 지원자 필터
         target_applicants = [
             a for a in applicants 
-            if activity.name in a.activities
+            if activity.name in a.required_activities
         ]
         
         # 직무별로 그룹화
         by_job = defaultdict(list)
         for applicant in target_applicants:
-            by_job[applicant.job].append(applicant)
+            by_job[applicant.job_code].append(applicant)
             
         # 직무별로 스케줄링
         for job, job_applicants in by_job.items():
@@ -618,8 +617,7 @@ class IndividualScheduler:
                                             start_time=successor_start,
                                             end_time=successor_end,
                                             room_name=successor_room_name,
-                                            applicant_ids=[applicant.id],
-                                            date=date_str
+                                            applicant_id=applicant.id
                                         )
                                         
                                         # 후속 활동 저장
@@ -641,8 +639,7 @@ class IndividualScheduler:
                                     start_time=overlap_start,
                                     end_time=current_end,
                                     room_name=room.name,
-                                    applicant_ids=[applicant.id],
-                                    date=date_str
+                                    applicant_id=applicant.id
                                 )
                                 
                                 # 저장
@@ -694,7 +691,7 @@ class IndividualScheduler:
         # 활동 수행 지원자 필터
         target_applicants = [
             a for a in applicants 
-            if activity.name in a.activities
+            if activity.name in a.required_activities
         ]
         
         if not target_applicants:
@@ -913,22 +910,21 @@ class IndividualScheduler:
                 start_time=start_time,
                 end_time=end_time,
                 room_name=room.name,
-                applicant_ids=[applicant.id],
-                date=date_str
+                applicant_id=applicant.id
             )
             
             key = f"{applicant.id}_{activity.name}"
             assignments[key] = time_slot
             schedule_by_applicant[applicant.id].append(time_slot)
         
-        # 방 스케줄
+        # 방 스케줄 - 그룹 스케줄링의 경우 group_id 사용
         room_slot = TimeSlot(
             activity_name=activity.name,
             start_time=start_time,
             end_time=end_time,
             room_name=room.name,
-            applicant_ids=[a.id for a in group],
-            date=date_str
+            applicant_id=group[0].id if group else None,  # 그룹의 첫 번째 지원자 ID
+            group_id=f"group_{activity.name}_{start_time.total_seconds()}"
         )
         schedule_by_room[room.name].append(room_slot)
     
@@ -961,8 +957,7 @@ class IndividualScheduler:
                     start_time=start_time,
                     end_time=end_time,
                     room_name=room_name,
-                    applicant_ids=[applicant.id],
-                    date=date_str
+                    applicant_id=applicant.id
                 )
                 
                 key = f"{applicant.id}_{successor_name}"
@@ -1067,7 +1062,7 @@ class IndividualScheduler:
         # Individual 활동별 interval 변수
         for applicant in applicants:
             for activity in activities:
-                if activity.name not in applicant.activities:
+                if activity.name not in applicant.required_activities:
                     continue
                     
                 suffix = f"{applicant.id}_{activity.name}"
@@ -1323,8 +1318,7 @@ class IndividualScheduler:
                         start_time=timedelta(minutes=start_min),
                         end_time=timedelta(minutes=end_min),
                         room_name=assigned_room,
-                        applicant_ids=[applicant_id],
-                        date=date_str
+                        applicant_id=applicant_id
                     )
                     
                     key = f"{applicant_id}_{activity_name}"
@@ -1517,7 +1511,7 @@ class IndividualScheduler:
         global_gap_min: int
     ) -> bool:
         """단일 활동 스케줄링"""
-        if activity.mode == ActivityType.INDIVIDUAL:
+        if activity.mode == ActivityMode.INDIVIDUAL:
             return self._schedule_individual_activity(
                 activity, applicants, rooms, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,

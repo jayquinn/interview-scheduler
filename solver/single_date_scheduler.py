@@ -66,12 +66,13 @@ class SingleDateScheduler:
                 return result
             
             result.level1_result = level1_result
+            total_groups = sum(len(groups) for groups in level1_result.groups.values())
             result.logs.append(
                 f"Level 1 완료 ({level1_time:.1f}초): "
-                f"{level1_result.group_count}개 그룹, {level1_result.dummy_count}명 더미"
+                f"{total_groups}개 그룹, {level1_result.dummy_count}명 더미"
             )
             self._report_progress("Level1", 1.0, "그룹 구성 완료", {
-                "groups": level1_result.group_count,
+                "groups": total_groups,
                 "dummies": level1_result.dummy_count,
                 "time": level1_time
             })
@@ -252,11 +253,21 @@ class SingleDateScheduler:
             # 스케줄 항목 생성
             for applicant_id, time_slots in result.schedule_by_applicant.items():
                 for slot in time_slots:
+                    # 지원자의 job_code 찾기
+                    job_code = None
+                    for applicant in all_applicants:
+                        if applicant.id == applicant_id:
+                            job_code = applicant.job_code
+                            break
+                    
                     schedule_item = ScheduleItem(
                         applicant_id=applicant_id,
+                        job_code=job_code or "UNKNOWN",
                         activity_name=slot.activity_name,
-                        time_slot=slot,
-                        room_name=slot.room_name
+                        room_name=slot.room_name,
+                        start_time=slot.start_time,
+                        end_time=slot.end_time,
+                        group_id=slot.group_id
                     )
                     level3_result.schedule.append(schedule_item)
             
@@ -266,7 +277,7 @@ class SingleDateScheduler:
             for applicant in all_applicants:
                 if not applicant.is_dummy:
                     for activity in individual_activities:
-                        if activity.name in applicant.activities:
+                        if activity.name in applicant.required_activities:
                             target_applicants.add(applicant.id)
             
             scheduled_ids = set(result.schedule_by_applicant.keys())
@@ -294,7 +305,7 @@ class SingleDateScheduler:
                 applicants.append(Applicant(
                     id=f"{job_code}_{str(i + 1).zfill(3)}",
                     job_code=job_code,
-                    activities=activities,
+                    required_activities=activities,
                     is_dummy=False
                 ))
         
@@ -317,7 +328,11 @@ class SingleDateScheduler:
         group_members = {}
         for activity_groups in groups.values():
             for group in activity_groups:
-                group_members[group.id] = group.members
+                # 그룹의 지원자 ID 리스트 생성
+                member_ids = [app.id for app in group.applicants]
+                if hasattr(group, 'dummy_ids'):
+                    member_ids.extend(group.dummy_ids)
+                group_members[group.id] = member_ids
         
         # Batched 스케줄에서 각 지원자의 시간 제약 추출
         for item in batched_schedule:
@@ -326,7 +341,16 @@ class SingleDateScheduler:
                 for member_id in members:
                     if member_id not in constraints:
                         constraints[member_id] = []
-                    constraints[member_id].append(item.time_slot)
+                    # ScheduleItem에서 TimeSlot 생성
+                    time_slot = TimeSlot(
+                        start_time=item.start_time,
+                        end_time=item.end_time,
+                        room_name=item.room_name,
+                        activity_name=item.activity_name,
+                        applicant_id=member_id,
+                        group_id=item.group_id
+                    )
+                    constraints[member_id].append(time_slot)
         
         return constraints
     
@@ -355,9 +379,10 @@ class SingleDateScheduler:
             
         # 이전 시도 저장
         if result.level1_result:
+            total_groups = sum(len(groups) for groups in result.level1_result.groups.values())
             result.attempted_configs.append({
                 'dummy_count': result.level1_result.dummy_count,
-                'group_count': result.level1_result.group_count
+                'group_count': total_groups
             })
         
         # 더미 수 조정 전략
