@@ -1113,7 +1113,8 @@ class IndividualScheduler:
         for result in batched_results:
             for applicant_id, slots in result.schedule_by_applicant.items():
                 for slot in slots:
-                    blocks[applicant_id].append((slot.start_time, slot.end_time))
+                    time_block = (slot.start_time, slot.end_time)
+                    blocks[applicant_id].append(time_block)
                     
         # 정렬 및 병합
         for applicant_id in blocks:
@@ -1183,7 +1184,7 @@ class IndividualScheduler:
             
         if current_start < end_time:
             free_times.append((current_start, end_time))
-            
+        
         return free_times
         
     def _merge_time_blocks(

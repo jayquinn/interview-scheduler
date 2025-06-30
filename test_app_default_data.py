@@ -24,8 +24,9 @@ def create_app_default_data():
         "max_cap": [6, 2, 1],
     })
     
-    # 2. 기본 선후행 제약 (app.py 라인 95-97)
+    # 2. 기본 선후행 제약 (app.py 라인 95-97) + 토론면접 순서 추가
     precedence = pd.DataFrame([
+        {"predecessor": "토론면접", "successor": "발표준비+발표면접", "gap_min": 5, "adjacent": False},
         {"predecessor": "발표준비", "successor": "발표면접", "gap_min": 0, "adjacent": True}
     ])
     
@@ -64,6 +65,20 @@ def create_app_default_data():
     global_gap_min = 5
     max_stay_hours = 5
     
+    # 방 계획 생성 (room_template 기반으로 자동 생성)
+    final_plan_dict = {}
+    for rt, values in room_template.items():
+        final_plan_dict[f"{rt}_count"] = values['count']
+        final_plan_dict[f"{rt}_cap"] = values['cap']
+    room_plan = pd.DataFrame([final_plan_dict])
+    
+    # 운영 시간 생성
+    oper_window_dict = {
+        "start_time": oper_start_time.strftime("%H:%M"),
+        "end_time": oper_end_time.strftime("%H:%M")
+    }
+    oper_window = pd.DataFrame([oper_window_dict])
+    
     # 세션 상태 시뮬레이션
     session_state = {
         "activities": activities,
@@ -71,6 +86,8 @@ def create_app_default_data():
         "oper_start_time": oper_start_time,
         "oper_end_time": oper_end_time,
         "room_template": room_template,
+        "room_plan": room_plan,
+        "oper_window": oper_window,
         "job_acts_map": job_acts_map,
         "multidate_plans": multidate_plans,
         "group_min_size": group_min_size,
@@ -93,9 +110,12 @@ def test_config_building(session_state):
         print(f"✅ Config 빌드 성공")
         
         # Config 내용 확인 
-        print(f"  - 총 날짜 수: {len(cfg)}")
-        for date_key, date_cfg in cfg.items():
-            print(f"  - {date_key}: {date_cfg.get_total_applicants()}명")
+        print(f"  - 총 설정 수: {len(cfg)}")
+        for key, value in cfg.items():
+            if isinstance(value, pd.DataFrame):
+                print(f"  - {key}: DataFrame ({len(value)} rows)")
+            else:
+                print(f"  - {key}: {type(value)} - {value}")
             
         return cfg
     
@@ -149,12 +169,12 @@ def test_individual_components():
         
         # 3. 기본 클래스 생성 테스트
         print("3. 기본 클래스 생성...")
-        from solver.types import Activity, Room, Applicant, Group
+        from solver.types import Activity, Room, Applicant, Group, ActivityMode
         
-        activity = Activity(name="토론면접", mode="batched", duration_min=30)
+        activity = Activity(name="토론면접", mode=ActivityMode.BATCHED, duration_min=30, room_type="토론면접실")
         room = Room(name="토론면접실A", capacity=6, room_type="토론면접실")
         applicant = Applicant(id="TEST001", job_code="JOB01", required_activities=["토론면접"])
-        group = Group(id="G001", activity_name="토론면접", applicants=[applicant])
+        group = Group(id="G001", job_code="JOB01", applicants=[applicant], size=1, activity_name="토론면접")
         
         print("   ✅ 기본 클래스 생성 성공")
         
@@ -203,6 +223,54 @@ def main():
     
     if success:
         print("\n🎉 전체 테스트 성공!")
+        
+        # 6. 엑셀 파일 생성 및 분석
+        print("\n📊 엑셀 파일 생성 및 분석...")
+        
+        try:
+            from app import df_to_excel
+            from io import BytesIO
+            
+            # 엑셀 파일 생성
+            excel_buffer = BytesIO()
+            df_to_excel(result, stream=excel_buffer)
+            
+            # 파일로 저장
+            excel_filename = "test_schedule_result.xlsx"
+            with open(excel_filename, "wb") as f:
+                f.write(excel_buffer.getvalue())
+            
+            print(f"✅ 엑셀 파일 생성 완료: {excel_filename}")
+            
+            # 결과 분석
+            print("\n📈 결과 분석:")
+            print(f"  - 총 스케줄 항목: {len(result)}개")
+            print(f"  - 지원자 수: {result['applicant_id'].nunique()}명")
+            print(f"  - 활동 종류: {result['activity_name'].unique()}")
+            print(f"  - 방 종류: {result['room_name'].unique()}")
+            
+            # 중복 확인
+            print("\n🔍 중복 확인:")
+            duplicates = result.groupby(['applicant_id', 'start_time', 'end_time']).size()
+            duplicates = duplicates[duplicates > 1]
+            if len(duplicates) > 0:
+                print(f"❌ 시간 중복 발견: {len(duplicates)}건")
+                for (applicant, start, end), count in duplicates.items():
+                    print(f"  - {applicant}: {start}~{end} ({count}개 중복)")
+            else:
+                print("✅ 시간 중복 없음")
+            
+            # 그룹 크기 분석
+            print("\n📊 그룹 크기 분석:")
+            group_analysis = result.groupby(['activity_name', 'room_name', 'start_time', 'end_time']).size()
+            print("활동별 그룹 크기:")
+            for (activity, room, start, end), size in group_analysis.items():
+                print(f"  - {activity} ({room}): {start}~{end} → {size}명")
+            
+        except Exception as e:
+            print(f"❌ 엑셀 파일 생성 실패: {e}")
+            import traceback
+            traceback.print_exc()
     else:
         print("\n❌ 전체 테스트 실패")
     

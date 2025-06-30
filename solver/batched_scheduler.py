@@ -75,22 +75,40 @@ class BatchedScheduler:
         # 전체 스케줄 통합 (GroupAssignment에서 ScheduleItem 생성)
         all_schedule = []
         for result in results:
+            self.logger.info(f"🔍 처리할 활동 결과: {result.activity_name}, 배정 수: {len(result.assignments)}")
             for assignment in result.assignments:
-                # 그룹의 모든 지원자에 대해 ScheduleItem 생성
-                applicant_ids = [app.id for app in assignment.group.applicants]
-                if hasattr(assignment.group, 'dummy_ids'):
-                    applicant_ids.extend(assignment.group.dummy_ids)
+                self.logger.info(f"🔍 그룹 처리: {assignment.group.id}, 크기: {assignment.group.size}, 실제 지원자: {len(assignment.group.applicants)}")
                 
-                for applicant_id in applicant_ids:
-                    all_schedule.append(ScheduleItem(
-                        applicant_id=applicant_id,
-                        job_code=assignment.group.job_code,
+                # 🔧 수정: 그룹의 각 지원자에 대해 올바른 ScheduleItem 생성
+                for i, applicant in enumerate(assignment.group.applicants):
+                    schedule_item = ScheduleItem(
+                        applicant_id=applicant.id,
+                        job_code=applicant.job_code,  # 지원자의 실제 job_code 사용
                         activity_name=assignment.group.activity_name,
                         room_name=assignment.room.name,
                         start_time=assignment.start_time,
                         end_time=assignment.end_time,
                         group_id=assignment.group.id
-                    ))
+                    )
+                    all_schedule.append(schedule_item)
+                    self.logger.debug(f"  - 지원자 {i+1}: {applicant.id} → ScheduleItem 생성")
+                
+                # 더미 지원자 처리 (그룹 크기 맞추기용)
+                if hasattr(assignment.group, 'dummy_ids'):
+                    for dummy_id in assignment.group.dummy_ids:
+                        schedule_item = ScheduleItem(
+                            applicant_id=dummy_id,
+                            job_code=assignment.group.job_code,  # 그룹의 job_code 사용
+                            activity_name=assignment.group.activity_name,
+                            room_name=assignment.room.name,
+                            start_time=assignment.start_time,
+                            end_time=assignment.end_time,
+                            group_id=assignment.group.id
+                        )
+                        all_schedule.append(schedule_item)
+                        self.logger.debug(f"  - 더미: {dummy_id} → ScheduleItem 생성")
+        
+        self.logger.info(f"🔍 총 생성된 ScheduleItem 수: {len(all_schedule)}")
         
         elapsed = time_module.time() - start_time
         self.logger.info(f"Batched 스케줄링 완료: {elapsed:.1f}초")
@@ -179,7 +197,8 @@ class BatchedScheduler:
             return None
         
         # 스케줄링 시작
-        assignments = {}
+        assignments = []  # 🔧 수정: 딕셔너리 대신 리스트 사용
+        applicant_assignments = {}  # 지원자별 assignment 추적용
         schedule_by_applicant = defaultdict(list)
         schedule_by_room = defaultdict(list)
         room_assignments = {}
@@ -327,10 +346,13 @@ class BatchedScheduler:
                 end_time=end_time
             )
             
-            # 결과 저장
+            # 🔧 수정: assignments 리스트에 한 번만 추가
+            assignments.append(assignment)
+            
+            # 결과 저장 - 지원자별 정보만 저장
             for member_id in applicant_ids:
                 key = f"{member_id}_{activity.name}"
-                assignments[key] = assignment
+                applicant_assignments[key] = assignment
                 schedule_by_applicant[member_id].append(time_slot)
             
             schedule_by_room[assigned_room.name].append(time_slot)
@@ -342,13 +364,13 @@ class BatchedScheduler:
             # 현재 시간대 그룹에 추가
             current_slot_groups.append(group)
         
-        # assignments를 GroupAssignment 리스트로 변환
-        group_assignments = list(assignments.values())
-        
+        # 🔧 수정: assignments 리스트 직접 사용
         return GroupScheduleResult(
             activity_name=activity.name,
-            assignments=group_assignments,
-            success=True
+            assignments=assignments,
+            success=True,
+            schedule_by_applicant=dict(schedule_by_applicant),
+            schedule_by_room=dict(schedule_by_room)
         )
     
     def _assign_room_suffixes(
