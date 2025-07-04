@@ -545,7 +545,7 @@ def solve(cfg_ui: dict, params: dict | None = None, *, debug: bool = False):
             oper_hours[row['code']] = (start_minutes, end_minutes)
         
         rules = [
-            (row['predecessor'], row['successor'], 'direct')
+            (row['predecessor'], row['successor'], int(row.get('gap_min', 0)), bool(row.get('adjacent', False)))
             for _, row in cfg_ui['precedence'].iterrows()
         ]
         

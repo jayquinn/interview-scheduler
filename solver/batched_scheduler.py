@@ -8,12 +8,20 @@ from collections import defaultdict
 import logging
 import time as time_module
 import random
+from dataclasses import dataclass
 
 from .types import (
     Group, DateConfig, Level2Result, ScheduleItem, TimeSlot,
     Room, Activity, ActivityMode, PrecedenceRule,
     GroupScheduleResult, GroupAssignment
 )
+
+
+@dataclass
+class SimplifiedDistributionConfig:
+    """BALANCED 알고리즘을 위한 단순화된 분산 설정"""
+    min_groups_for_distribution: int = 2   # 분산 배치 최소 그룹 수
+    # 간격은 운영시간과 그룹 수에 따라 동적 계산
 
 
 class BatchedScheduler:
@@ -230,6 +238,19 @@ class BatchedScheduler:
         current_slot_groups = []
         next_start_time = config.operating_hours[0]
         
+        # ========================
+        # BALANCED 분산 배치 적용 여부 판단
+        # ========================
+        apply_balanced_distribution = self._should_apply_distribution(activity, activity_groups)
+        balanced_start_times = None
+        
+        if apply_balanced_distribution:
+            self.logger.info(f"활동 {activity.name}에 BALANCED 분산 배치 적용 (그룹 {len(activity_groups)}개)")
+            balanced_start_times = self._calculate_balanced_slots(activity, activity_groups, config.operating_hours)
+        
+        # 그룹별 시작 시간 인덱스 (BALANCED 알고리즘용)
+        group_index = 0
+        
         for group_info in all_groups:
             group, job_code, rooms = group_info
             
@@ -263,9 +284,20 @@ class BatchedScheduler:
                             f"→ {actual_gap:.0f}분 → {activity.name} ({gap_type})"
                         )
             
-            # 현재 시간대에 배치할 수 있는지 확인
-            start_time = max(earliest_start, next_start_time)
+            # ========================
+            # 시작 시간 결정: BALANCED vs 기존 로직
+            # ========================
+            if apply_balanced_distribution and balanced_start_times and group_index < len(balanced_start_times):
+                # BALANCED 알고리즘: 미리 계산된 시간 사용
+                balanced_start = balanced_start_times[group_index]
+                start_time = max(earliest_start, balanced_start)
+                self.logger.debug(f"그룹 {group.id}: BALANCED 시간 {balanced_start} → 실제 {start_time}")
+            else:
+                # 기존 로직: 순차적 배치
+                start_time = max(earliest_start, next_start_time)
+            
             end_time = start_time + activity.duration
+            group_index += 1
             
             # 운영 시간 내인지 확인
             if end_time > config.operating_hours[1]:
@@ -412,4 +444,113 @@ class BatchedScheduler:
         """그룹 활동 시간을 다른 활동에서도 참조할 수 있도록 저장"""
         # 이 메서드는 실제로는 클래스 변수나 다른 방식으로 구현해야 함
         # 현재는 단순화를 위해 비워둠
-        pass 
+        pass
+
+    # ========================
+    # BALANCED 알고리즘 관련 메서드들
+    # ========================
+    
+    def _should_apply_distribution(self, activity: Activity, groups: List[Group]) -> bool:
+        """
+        BALANCED 분산 배치 적용 대상인지 판단
+        
+        적용 조건:
+        - Batched 활동 (그룹 단위)
+        - 그룹이 2개 이상 (분산 배치의 수학적 최소 조건)
+        
+        Args:
+            activity: 활동 정보
+            groups: 해당 활동의 그룹 리스트
+            
+        Returns:
+            bool: BALANCED 알고리즘 적용 여부
+        """
+        config = SimplifiedDistributionConfig()
+        return (
+            activity.mode == ActivityMode.BATCHED and 
+            len(groups) >= config.min_groups_for_distribution
+        )
+
+    def _calculate_balanced_slots(
+        self, 
+        activity: Activity, 
+        groups: List[Group], 
+        operating_hours: Tuple[timedelta, timedelta]
+    ) -> List[timedelta]:
+        """
+        BALANCED 알고리즘: 그룹들을 운영시간에 균등 분산 배치
+        
+        핵심 수학 공식:
+        - available_time = operating_hours[1] - operating_hours[0] - activity.duration
+        - ideal_interval = available_time / (group_count - 1)
+        - slot[i] = start_time + (i × ideal_interval)
+        
+        5분 단위 정렬: 계산된 시간을 5분 단위로 반올림하여 타임 슬롯 규칙 준수
+        
+        Args:
+            activity: 활동 정보
+            groups: 그룹 리스트
+            operating_hours: 운영시간 (시작, 종료)
+            
+        Returns:
+            List[timedelta]: 각 그룹의 시작 시간 리스트 (5분 단위 정렬됨)
+        """
+        group_count = len(groups)
+        if group_count < 2:
+            # 그룹이 1개면 기존 로직 사용 (운영시간 시작)
+            return [operating_hours[0]]
+        
+        start_time = operating_hours[0]
+        end_time = operating_hours[1]
+        
+        # 마지막 그룹이 끝날 수 있는 최대 시작 시간
+        latest_start = end_time - activity.duration
+        
+        # 사용 가능한 시간 범위
+        available_time = latest_start - start_time
+        
+        if available_time <= timedelta(0):
+            # 시간이 부족하면 기존 로직으로 fallback
+            self.logger.warning(f"BALANCED 분산 실패: 시간 부족. 기존 로직 사용.")
+            return [start_time] * group_count
+        
+        # 균등 간격 계산
+        if group_count == 1:
+            ideal_interval = timedelta(0)
+        else:
+            ideal_interval = available_time / (group_count - 1)
+        
+        # 각 그룹의 시작 시간 계산 및 5분 단위 반올림
+        balanced_slots = []
+        for i in range(group_count):
+            slot_time = start_time + (ideal_interval * i)
+            
+            # 5분 단위로 반올림
+            rounded_slot_time = self._round_to_5min(slot_time)
+            
+            # 최대 시작 시간을 초과하지 않도록 보정
+            if rounded_slot_time > latest_start:
+                rounded_slot_time = latest_start
+            
+            balanced_slots.append(rounded_slot_time)
+        
+        self.logger.info(
+            f"BALANCED 분산 계산 완료: {group_count}개 그룹, "
+            f"간격 {ideal_interval.total_seconds()/60:.1f}분 (5분 단위 정렬)"
+        )
+        
+        return balanced_slots
+
+    def _round_to_5min(self, time_delta: timedelta) -> timedelta:
+        """
+        timedelta를 5분 단위로 반올림
+        
+        Args:
+            time_delta: 반올림할 시간
+            
+        Returns:
+            timedelta: 5분 단위로 반올림된 시간
+        """
+        total_minutes = time_delta.total_seconds() / 60
+        rounded_minutes = round(total_minutes / 5) * 5
+        return timedelta(minutes=rounded_minutes) 
