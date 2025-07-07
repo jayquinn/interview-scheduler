@@ -184,6 +184,43 @@ class Level3Result:
 
 
 @dataclass
+class StayTimeAnalysis:
+    """체류시간 분석 결과"""
+    applicant_id: str
+    job_code: str
+    first_activity_start: timedelta
+    last_activity_end: timedelta
+    stay_time_hours: float
+    activities: List[ScheduleItem]
+    improvement_potential: float  # 개선 가능성 (시간)
+
+
+@dataclass
+class GroupMoveCandidate:
+    """그룹 이동 후보"""
+    group_id: str
+    activity_name: str
+    current_start: timedelta
+    current_end: timedelta
+    target_start: timedelta
+    target_end: timedelta
+    affected_applicants: List[str]
+    estimated_improvement: float  # 예상 개선 시간
+
+
+@dataclass
+class Level4Result:
+    """Level 4 후처리 조정 결과"""
+    original_schedule: List[ScheduleItem]
+    optimized_schedule: List[ScheduleItem]
+    improvements: List[GroupMoveCandidate]
+    total_improvement_hours: float
+    adjusted_groups: int
+    success: bool
+    logs: List[str]
+
+
+@dataclass
 class SingleDateResult:
     """단일 날짜 스케줄링 결과"""
     date: datetime
@@ -203,6 +240,7 @@ class SingleDateResult:
     level1_result: Optional['Level1Result'] = None
     level2_result: Optional['Level2Result'] = None
     level3_result: Optional['Level3Result'] = None
+    level4_result: Optional['Level4Result'] = None  # Level 4 후처리 조정 결과 추가
     
     def to_dataframe(self) -> pd.DataFrame:
         """스케줄을 DataFrame으로 변환"""

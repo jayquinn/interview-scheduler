@@ -1,19 +1,19 @@
 """
-단일 날짜 스케줄러 - 3단계 계층적 스케줄링 구현
+단일 날짜 스케줄링: Level 1 → Level 2 → Level 3 → Level 4 (후처리 조정)
 """
-from typing import List, Dict, Optional, Set
-from datetime import datetime, timedelta
-import logging
 import time as time_module
+import logging
+from typing import Optional, Dict, List, Any, Tuple, Set
 
-from .types import (
-    DateConfig, SingleDateResult, Level1Result, Level2Result, Level3Result,
-    Applicant, Group, ScheduleItem, TimeSlot, Activity, ActivityMode,
-    ProgressInfo, ProgressCallback, SchedulingContext
-)
 from .group_optimizer_v2 import GroupOptimizerV2
 from .batched_scheduler import BatchedScheduler
 from .individual_scheduler import IndividualScheduler
+from .level4_post_processor import Level4PostProcessor
+from .types import (
+    DateConfig, SingleDateResult, Level1Result, Level2Result, 
+    Level3Result, Level4Result, Applicant, Activity, ScheduleItem, Group, 
+    SchedulingContext, TimeSlot, ActivityMode, ProgressInfo
+)
 
 
 class SingleDateScheduler:
@@ -128,12 +128,43 @@ class SingleDateScheduler:
                 "time": level3_time
             })
             
-            # 전체 스케줄 통합
+            # Level 4: 후처리 조정
+            self._report_progress("Level4", 0.0, "후처리 조정 시작")
+            level4_start = time_module.time()
+            
+            # 전체 스케줄 통합 (Level 2 + Level 3)
             all_schedule = []
             all_schedule.extend(level2_result.schedule)
             all_schedule.extend(level3_result.schedule)
             
-            result.schedule = all_schedule
+            # Level 4 후처리 조정 실행
+            level4_result = self._run_level4(config, all_schedule)
+            level4_time = time_module.time() - level4_start
+            
+            if not level4_result or not level4_result.success:
+                # Level 4 실패해도 기본 스케줄은 유지
+                result.logs.append(f"Level 4 후처리 조정 실패 ({level4_time:.1f}초) - 기본 스케줄 유지")
+                self._report_progress("Level4", 1.0, "후처리 조정 실패 - 기본 스케줄 유지", {
+                    "error": "후처리 조정 실패"
+                })
+                # 기본 스케줄 사용
+                result.schedule = all_schedule
+                result.level4_result = level4_result
+            else:
+                # Level 4 성공 - 최적화된 스케줄 사용
+                result.logs.append(
+                    f"Level 4 완료 ({level4_time:.1f}초): "
+                    f"{level4_result.total_improvement_hours:.1f}시간 개선"
+                )
+                self._report_progress("Level4", 1.0, "후처리 조정 완료", {
+                    "improvement_hours": level4_result.total_improvement_hours,
+                    "adjusted_groups": level4_result.adjusted_groups,
+                    "time": level4_time
+                })
+                # 최적화된 스케줄 사용
+                result.schedule = level4_result.optimized_schedule
+                result.level4_result = level4_result
+            
             result.status = "SUCCESS"
             result.error_message = None
             
@@ -141,12 +172,18 @@ class SingleDateScheduler:
             result.logs.append(f"=== 스케줄링 성공 (총 {total_time:.1f}초) ===")
             
             # 최종 완료 보고
-            self._report_progress("Complete", 1.0, "스케줄링 성공", {
+            improvement_info = ""
+            if level4_result and level4_result.success:
+                improvement_info = f" (체류시간 {level4_result.total_improvement_hours:.1f}시간 개선)"
+                
+            self._report_progress("Complete", 1.0, f"스케줄링 성공{improvement_info}", {
                 "total_time": total_time,
                 "level1_time": level1_time,
                 "level2_time": level2_time, 
                 "level3_time": level3_time,
-                "total_schedule": len(all_schedule)
+                "level4_time": level4_time,
+                "total_schedule": len(result.schedule),
+                "level4_improvement": level4_result.total_improvement_hours if level4_result else 0.0
             })
             
         except Exception as e:
@@ -287,6 +324,27 @@ class SingleDateScheduler:
             
         except Exception as e:
             self.logger.error(f"Level 3 오류: {str(e)}")
+            return None
+    
+    def _run_level4(
+        self,
+        config: DateConfig,
+        all_schedule: List[ScheduleItem]
+    ) -> Optional[Level4Result]:
+        """Level 4: 후처리 조정"""
+        try:
+            post_processor = Level4PostProcessor(self.logger)
+            
+            result = post_processor.optimize_stay_times(
+                schedule=all_schedule,
+                config=config,
+                target_improvement_hours=1.0
+            )
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Level 4 오류: {str(e)}")
             return None
     
     def _create_applicants(self, config: DateConfig) -> List[Applicant]:
@@ -472,6 +530,28 @@ class SingleDateScheduler:
         # 전략 2: Level 2부터 재시도 (다른 시간대 배치)
         result.logs.append("전략 2: Level 2부터 재시도")
         return self._backtrack_from_level2(config, result)
+
+    def _backtrack_from_level4(
+        self,
+        config: DateConfig,
+        result: SingleDateResult
+    ) -> SingleDateResult:
+        """Level 4 실패시 백트래킹 - 기본 스케줄 유지"""
+        result.logs.append("=== Level 4 백트래킹: 기본 스케줄 유지 ===")
+        
+        # Level 4는 후처리 조정이므로 실패해도 기본 스케줄을 유지
+        if result.level2_result and result.level3_result:
+            # 기본 스케줄 재구성
+            basic_schedule = []
+            basic_schedule.extend(result.level2_result.schedule)
+            basic_schedule.extend(result.level3_result.schedule)
+            
+            result.schedule = basic_schedule
+            result.status = "SUCCESS"
+            result.error_message = None
+            result.logs.append("✅ 기본 스케줄로 복원 완료")
+        
+        return result
         
     def _create_modified_config(self, config: DateConfig, dummy_hint: int) -> DateConfig:
         """더미 힌트를 반영한 수정된 설정 생성"""

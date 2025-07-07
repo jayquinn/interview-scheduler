@@ -454,22 +454,27 @@ class BatchedScheduler:
         """
         BALANCED 분산 배치 적용 대상인지 판단
         
-        적용 조건:
-        - Batched 활동 (그룹 단위)
-        - 그룹이 2개 이상 (분산 배치의 수학적 최소 조건)
+        현재 설정: 밀집 배치 사용 (Level 4 후처리 조정을 위해)
+        - Level 4 후처리 조정의 효과성을 극대화하기 위해
+        - 기존 순차 배치 방식을 유지하여 안정성 확보
+        - 마지막 그룹만 이동하는 단순한 조정으로 체류시간 최적화
         
         Args:
             activity: 활동 정보
             groups: 해당 활동의 그룹 리스트
             
         Returns:
-            bool: BALANCED 알고리즘 적용 여부
+            bool: 현재는 항상 False (밀집 배치 사용)
         """
-        config = SimplifiedDistributionConfig()
-        return (
-            activity.mode == ActivityMode.BATCHED and 
-            len(groups) >= config.min_groups_for_distribution
-        )
+        # Level 4 후처리 조정을 위해 밀집 배치 사용
+        return False
+        
+        # 기존 BALANCED 로직 (비활성화)
+        # config = SimplifiedDistributionConfig()
+        # return (
+        #     activity.mode == ActivityMode.BATCHED and 
+        #     len(groups) >= config.min_groups_for_distribution
+        # )
 
     def _calculate_balanced_slots(
         self, 

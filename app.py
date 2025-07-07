@@ -149,26 +149,30 @@ def init_session_states():
     
     # 멀티 날짜 계획 초기화 (사용자 제공 데이터)
     if "multidate_plans" not in st.session_state:
-        from datetime import date
+        from datetime import date, timedelta
+        
+        # 현재 날짜 기준으로 동적 생성
+        today = date.today()
+        
         multidate_plans = {
-            "2025-07-01": {
-                "date": date(2025, 7, 1),
+            today.strftime('%Y-%m-%d'): {
+                "date": today,
                 "enabled": True,
                 "jobs": [
                     {"code": "JOB01", "count": 23},
                     {"code": "JOB02", "count": 23}
                 ]
             },
-            "2025-07-02": {
-                "date": date(2025, 7, 2),
+            (today + timedelta(days=1)).strftime('%Y-%m-%d'): {
+                "date": today + timedelta(days=1),
                 "enabled": True,
                 "jobs": [
                     {"code": "JOB03", "count": 20},
                     {"code": "JOB04", "count": 20}
                 ]
             },
-            "2025-07-03": {
-                "date": date(2025, 7, 3),
+            (today + timedelta(days=2)).strftime('%Y-%m-%d'): {
+                "date": today + timedelta(days=2),
                 "enabled": True,
                 "jobs": [
                     {"code": "JOB05", "count": 12},
@@ -176,8 +180,8 @@ def init_session_states():
                     {"code": "JOB07", "count": 6}
                 ]
             },
-            "2025-07-04": {
-                "date": date(2025, 7, 4),
+            (today + timedelta(days=3)).strftime('%Y-%m-%d'): {
+                "date": today + timedelta(days=3),
                 "enabled": True,
                 "jobs": [
                     {"code": "JOB08", "count": 6},
@@ -1040,10 +1044,10 @@ if final_schedule is not None and not final_schedule.empty:
         st.info(f"총 {total_candidates}명의 지원자를 {total_days}일에 걸쳐 면접 진행")
     
     # 체류시간 분석 추가
-    st.subheader("⏱️ 직무별 체류시간 분석")
+    st.subheader("⏱️ 체류시간 분석")
     
     def calculate_stay_duration_stats(schedule_df):
-        """각 지원자의 체류시간을 계산하고 직무별 통계를 반환"""
+        """각 지원자의 체류시간을 계산하고 통계를 반환"""
         stats_data = []
         
         # 컬럼명 매핑 (실제 데이터에 맞게 조정)
@@ -1059,131 +1063,81 @@ if final_schedule is not None and not final_schedule.empty:
                 job_col = col
                 break
         
-        if not id_col or not job_col:
+        date_col = None
+        for col in ['interview_date', 'date']:
+            if col in schedule_df.columns:
+                date_col = col
+                break
+        
+        if not id_col or not job_col or not date_col:
             st.error(f"필요한 컬럼을 찾을 수 없습니다. 현재 컬럼: {list(schedule_df.columns)}")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
-        # 시간 컬럼들 찾기 (새로운 구조와 기존 구조 모두 지원)
-        if 'start_time' in schedule_df.columns and 'end_time' in schedule_df.columns:
-            # 새로운 구조: start_time, end_time 컬럼 직접 사용
-            use_new_structure = True
-        else:
-            # 기존 구조: start_활동명, end_활동명 형태
-            start_cols = [col for col in schedule_df.columns if col.startswith('start_')]
-            end_cols = [col for col in schedule_df.columns if col.startswith('end_')]
+        # 지원자별 체류시간 계산
+        for candidate_id in schedule_df[id_col].unique():
+            candidate_data = schedule_df[schedule_df[id_col] == candidate_id]
             
-            if not start_cols or not end_cols:
-                st.error("시간 정보 컬럼을 찾을 수 없습니다. start_time/end_time 또는 start_*/end_* 형태의 컬럼이 필요합니다.")
-                return pd.DataFrame(), pd.DataFrame()
-            use_new_structure = False
-        
-        # 지원자별로 그룹화하여 체류시간 계산
-        for candidate_id, candidate_data in schedule_df.groupby(id_col):
-            # 해당 지원자의 모든 활동 시간 정보 수집
+            # 더미 데이터 제외
+            if str(candidate_id).startswith('dummy'):
+                continue
+            
+            if len(candidate_data) == 0:
+                continue
+            
+            # 시간 파싱
             all_start_times = []
             all_end_times = []
             
-            if use_new_structure:
-                # 새로운 구조: start_time, end_time 직접 사용
-                for _, row in candidate_data.iterrows():
-                    start_time = row.get('start_time')
-                    end_time = row.get('end_time')
+            for _, row in candidate_data.iterrows():
+                try:
+                    start_time = row['start_time']
+                    end_time = row['end_time']
                     
-                    if pd.notna(start_time):
-                        try:
-                            if isinstance(start_time, str):
-                                # timedelta 문자열 (예: "0 days 09:00:00") 처리
-                                if 'days' in start_time:
-                                    time_part = start_time.split(' ')[-1]  # "09:00:00" 부분만 추출
-                                    time_obj = pd.to_datetime(time_part, format='%H:%M:%S', errors='coerce')
-                                else:
-                                    time_obj = pd.to_datetime(start_time, errors='coerce')
-                            else:
-                                # timedelta 객체인 경우
-                                time_obj = pd.to_datetime(str(start_time).split(' ')[-1], format='%H:%M:%S', errors='coerce')
-                            
-                            if not pd.isna(time_obj):
-                                all_start_times.append(time_obj)
-                        except:
-                            continue
+                    # 시간 형식 변환
+                    if isinstance(start_time, str):
+                        start_time = pd.to_datetime(start_time, format='%H:%M:%S').time()
+                    if isinstance(end_time, str):
+                        end_time = pd.to_datetime(end_time, format='%H:%M:%S').time()
                     
-                    if pd.notna(end_time):
-                        try:
-                            if isinstance(end_time, str):
-                                # timedelta 문자열 (예: "0 days 09:30:00") 처리
-                                if 'days' in end_time:
-                                    time_part = end_time.split(' ')[-1]  # "09:30:00" 부분만 추출
-                                    time_obj = pd.to_datetime(time_part, format='%H:%M:%S', errors='coerce')
-                                else:
-                                    time_obj = pd.to_datetime(end_time, errors='coerce')
-                            else:
-                                # timedelta 객체인 경우
-                                time_obj = pd.to_datetime(str(end_time).split(' ')[-1], format='%H:%M:%S', errors='coerce')
-                            
-                            if not pd.isna(time_obj):
-                                all_end_times.append(time_obj)
-                        except:
-                            continue
-            else:
-                # 기존 구조: start_*, end_* 컬럼들
-                for _, row in candidate_data.iterrows():
-                    for start_col in start_cols:
-                        if pd.notna(row[start_col]) and row[start_col] != '':
-                            try:
-                                # 시간 문자열을 datetime으로 변환
-                                time_str = str(row[start_col])
-                                if ':' in time_str:
-                                    # HH:MM:SS 또는 HH:MM 형태
-                                    time_obj = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
-                                    if pd.isna(time_obj):
-                                        time_obj = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
-                                    if not pd.isna(time_obj):
-                                        all_start_times.append(time_obj)
-                            except:
-                                continue
+                    # timedelta로 변환
+                    start_td = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=start_time.second)
+                    end_td = timedelta(hours=end_time.hour, minutes=end_time.minute, seconds=end_time.second)
                     
-                    for end_col in end_cols:
-                        if pd.notna(row[end_col]) and row[end_col] != '':
-                            try:
-                                # 시간 문자열을 datetime으로 변환
-                                time_str = str(row[end_col])
-                                if ':' in time_str:
-                                    # HH:MM:SS 또는 HH:MM 형태
-                                    time_obj = pd.to_datetime(time_str, format='%H:%M:%S', errors='coerce')
-                                    if pd.isna(time_obj):
-                                        time_obj = pd.to_datetime(time_str, format='%H:%M', errors='coerce')
-                                    if not pd.isna(time_obj):
-                                        all_end_times.append(time_obj)
-                            except:
-                                continue
+                    all_start_times.append(start_td)
+                    all_end_times.append(end_td)
+                    
+                except Exception as e:
+                    continue
             
             if all_start_times and all_end_times:
                 # 전체 체류시간 = 첫 번째 활동 시작 ~ 마지막 활동 종료
                 total_start = min(all_start_times)
                 total_end = max(all_end_times)
-                stay_duration_minutes = (total_end - total_start).total_seconds() / 60
+                stay_duration_hours = (total_end - total_start).total_seconds() / 3600
                 
-                # 직무 코드 (첫 번째 행에서 가져오기)
+                # 직무 코드 및 날짜 (첫 번째 행에서 가져오기)
                 job_code = candidate_data.iloc[0].get(job_col, 'Unknown')
+                interview_date = candidate_data.iloc[0].get(date_col, 'Unknown')
                 
                 stats_data.append({
                     'candidate_id': candidate_id,
                     'job_code': job_code,
-                    'stay_duration_minutes': stay_duration_minutes,
+                    'interview_date': interview_date,
+                    'stay_duration_hours': stay_duration_hours,
                     'start_time': total_start,
                     'end_time': total_end
                 })
         
         if not stats_data:
             st.warning("체류시간을 계산할 수 있는 유효한 데이터가 없습니다.")
-            return pd.DataFrame(), pd.DataFrame()
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         
         stats_df = pd.DataFrame(stats_data)
         
         # 직무별 통계 계산
         job_stats = []
         for job_code, job_data in stats_df.groupby('job_code'):
-            durations = job_data['stay_duration_minutes']
+            durations = job_data['stay_duration_hours']
             job_stats.append({
                 'job_code': job_code,
                 'count': len(job_data),
@@ -1193,43 +1147,125 @@ if final_schedule is not None and not final_schedule.empty:
                 'median_duration': durations.median()
             })
         
-        return pd.DataFrame(job_stats), stats_df
+        # 날짜별 통계 계산
+        date_stats = []
+        for date, date_data in stats_df.groupby('interview_date'):
+            durations = date_data['stay_duration_hours']
+            max_stay_candidate = date_data.loc[date_data['stay_duration_hours'].idxmax()]
+            
+            date_stats.append({
+                'interview_date': date,
+                'count': len(date_data),
+                'min_duration': durations.min(),
+                'max_duration': durations.max(),
+                'avg_duration': durations.mean(),
+                'max_stay_candidate': max_stay_candidate['candidate_id'],
+                'max_stay_job': max_stay_candidate['job_code']
+            })
+        
+        return pd.DataFrame(job_stats), stats_df, pd.DataFrame(date_stats)
     
     try:
-        job_stats_df, individual_stats_df = calculate_stay_duration_stats(final_schedule)
+        job_stats_df, individual_stats_df, date_stats_df = calculate_stay_duration_stats(final_schedule)
         
-        if not job_stats_df.empty:
-            # 직무별 통계 표시
-            st.markdown("**📊 직무별 체류시간 통계 (분 단위)**")
+        # 디버깅 정보 출력
+        st.write(f"🔍 **디버깅 정보**:")
+        st.write(f"- job_stats_df 크기: {len(job_stats_df) if not job_stats_df.empty else 0}")
+        st.write(f"- individual_stats_df 크기: {len(individual_stats_df) if not individual_stats_df.empty else 0}")
+        st.write(f"- date_stats_df 크기: {len(date_stats_df) if not date_stats_df.empty else 0}")
+        
+        # 날짜별 통계 먼저 표시
+        if not date_stats_df.empty:
+            st.markdown("**📅 날짜별 체류시간 통계**")
             
             # 표시용 데이터프레임 생성
-            display_stats = job_stats_df.copy()
-            display_stats['min_duration'] = display_stats['min_duration'].round(1)
-            display_stats['max_duration'] = display_stats['max_duration'].round(1)
-            display_stats['avg_duration'] = display_stats['avg_duration'].round(1)
-            display_stats['median_duration'] = display_stats['median_duration'].round(1)
+            display_date_stats = date_stats_df.copy()
+            display_date_stats['min_duration'] = display_date_stats['min_duration'].round(1)
+            display_date_stats['max_duration'] = display_date_stats['max_duration'].round(1)
+            display_date_stats['avg_duration'] = display_date_stats['avg_duration'].round(1)
+            
+            # 최대 체류시간 지원자 정보 포함
+            display_date_stats['max_info'] = display_date_stats.apply(
+                lambda row: f"{row['max_stay_candidate']} ({row['max_stay_job']})", axis=1
+            )
+            
+            # 컬럼 선택 및 한글화
+            display_columns = ['interview_date', 'count', 'min_duration', 'max_duration', 'avg_duration', 'max_info']
+            display_date_stats = display_date_stats[display_columns]
+            display_date_stats.columns = ['면접일자', '응시자수', '최소시간(h)', '최대시간(h)', '평균시간(h)', '최대체류자(직무)']
+            
+            st.dataframe(display_date_stats, use_container_width=True)
+            
+            # 전체 요약 지표
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                total_candidates = date_stats_df['count'].sum()
+                st.metric("전체 응시자 수", f"{total_candidates}명")
+            with col2:
+                overall_min = date_stats_df['min_duration'].min()
+                st.metric("전체 최소 체류시간", f"{overall_min:.1f}시간")
+            with col3:
+                overall_max = date_stats_df['max_duration'].max()
+                st.metric("전체 최대 체류시간", f"{overall_max:.1f}시간")
+            with col4:
+                overall_avg = (date_stats_df['avg_duration'] * date_stats_df['count']).sum() / date_stats_df['count'].sum()
+                st.metric("전체 평균 체류시간", f"{overall_avg:.1f}시간")
+            
+            # 최대 체류시간 지원자 강조
+            max_candidate_row = date_stats_df.loc[date_stats_df['max_duration'].idxmax()]
+            st.info(f"🔥 **최대 체류시간**: {max_candidate_row['max_stay_candidate']} ({max_candidate_row['max_stay_job']}) - "
+                   f"{max_candidate_row['max_duration']:.1f}시간 ({max_candidate_row['interview_date']})")
+        else:
+            st.warning("⚠️ 날짜별 체류시간 데이터가 없습니다.")
+        
+        # 직무별 통계 표시
+        if not job_stats_df.empty:
+            st.markdown("**👥 직무별 체류시간 통계**")
+            
+            # 표시용 데이터프레임 생성
+            display_job_stats = job_stats_df.copy()
+            display_job_stats['min_duration'] = display_job_stats['min_duration'].round(1)
+            display_job_stats['max_duration'] = display_job_stats['max_duration'].round(1)
+            display_job_stats['avg_duration'] = display_job_stats['avg_duration'].round(1)
+            display_job_stats['median_duration'] = display_job_stats['median_duration'].round(1)
             
             # 컬럼명 한글화
-            display_stats.columns = ['직무코드', '인원수', '최소시간(분)', '최대시간(분)', '평균시간(분)', '중간값(분)']
+            display_job_stats.columns = ['직무코드', '인원수', '최소시간(h)', '최대시간(h)', '평균시간(h)', '중간값(h)']
             
-            st.dataframe(display_stats, use_container_width=True)
-            
-            # 시각적 요약
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                overall_min = job_stats_df['min_duration'].min()
-                st.metric("전체 최소 체류시간", f"{overall_min:.1f}분")
-            with col2:
-                overall_max = job_stats_df['max_duration'].max()
-                st.metric("전체 최대 체류시간", f"{overall_max:.1f}분")
-            with col3:
-                overall_avg = (job_stats_df['avg_duration'] * job_stats_df['count']).sum() / job_stats_df['count'].sum()
-                st.metric("전체 평균 체류시간", f"{overall_avg:.1f}분")
+            st.dataframe(display_job_stats, use_container_width=True)
             
             # 체류시간 제한 확인
-            max_stay_minutes = params.get('max_stay_hours', 8) * 60
-            if overall_max > max_stay_minutes:
-                st.warning(f"⚠️ 일부 지원자의 체류시간이 설정된 제한({params.get('max_stay_hours', 8)}시간)을 초과했습니다.")
+            max_stay_hours = params.get('max_stay_hours', 8)
+            if not date_stats_df.empty and date_stats_df['max_duration'].max() > max_stay_hours:
+                st.warning(f"⚠️ 일부 지원자의 체류시간이 설정된 제한({max_stay_hours}시간)을 초과했습니다.")
+            
+            # Level 4 후처리 조정 효과 표시
+            if params.get('enable_level4_optimization', False):
+                st.success("✅ Level 4 후처리 조정이 적용되었습니다.")
+                
+                # 동적 임계값 계산 (Level 4 로직과 동일)
+                if not individual_stats_df.empty:
+                    stay_times = individual_stats_df['stay_duration_hours'].tolist()
+                    if stay_times:
+                        import statistics
+                        mean_stay = statistics.mean(stay_times)
+                        std_dev = statistics.stdev(stay_times) if len(stay_times) > 1 else 0
+                        sorted_times = sorted(stay_times, reverse=True)
+                        percentile_30_index = int(len(sorted_times) * 0.3)
+                        percentile_30_value = sorted_times[min(percentile_30_index, len(sorted_times) - 1)]
+                        
+                        statistical_threshold = mean_stay + 0.5 * std_dev  # 더 공격적 (기존 1.0 → 0.5)
+                        dynamic_threshold = max(3.0, min(statistical_threshold, percentile_30_value))
+                        
+                        problem_cases = len([t for t in stay_times if t >= dynamic_threshold])
+                        
+                        st.info(f"📊 **Level 4 동적 임계값 분석**: 평균 {mean_stay:.1f}h, 표준편차 {std_dev:.1f}h, "
+                               f"상위30% {percentile_30_value:.1f}h, 통계적임계값 {statistical_threshold:.1f}h → "
+                               f"**최종 동적임계값 {dynamic_threshold:.1f}h** (문제케이스 {problem_cases}개)")
+            else:
+                st.info("ℹ️ Level 4 후처리 조정이 비활성화되어 있습니다.")
+        else:
+            st.warning("⚠️ 직무별 체류시간 데이터가 없습니다.")
     
     except Exception as e:
         st.error(f"체류시간 분석 중 오류 발생: {str(e)}")
