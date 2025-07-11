@@ -8,6 +8,7 @@ from typing import Optional, Dict, List, Any, Tuple, Set
 from .group_optimizer_v2 import GroupOptimizerV2
 from .batched_scheduler import BatchedScheduler
 from .individual_scheduler import IndividualScheduler
+from .unified_cpsat_scheduler import UnifiedCPSATScheduler
 from .level4_post_processor import Level4PostProcessor
 from .types import (
     DateConfig, SingleDateResult, Level1Result, Level2Result, 
@@ -23,11 +24,13 @@ class SingleDateScheduler:
     LEVEL1_TIME_LIMIT = 30
     LEVEL2_TIME_LIMIT = 60  
     LEVEL3_TIME_LIMIT = 30
+    LEVEL23_UNIFIED_TIME_LIMIT = 120  # 통합 스케줄러 시간 제한
     
-    def __init__(self, logger: Optional[logging.Logger] = None):
+    def __init__(self, logger: Optional[logging.Logger] = None, use_unified_cpsat: bool = True):
         self.logger = logger or logging.getLogger(__name__)
         self.progress_callback: Optional[ProgressCallback] = None
         self.context: Optional[SchedulingContext] = None
+        self.use_unified_cpsat = use_unified_cpsat  # 🚀 통합 CP-SAT 사용 여부
         
     def schedule(
         self, 
@@ -77,56 +80,46 @@ class SingleDateScheduler:
                 "time": level1_time
             })
             
-            # Level 2: Batched 스케줄링
-            self._report_progress("Level2", 0.0, "Batched 활동 스케줄링 시작")
-            level2_start = time_module.time()
-            level2_result = self._run_level2(config, level1_result)
-            level2_time = time_module.time() - level2_start
+            # 🚀 Level 2-3: 통합 CP-SAT 스케줄링 vs 기존 분리 스케줄링
+            if self.use_unified_cpsat:
+                # ========== 통합 CP-SAT 스케줄링 ==========
+                self._report_progress("Level23", 0.0, "🚀 통합 CP-SAT 스케줄링 시작 (Batched + Individual)")
+                level23_start = time_module.time()
+                level2_result, level3_result = self._run_level23_unified(config, level1_result)
+                level23_time = time_module.time() - level23_start
             
-            if not level2_result:
-                # Level 2 실패시 백트래킹
-                result.error_message = "Level 2 실패: Batched 활동 스케줄링 불가"
-                result.logs.append(f"Level 2 실패 ({level2_time:.1f}초) - 백트래킹 필요")
-                self._report_progress("Level2", 1.0, "Batched 스케줄링 실패 - 백트래킹 시작", {
+                if not level2_result or not level3_result:
+                    # 통합 스케줄링 실패시 기존 방식으로 폴백
+                    result.error_message = "통합 CP-SAT 스케줄링 실패 - 기존 방식으로 폴백"
+                    result.logs.append(f"통합 스케줄링 실패 ({level23_time:.1f}초) - 기존 방식 시도")
+                    self._report_progress("Level23", 1.0, "통합 스케줄링 실패 - 기존 방식 폴백", {
                     "error": result.error_message
                 })
-                return self._backtrack_from_level2(config, result)
+                    # 기존 방식으로 재시도
+                    return self._run_legacy_level23(config, level1_result, result, overall_start_time)
             
             result.level2_result = level2_result
+                result.level3_result = level3_result
+                level2_time = level23_time  # 시간 호환성
+                level3_time = 0  # 통합에서 처리됨
+                
             result.logs.append(
-                f"Level 2 완료 ({level2_time:.1f}초): "
-                f"{len(level2_result.schedule)}개 batched 스케줄"
+                    f"🚀 통합 CP-SAT 완료 ({level23_time:.1f}초): "
+                    f"Batched {len(level2_result.schedule)}개, Individual {len(level3_result.schedule)}개"
             )
-            self._report_progress("Level2", 1.0, "Batched 스케줄링 완료", {
-                "schedule_count": len(level2_result.schedule),
-                "time": level2_time
-            })
-            
-            # Level 3: Individual/Parallel 스케줄링
-            self._report_progress("Level3", 0.0, "Individual/Parallel 활동 스케줄링 시작")
-            level3_start = time_module.time()
-            level3_result = self._run_level3(config, level1_result, level2_result)
-            level3_time = time_module.time() - level3_start
-            
-            if not level3_result or level3_result.unscheduled:
-                # Level 3 실패시 백트래킹
-                unscheduled_count = len(level3_result.unscheduled) if level3_result else "전체"
-                result.error_message = f"Level 3 실패: {unscheduled_count}명 스케줄링 불가"
-                result.logs.append(f"Level 3 실패 ({level3_time:.1f}초) - 백트래킹 필요")
-                self._report_progress("Level3", 1.0, "Individual 스케줄링 실패 - 백트래킹 시작", {
-                    "unscheduled": unscheduled_count
+                self._report_progress("Level23", 1.0, "통합 CP-SAT 스케줄링 완료", {
+                    "batched_count": len(level2_result.schedule),
+                    "individual_count": len(level3_result.schedule),
+                    "time": level23_time
                 })
-                return self._backtrack_from_level3(config, result)
-            
-            result.level3_result = level3_result
-            result.logs.append(
-                f"Level 3 완료 ({level3_time:.1f}초): "
-                f"{len(level3_result.schedule)}개 스케줄 항목"
-            )
-            self._report_progress("Level3", 1.0, "Individual 스케줄링 완료", {
-                "schedule_count": len(level3_result.schedule),
-                "time": level3_time
-            })
+                
+            else:
+                # ========== 기존 분리 스케줄링 ==========
+                level2_result, level3_result, level2_time, level3_time = self._run_legacy_level23_only(config, level1_result)
+                
+                if not level2_result or not level3_result:
+                    result.error_message = "기존 스케줄링 실패"
+                    return result
             
             # Level 4: 후처리 조정
             self._report_progress("Level4", 0.0, "후처리 조정 시작")
@@ -559,6 +552,147 @@ class SingleDateScheduler:
         # 여기서는 config를 그대로 반환
         # 향후 필요시 dummy_hint를 전달하는 메커니즘 추가 가능
         return config 
+
+    def _run_level23_unified(
+        self, 
+        config: DateConfig, 
+        level1_result: Level1Result
+    ) -> Tuple[Optional[Level2Result], Optional[Level3Result]]:
+        """🚀 Level 2-3 통합 CP-SAT 스케줄링"""
+        try:
+            unified_scheduler = UnifiedCPSATScheduler(self.logger)
+            
+            level2_result, level3_result = unified_scheduler.schedule_unified(
+                config=config,
+                level1_result=level1_result,
+                time_limit=self.LEVEL23_UNIFIED_TIME_LIMIT
+            )
+            
+            return level2_result, level3_result
+            
+        except Exception as e:
+            self.logger.error(f"통합 CP-SAT 스케줄링 오류: {str(e)}")
+            return None, None
+    
+    def _run_legacy_level23(
+        self, 
+        config: DateConfig, 
+        level1_result: Level1Result,
+        result: SingleDateResult,
+        overall_start_time: float
+    ) -> SingleDateResult:
+        """기존 방식으로 폴백 실행"""
+        try:
+            self.logger.info("🔄 기존 분리 스케줄링 방식으로 폴백")
+            
+            # Level 2: Batched 스케줄링
+            self._report_progress("Level2", 0.0, "Batched 활동 스케줄링 시작 (폴백)")
+            level2_start = time_module.time()
+            level2_result = self._run_level2(config, level1_result)
+            level2_time = time_module.time() - level2_start
+            
+            if not level2_result:
+                result.error_message = "Level 2 실패: Batched 활동 스케줄링 불가"
+                result.logs.append(f"Level 2 실패 ({level2_time:.1f}초) - 백트래킹 필요")
+                return self._backtrack_from_level2(config, result)
+            
+            result.level2_result = level2_result
+            result.logs.append(f"Level 2 완료 ({level2_time:.1f}초): {len(level2_result.schedule)}개 batched 스케줄")
+            
+            # Level 3: Individual/Parallel 스케줄링
+            self._report_progress("Level3", 0.0, "Individual/Parallel 활동 스케줄링 시작 (폴백)")
+            level3_start = time_module.time()
+            level3_result = self._run_level3(config, level1_result, level2_result)
+            level3_time = time_module.time() - level3_start
+            
+            if not level3_result or level3_result.unscheduled:
+                unscheduled_count = len(level3_result.unscheduled) if level3_result else "전체"
+                result.error_message = f"Level 3 실패: {unscheduled_count}명 스케줄링 불가"
+                result.logs.append(f"Level 3 실패 ({level3_time:.1f}초) - 백트래킹 필요")
+                return self._backtrack_from_level3(config, result)
+            
+            result.level3_result = level3_result
+            result.logs.append(f"Level 3 완료 ({level3_time:.1f}초): {len(level3_result.schedule)}개 스케줄 항목")
+            
+            # Level 4 및 나머지 처리는 기존 코드에서 계속됨
+            return self._continue_from_level4(config, result, overall_start_time)
+            
+        except Exception as e:
+            result.error_message = f"폴백 실행 중 예외: {str(e)}"
+            result.logs.append(f"폴백 예외: {str(e)}")
+            return result
+    
+    def _run_legacy_level23_only(
+        self, 
+        config: DateConfig, 
+        level1_result: Level1Result
+    ) -> Tuple[Optional[Level2Result], Optional[Level3Result], float, float]:
+        """기존 분리 스케줄링만 실행 (시간 포함)"""
+        try:
+            # Level 2
+            level2_start = time_module.time()
+            level2_result = self._run_level2(config, level1_result)
+            level2_time = time_module.time() - level2_start
+            
+            if not level2_result:
+                return None, None, level2_time, 0
+            
+            # Level 3
+            level3_start = time_module.time()
+            level3_result = self._run_level3(config, level1_result, level2_result)
+            level3_time = time_module.time() - level3_start
+            
+            if not level3_result or level3_result.unscheduled:
+                return level2_result, None, level2_time, level3_time
+            
+            return level2_result, level3_result, level2_time, level3_time
+            
+        except Exception as e:
+            self.logger.error(f"기존 스케줄링 오류: {str(e)}")
+            return None, None, 0, 0
+    
+    def _continue_from_level4(
+        self, 
+        config: DateConfig, 
+        result: SingleDateResult,
+        overall_start_time: float
+    ) -> SingleDateResult:
+        """Level 4부터 계속 실행"""
+        try:
+            # Level 4: 후처리 조정
+            self._report_progress("Level4", 0.0, "후처리 조정 시작")
+            level4_start = time_module.time()
+            
+            # 전체 스케줄 통합 (Level 2 + Level 3)
+            all_schedule = []
+            all_schedule.extend(result.level2_result.schedule)
+            all_schedule.extend(result.level3_result.schedule)
+            
+            # Level 4 후처리 조정 실행
+            level4_result = self._run_level4(config, all_schedule)
+            level4_time = time_module.time() - level4_start
+            
+            if not level4_result or not level4_result.success:
+                result.logs.append(f"Level 4 후처리 조정 실패 ({level4_time:.1f}초) - 기본 스케줄 유지")
+                result.schedule = all_schedule
+                result.level4_result = level4_result
+            else:
+                result.logs.append(f"Level 4 완료 ({level4_time:.1f}초): {level4_result.total_improvement_hours:.1f}시간 개선")
+                result.schedule = level4_result.optimized_schedule
+                result.level4_result = level4_result
+            
+            result.status = "SUCCESS"
+            result.error_message = None
+            
+            total_time = time_module.time() - overall_start_time
+            result.logs.append(f"=== 스케줄링 성공 (총 {total_time:.1f}초) ===")
+            
+            return result
+            
+        except Exception as e:
+            result.error_message = f"Level 4 처리 중 예외: {str(e)}"
+            result.logs.append(f"Level 4 예외: {str(e)}")
+            return result
 
     def _report_progress(
         self, 

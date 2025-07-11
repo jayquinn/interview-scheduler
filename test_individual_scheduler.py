@@ -47,9 +47,9 @@ def test_individual_scheduler():
     ]
     
     applicants = [
-        Applicant(id="JOB01_001", job_code="JOB01", activities=["인성면접", "AI면접"]),
-        Applicant(id="JOB01_002", job_code="JOB01", activities=["인성면접", "AI면접"]),
-        Applicant(id="JOB02_001", job_code="JOB02", activities=["인성면접"]),
+        Applicant(id="JOB01_001", job_code="JOB01", required_activities=["인성면접", "AI면접"]),
+        Applicant(id="JOB01_002", job_code="JOB01", required_activities=["인성면접", "AI면접"]),
+        Applicant(id="JOB02_001", job_code="JOB02", required_activities=["인성면접"]),
     ]
     
     # Batched 결과 (가상)
@@ -89,7 +89,7 @@ def test_individual_scheduler():
             for slot in slots:
                 start_str = str(slot.start_time).split('.')[0]
                 end_str = str(slot.end_time).split('.')[0]
-                app_ids = ", ".join(slot.applicant_ids)
+                app_ids = slot.applicant_id
                 print(f"  - {slot.activity_name}: {start_str} ~ {end_str} ({app_ids})")
                 
     else:
@@ -118,23 +118,31 @@ def test_with_batched_constraints():
     ]
     
     applicants = [
-        Applicant(id="JOB01_001", job_code="JOB01", activities=["토론면접", "인성면접"]),
+        Applicant(id="JOB01_001", job_code="JOB01", required_activities=["토론면접", "인성면접"]),
     ]
     
     # Batched 결과 - 10:00~11:00에 토론면접이 있다고 가정
+    # 가상의 그룹과 방을 생성
+    test_group = Group(
+        id="G1",
+        job_code="JOB01", 
+        applicants=[applicants[0]],
+        size=1,
+        activity_name="토론면접"
+    )
+    test_room = Room(name="토론면접실A", room_type="토론면접실", capacity=6)
+    
     batched_results = [
         GroupScheduleResult(
-            assignments={
-                "JOB01_001_토론면접": GroupAssignment(
-                    group_id="G1",
                     activity_name="토론면접",
-                    job_code="JOB01",
-                    applicant_ids=["JOB01_001"],
+            assignments=[
+                GroupAssignment(
+                    group=test_group,
+                    room=test_room,
                     start_time=timedelta(hours=10),
-                    end_time=timedelta(hours=11),
-                    room_name="토론면접실A"
+                    end_time=timedelta(hours=11)
                 )
-            },
+            ],
             schedule_by_applicant={
                 "JOB01_001": [
                     TimeSlot(
@@ -142,13 +150,11 @@ def test_with_batched_constraints():
                         start_time=timedelta(hours=10),
                         end_time=timedelta(hours=11),
                         room_name="토론면접실A",
-                        applicant_ids=["JOB01_001"],
-                        date="2025-01-15"
+                        applicant_id="JOB01_001"
                     )
                 ]
             },
             schedule_by_room={},
-            room_assignments={},
             success=True
         )
     ]

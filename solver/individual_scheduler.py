@@ -146,14 +146,14 @@ class IndividualScheduler:
                         activity, applicants, rooms, room_availability,
                         batched_blocks, assignments, schedule_by_applicant,
                         schedule_by_room, date_str, precedence_rules,
-                        start_time, end_time, global_gap_min
+                        start_time, end_time, global_gap_min, activities
                     )
                 else:  # PARALLEL
                     success = self._schedule_parallel_activity(
                         activity, applicants, rooms, room_availability,
                         batched_blocks, assignments, schedule_by_applicant,
                         schedule_by_room, date_str, start_time, end_time,
-                        precedence_rules, global_gap_min
+                        precedence_rules, global_gap_min, activities
                     )
                     
                 if not success:
@@ -197,7 +197,7 @@ class IndividualScheduler:
                 activities, applicants, rooms, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,
                 schedule_by_room, date_str, precedence_rules,
-                start_time, end_time, global_gap_min
+                start_time, end_time, global_gap_min, activities
             )
         
         logger.info("🚀 백트래킹 기반 precedence 쌍 스케줄링 시작")
@@ -216,7 +216,7 @@ class IndividualScheduler:
                 pred_activity, succ_activity, applicants, rooms,
                 room_availability, batched_blocks, assignments,
                 schedule_by_applicant, schedule_by_room, date_str,
-                precedence_rules, start_time, end_time, global_gap_min
+                precedence_rules, start_time, end_time, global_gap_min, activities
             )
             
             if not success:
@@ -234,7 +234,7 @@ class IndividualScheduler:
                 activity, applicants, rooms, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,
                 schedule_by_room, date_str, precedence_rules,
-                start_time, end_time, global_gap_min
+                start_time, end_time, global_gap_min, activities
             )
             
             if not success:
@@ -258,7 +258,8 @@ class IndividualScheduler:
         precedence_rules: List[PrecedenceRule],
         start_time: timedelta,
         end_time: timedelta,
-        global_gap_min: int
+        global_gap_min: int,
+        activities: List[Activity] = None
     ) -> bool:
         """🎯 통합 precedence 쌍 스케줄링"""
         
@@ -307,7 +308,7 @@ class IndividualScheduler:
                 group, pred_activity, succ_activity, pred_room, succ_rooms,
                 gap_duration, room_availability, batched_blocks,
                 assignments, schedule_by_applicant, schedule_by_room,
-                date_str, start_time, end_time
+                date_str, start_time, end_time, activities
             )
             
             if not success:
@@ -331,7 +332,8 @@ class IndividualScheduler:
         schedule_by_room: Dict[str, List[TimeSlot]],
         date_str: str,
         start_time: timedelta,
-        end_time: timedelta
+        end_time: timedelta,
+        activities: List[Activity] = None
     ) -> bool:
         """그룹과 후속 활동을 함께 스케줄링"""
         
@@ -468,7 +470,8 @@ class IndividualScheduler:
         precedence_rules: List[PrecedenceRule],
         start_time: timedelta = None,
         end_time: timedelta = None,
-        global_gap_min: int = 5
+        global_gap_min: int = 5,
+        activities: List[Activity] = None
     ) -> bool:
         """Individual 활동 스케줄링 (1명씩) - 후속 활동 예약 시스템 포함"""
         
@@ -684,7 +687,8 @@ class IndividualScheduler:
         start_time: timedelta = None,
         end_time: timedelta = None,
         precedence_rules: List[PrecedenceRule] = None,
-        global_gap_min: int = 5
+        global_gap_min: int = 5,
+        activities: List[Activity] = None
     ) -> bool:
         """Parallel 활동 스케줄링 - 🧠 스마트 그룹핑"""
         
@@ -732,7 +736,7 @@ class IndividualScheduler:
                 activity, applicant_groups, room, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,
                 schedule_by_room, date_str, precedence_rules, 
-                start_time, end_time, global_gap_min
+                start_time, end_time, global_gap_min, activities
             )
         
         # 기존 방식 (연속배치가 필요없는 경우)
@@ -763,7 +767,8 @@ class IndividualScheduler:
         precedence_rules: List[PrecedenceRule],
         start_time: timedelta,
         end_time: timedelta,
-        global_gap_min: int
+        global_gap_min: int,
+        activities: List[Activity] = None
     ) -> bool:
         """🚀 연속배치 최적화된 Parallel 스케줄링"""
         
@@ -1047,60 +1052,208 @@ class IndividualScheduler:
         end_time: timedelta,
         date_str: str
     ) -> Optional[IndividualScheduleResult]:
-        """CP-SAT 방식 Individual 스케줄링"""
+        """🚀 개선된 CP-SAT 방식 Individual 스케줄링 - 체류시간 최소화 목적함수 포함"""
         
         model = cp_model.CpModel()
+        logger.info("🔧 CP-SAT 스케줄링 시작 - 체류시간 최소화 목적함수 적용")
         
-        # 시간 범위를 분 단위로 변환
+        # 시간 범위를 분 단위로 변환 (기준시간: start_time)
         horizon = int((end_time - start_time).total_seconds() / 60)
+        logger.info(f"시간 범위: {start_time} ~ {end_time} ({horizon}분)")
+        
+        # Batched 활동 블록 추출
+        batched_blocks = self._extract_batched_blocks(batched_results)
         
         # 변수 생성
-        intervals = {}
-        presences = {}
-        room_assignments = {}
+        intervals = {}        # (applicant_id, activity_name) -> interval_var
+        start_vars = {}       # (applicant_id, activity_name) -> start_var  
+        end_vars = {}         # (applicant_id, activity_name) -> end_var
+        presence_vars = {}    # (applicant_id, activity_name) -> presence_var
+        room_vars = {}        # (applicant_id, activity_name, room_name) -> room_var
         
-        # Individual 활동별 interval 변수
+        # 🏗️ Individual 활동별 변수 생성
         for applicant in applicants:
-            for activity in activities:
-                if activity.name not in applicant.required_activities:
-                    continue
+            applicant_activities = [a for a in activities if a.name in applicant.required_activities]
                     
+            for activity in applicant_activities:
                 suffix = f"{applicant.id}_{activity.name}"
                 duration_min = int(activity.duration.total_seconds() / 60)
                 
+                # 시작/종료 시간 변수
                 start_var = model.NewIntVar(0, horizon - duration_min, f'start_{suffix}')
                 end_var = model.NewIntVar(duration_min, horizon, f'end_{suffix}')
                 presence_var = model.NewBoolVar(f'presence_{suffix}')
                 
+                # 일관성 제약: end = start + duration
+                model.Add(end_var == start_var + duration_min).OnlyEnforceIf(presence_var)
+                
+                # Interval 변수
                 interval_var = model.NewOptionalIntervalVar(
                     start_var, duration_min, end_var, presence_var, f'interval_{suffix}'
                 )
                 
+                # 변수 저장
                 intervals[(applicant.id, activity.name)] = interval_var
-                presences[(applicant.id, activity.name)] = presence_var
+                start_vars[(applicant.id, activity.name)] = start_var
+                end_vars[(applicant.id, activity.name)] = end_var
+                presence_vars[(applicant.id, activity.name)] = presence_var
                 
                 # 방 배정 변수
-                for room in rooms:
-                    if any(rt in room.room_type for rt in activity.required_rooms):
+                activity_rooms = [r for r in rooms if any(rt in r.room_type for rt in activity.required_rooms)]
+                for room in activity_rooms:
                         room_var = model.NewBoolVar(f'room_{suffix}_{room.name}')
-                        room_assignments[(applicant.id, activity.name, room.name)] = room_var
-                        
-        # 제약 조건들...
-        # (CP-SAT 구현이 복잡하므로 핵심 부분만 표시)
+                    room_vars[(applicant.id, activity.name, room.name)] = room_var
+                
+                # 방 배정 제약: 정확히 하나의 방 선택
+                if activity_rooms:
+                    room_options = [room_vars[(applicant.id, activity.name, r.name)] for r in activity_rooms]
+                    model.Add(sum(room_options) == 1).OnlyEnforceIf(presence_var)
         
-        # Solver 실행
+        # 🔗 제약조건 추가
+        
+        # 1. 방 용량 제약 (같은 시간에 같은 방 사용 불가)
+        for room in rooms:
+            room_intervals = []
+            for (app_id, act_name), interval in intervals.items():
+                if (app_id, act_name, room.name) in room_vars:
+                    # 이 방을 사용하는 경우의 interval
+                    room_interval = model.NewOptionalIntervalVar(
+                        start_vars[(app_id, act_name)],
+                        int([a for a in activities if a.name == act_name][0].duration.total_seconds() / 60),
+                        end_vars[(app_id, act_name)],
+                        room_vars[(app_id, act_name, room.name)],
+                        f'room_interval_{app_id}_{act_name}_{room.name}'
+                    )
+                    room_intervals.append(room_interval)
+            
+            if room_intervals:
+                model.AddNoOverlap(room_intervals)
+        
+        # 2. Batched 활동과의 시간 충돌 방지
+        for applicant in applicants:
+            if applicant.id in batched_blocks:
+                for batched_start, batched_end in batched_blocks[applicant.id]:
+                    # Batched 시간을 분 단위로 변환
+                    batched_start_min = int((batched_start - start_time).total_seconds() / 60)
+                    batched_end_min = int((batched_end - start_time).total_seconds() / 60)
+                    
+                    # Individual 활동이 Batched 시간과 겹치지 않도록
+                    for activity in activities:
+                        if (applicant.id, activity.name) in intervals:
+                            start_var = start_vars[(applicant.id, activity.name)]
+                            end_var = end_vars[(applicant.id, activity.name)]
+                            presence_var = presence_vars[(applicant.id, activity.name)]
+                            
+                            # 겹침 방지: end_var <= batched_start_min OR start_var >= batched_end_min
+                            non_overlap_1 = model.NewBoolVar(f'no_overlap_1_{applicant.id}_{activity.name}_{batched_start_min}')
+                            non_overlap_2 = model.NewBoolVar(f'no_overlap_2_{applicant.id}_{activity.name}_{batched_start_min}')
+                            
+                            model.Add(end_var <= batched_start_min).OnlyEnforceIf([presence_var, non_overlap_1])
+                            model.Add(start_var >= batched_end_min).OnlyEnforceIf([presence_var, non_overlap_2])
+                            model.AddBoolOr([non_overlap_1, non_overlap_2, presence_var.Not()])
+        
+        # 3. 필수 활동 제약
+        for applicant in applicants:
+            for activity_name in applicant.required_activities:
+                if any(a.name == activity_name for a in activities):
+                    presence_var = presence_vars.get((applicant.id, activity_name))
+                    if presence_var:
+                        model.Add(presence_var == 1)  # 필수 활동은 반드시 배정
+        
+        # 🎯 핵심: 체류시간 최소화 목적함수
+        stay_time_vars = []
+        
+        for applicant in applicants:
+            # 해당 지원자의 모든 활동 (Batched + Individual)
+            applicant_start_times = []
+            applicant_end_times = []
+            
+            # Individual 활동 시간
+            for activity in activities:
+                if (applicant.id, activity.name) in start_vars:
+                    start_var = start_vars[(applicant.id, activity.name)]
+                    end_var = end_vars[(applicant.id, activity.name)]
+                    presence_var = presence_vars[(applicant.id, activity.name)]
+                    
+                    # presence가 True인 경우만 고려
+                    applicant_start_times.append(start_var)
+                    applicant_end_times.append(end_var)
+            
+            # Batched 활동 시간 추가
+            if applicant.id in batched_blocks:
+                for batched_start, batched_end in batched_blocks[applicant.id]:
+                    batched_start_min = int((batched_start - start_time).total_seconds() / 60)
+                    batched_end_min = int((batched_end - start_time).total_seconds() / 60)
+                    
+                    # 상수 값을 변수로 변환
+                    batched_start_var = model.NewConstant(batched_start_min)
+                    batched_end_var = model.NewConstant(batched_end_min)
+                    
+                    applicant_start_times.append(batched_start_var)
+                    applicant_end_times.append(batched_end_var)
+            
+            # 체류시간 계산 (전체 활동이 있는 경우만)
+            if applicant_start_times and applicant_end_times:
+                # 첫 활동 시작시간
+                first_start = model.NewIntVar(0, horizon, f'first_start_{applicant.id}')
+                model.AddMinEquality(first_start, applicant_start_times)
+        
+                # 마지막 활동 종료시간  
+                last_end = model.NewIntVar(0, horizon, f'last_end_{applicant.id}')
+                model.AddMaxEquality(last_end, applicant_end_times)
+                
+                # 체류시간 = 마지막 종료 - 첫 시작
+                stay_time = model.NewIntVar(0, horizon, f'stay_time_{applicant.id}')
+                model.Add(stay_time == last_end - first_start)
+                
+                stay_time_vars.append(stay_time)
+                
+                logger.debug(f"지원자 {applicant.id}: {len(applicant_start_times)}개 활동 체류시간 변수 생성")
+        
+        # 🎯 목적함수: 총 체류시간 최소화
+        if stay_time_vars:
+            total_stay_time = model.NewIntVar(0, horizon * len(applicants), 'total_stay_time')
+            model.Add(total_stay_time == sum(stay_time_vars))
+            model.Minimize(total_stay_time)
+            
+            logger.info(f"✅ 목적함수 설정: {len(stay_time_vars)}명의 총 체류시간 최소화")
+        else:
+            logger.warning("⚠️ 체류시간 변수가 없어 목적함수 설정 불가")
+        
+        # 🚀 Solver 실행
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 30.0  # Level 3는 30초
+        solver.parameters.max_time_in_seconds = 60.0  # 체류시간 최적화를 위해 시간 연장
+        solver.parameters.log_search_progress = True
+        
+        logger.info("🔍 CP-SAT 최적화 실행 중...")
         status = solver.Solve(model)
         
-        if status in [cp_model.OPTIMAL, cp_model.FEASIBLE]:
+        # 결과 분석
+        if status == cp_model.OPTIMAL:
+            logger.info("✅ 최적해 발견!")
+        elif status == cp_model.FEASIBLE:
+            logger.info("✅ 실행 가능해 발견!")
+        else:
+            logger.error(f"❌ CP-SAT 실패: {solver.StatusName(status)}")
+            return None
+        
+        # 체류시간 통계 출력
+        if stay_time_vars:
+            total_minutes = solver.Value(total_stay_time)
+            avg_hours = total_minutes / len(stay_time_vars) / 60
+            logger.info(f"📊 최적화 결과: 평균 체류시간 {avg_hours:.1f}시간")
+            
+            for i, applicant in enumerate(applicants):
+                if i < len(stay_time_vars):
+                    stay_minutes = solver.Value(stay_time_vars[i])
+                    stay_hours = stay_minutes / 60
+                    logger.debug(f"  {applicant.id}: {stay_hours:.1f}시간")
+        
             # 결과 추출
             return self._extract_cpsat_results(
-                solver, intervals, presences, room_assignments,
-                applicants, activities, rooms, date_str
+            solver, intervals, presence_vars, room_vars,
+            applicants, activities, rooms, date_str, start_time
             )
-            
-        return None
         
     # Helper 메서드들
     def _extract_batched_blocks(
@@ -1288,20 +1441,27 @@ class IndividualScheduler:
         self,
         solver,
         intervals,
-        presences,
-        room_assignments,
+        presence_vars,
+        room_vars,
         applicants: List[Applicant],
         activities: List[Activity],
         rooms: List[Room],
-        date_str: str
+        date_str: str,
+        start_time: timedelta
     ) -> IndividualScheduleResult:
-        """CP-SAT 결과 추출"""
+        """🔍 개선된 CP-SAT 결과 추출 - 체류시간 최적화 결과 포함"""
         assignments = {}
         schedule_by_applicant = defaultdict(list)
         schedule_by_room = defaultdict(list)
         
+        logger.info("📤 CP-SAT 최적화 결과 추출 중...")
+        
+        # 기준 시간 설정 (운영 시작 시간)
+        base_time = start_time
+        
+        extracted_count = 0
         for (applicant_id, activity_name), interval in intervals.items():
-            if solver.Value(presences[(applicant_id, activity_name)]):
+            if solver.Value(presence_vars[(applicant_id, activity_name)]):
                 start_min = solver.Value(interval.StartExpr())
                 end_min = solver.Value(interval.EndExpr())
                 
@@ -1309,15 +1469,19 @@ class IndividualScheduler:
                 assigned_room = None
                 for room in rooms:
                     key = (applicant_id, activity_name, room.name)
-                    if key in room_assignments and solver.Value(room_assignments[key]):
+                    if key in room_vars and solver.Value(room_vars[key]):
                         assigned_room = room.name
                         break
                         
                 if assigned_room:
+                    # 분 단위를 실제 시간으로 변환
+                    actual_start = base_time + timedelta(minutes=start_min)
+                    actual_end = base_time + timedelta(minutes=end_min)
+                    
                     time_slot = TimeSlot(
                         activity_name=activity_name,
-                        start_time=timedelta(minutes=start_min),
-                        end_time=timedelta(minutes=end_min),
+                        start_time=actual_start,
+                        end_time=actual_end,
                         room_name=assigned_room,
                         applicant_id=applicant_id
                     )
@@ -1326,6 +1490,13 @@ class IndividualScheduler:
                     assignments[key] = time_slot
                     schedule_by_applicant[applicant_id].append(time_slot)
                     schedule_by_room[assigned_room].append(time_slot)
+                    
+                    extracted_count += 1
+                    logger.debug(f"  {applicant_id} {activity_name}: {actual_start} ~ {actual_end} ({assigned_room})")
+                else:
+                    logger.warning(f"⚠️ {applicant_id} {activity_name}: 방 배정 정보 누락")
+        
+        logger.info(f"✅ {extracted_count}개 활동 결과 추출 완료")
                     
         return IndividualScheduleResult(
             assignments=dict(assignments),
@@ -1469,7 +1640,7 @@ class IndividualScheduler:
     
     def _schedule_activities_basic(
         self,
-        activities: List[Activity],
+        activities_list: List[Activity],
         applicants: List[Applicant],
         rooms: List[Room],
         room_availability: Dict[str, List[Tuple[timedelta, timedelta]]],
@@ -1481,15 +1652,16 @@ class IndividualScheduler:
         precedence_rules: List[PrecedenceRule],
         start_time: timedelta,
         end_time: timedelta,
-        global_gap_min: int
+        global_gap_min: int,
+        all_activities: List[Activity] = None
     ) -> bool:
         """기본 방식으로 활동들 스케줄링"""
-        for activity in activities:
+        for activity in activities_list:
             success = self._schedule_single_activity(
                 activity, applicants, rooms, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,
                 schedule_by_room, date_str, precedence_rules,
-                start_time, end_time, global_gap_min
+                start_time, end_time, global_gap_min, all_activities
             )
             if not success:
                 return False
@@ -1509,7 +1681,8 @@ class IndividualScheduler:
         precedence_rules: List[PrecedenceRule],
         start_time: timedelta,
         end_time: timedelta,
-        global_gap_min: int
+        global_gap_min: int,
+        activities: List[Activity] = None
     ) -> bool:
         """단일 활동 스케줄링"""
         if activity.mode == ActivityMode.INDIVIDUAL:
@@ -1517,14 +1690,14 @@ class IndividualScheduler:
                 activity, applicants, rooms, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,
                 schedule_by_room, date_str, precedence_rules,
-                start_time, end_time, global_gap_min
+                start_time, end_time, global_gap_min, activities
             )
         else:  # PARALLEL
             return self._schedule_parallel_activity(
                 activity, applicants, rooms, room_availability,
                 batched_blocks, assignments, schedule_by_applicant,
                 schedule_by_room, date_str, start_time, end_time,
-                precedence_rules, global_gap_min
+                precedence_rules, global_gap_min, activities
             )
     
     def _get_successor_room_count(
