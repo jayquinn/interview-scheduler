@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Tuple, Set
 from datetime import timedelta
 from collections import defaultdict
 from ortools.sat.python import cp_model
+import time
 
 from .types import (
     Activity, Room, Applicant, Group, ActivityMode,
@@ -38,66 +39,87 @@ class UnifiedCPSATScheduler:
         level1_result: Level1Result,
         time_limit: float = 120.0
     ) -> Tuple[Optional[Level2Result], Optional[Level3Result]]:
-        """
-        🎯 통합 스케줄링: Batched + Individual 활동을 동시 최적화
         
-        Args:
-            config: 날짜별 설정
-            level1_result: Level 1 그룹 구성 결과
-            time_limit: 시간 제한 (초)
-            
-        Returns:
-            (Level2Result, Level3Result) 튜플 - 기존 API 호환성 유지
-        """
-        self.logger.info("🚀 통합 CP-SAT 스케줄링 시작 - Batched + Individual 동시 최적화")
-        
-        # 활동 분류
-        batched_activities = [a for a in config.activities if a.mode == ActivityMode.BATCHED]
-        individual_activities = [a for a in config.activities if a.mode in [ActivityMode.INDIVIDUAL, ActivityMode.PARALLEL]]
-        
-        self.logger.info(f"📊 활동 분석: Batched {len(batched_activities)}개, Individual {len(individual_activities)}개")
-        
-        if not batched_activities and not individual_activities:
-            self.logger.warning("⚠️ 스케줄링할 활동이 없습니다")
-            return None, None
-        
+        self.logger.info("\n===== [CP-SAT 통합 스케줄러 진단 시작] =====")
+        t0 = time.time()
+        # [진단] 입력 데이터 상세 로그
+        self.logger.info("[진단] 입력 데이터 상세 로그 (Level1 그룹/지원자/활동/방/제약조건)")
+        # 그룹
+        for activity_name, groups in (level1_result.groups or {}).items():
+            self.logger.info(f"[진단] 활동: {activity_name}, 그룹 수: {len(groups)}")
+            for group in groups:
+                self.logger.info(f"  - 그룹ID: {group.id}, 크기: {group.size}, 지원자: {[a.id for a in group.applicants]}")
+                for app in group.applicants:
+                    self.logger.info(f"    * 지원자ID: {app.id}, required_activities: {app.required_activities}, is_dummy: {getattr(app, 'is_dummy', False)}")
+        # 지원자
+        self.logger.info("[진단] 전체 지원자 목록:")
+        for app in (level1_result.applicants or []):
+            self.logger.info(f"  - 지원자ID: {app.id}, required_activities: {app.required_activities}, is_dummy: {getattr(app, 'is_dummy', False)}")
+        # 활동
+        self.logger.info("[진단] 활동 목록:")
+        for act in config.activities:
+            self.logger.info(f"  - {act.name}, mode={act.mode}, duration={act.duration_min}, min_cap={act.min_capacity}, max_cap={act.max_capacity}, required_rooms={act.required_rooms}")
+        # 방
+        self.logger.info("[진단] 방 목록:")
+        for room in config.rooms:
+            self.logger.info(f"  - {room.name}, type={room.room_type}, cap={room.capacity}")
+        # 제약조건
+        self.logger.info("[진단] 선후행 제약조건 목록:")
+        for prec in (config.precedence_rules or []):
+            self.logger.info(f"  - {prec.predecessor} → {prec.successor}, gap_min={prec.gap_min}, is_adjacent={prec.is_adjacent}")
         try:
             # CP-SAT 통합 모델 구성
             model = cp_model.CpModel()
-            
-            # 시간 범위 설정
             start_time = config.operating_hours[0]
             end_time = config.operating_hours[1]
             horizon = int((end_time - start_time).total_seconds() / 60)
-            
             self.logger.info(f"⏰ 운영 시간: {start_time} ~ {end_time} ({horizon}분)")
-            
+
             # 변수 생성
+            t_var = time.time()
             variables = self._create_variables(model, config, level1_result, horizon)
-            
+            self.logger.info(f"[진단] 변수 생성 완료 (소요: {time.time()-t_var:.2f}s)")
+            for k, v in variables.items():
+                self.logger.info(f"  - {k}: {len(v)}개")
+
             # 제약조건 추가
+            t_con = time.time()
             self._add_constraints(model, config, level1_result, variables, horizon)
-            
-            # 🎯 핵심: 체류시간 최소화 목적함수
+            self.logger.info(f"[진단] 제약조건 추가 완료 (소요: {time.time()-t_con:.2f}s)")
+
+            # 목적함수
+            t_obj = time.time()
             objective_vars = self._create_objective(model, config, level1_result, variables, start_time)
-            
+            self.logger.info(f"[진단] 목적함수 변수 개수: {len(objective_vars)} (소요: {time.time()-t_obj:.2f}s)")
+
             if objective_vars:
                 total_stay_time = model.NewIntVar(0, horizon * len(level1_result.applicants), 'total_stay_time')
                 model.Add(total_stay_time == sum(objective_vars))
                 model.Minimize(total_stay_time)
-                
                 self.logger.info(f"✅ 목적함수 설정: {len(objective_vars)}명의 총 체류시간 최소화")
             else:
                 self.logger.warning("⚠️ 체류시간 변수가 없어 목적함수 설정 불가")
-            
+
             # CP-SAT 솔버 실행
             solver = cp_model.CpSolver()
-            solver.parameters.max_time_in_seconds = time_limit
+            set_safe_cpsat_parameters(solver)
+            solver.parameters.max_time_in_seconds = 300.0  # 5분으로 확장
             solver.parameters.log_search_progress = True
-            
+            t_solve = time.time()
             self.logger.info(f"🔍 CP-SAT 통합 최적화 실행 중... (최대 {time_limit}초)")
             status = solver.Solve(model)
-            
+            solve_time = time.time() - t_solve
+            self.logger.info(f"[진단] Solve 종료 (소요: {solve_time:.2f}s), status: {solver.StatusName(status)}")
+            self.logger.info(f"[진단] Objective value: {solver.ObjectiveValue() if status in [cp_model.OPTIMAL, cp_model.FEASIBLE] else 'N/A'}")
+            self.logger.info(f"[진단] NumConflicts: {solver.NumConflicts()}, NumBranches: {solver.NumBranches()}, WallTime: {solver.WallTime():.2f}s")
+            try:
+                num_vars = model.NumVariables() if hasattr(model, 'NumVariables') else 'N/A'
+                num_cons = model.NumConstraints() if hasattr(model, 'NumConstraints') else 'N/A'
+                self.logger.info(f"[진단] Model stats: #variables={num_vars}, #constraints={num_cons}")
+            except Exception as e:
+                self.logger.warning(f"[진단] Model stats 출력 중 예외 발생: {e}")
+            self.logger.info(f"[진단] 전체 소요 시간: {time.time()-t0:.2f}s")
+
             # 결과 분석
             if status == cp_model.OPTIMAL:
                 self.logger.info("✅ 최적해 발견!")
@@ -105,19 +127,27 @@ class UnifiedCPSATScheduler:
                 self.logger.info("✅ 실행 가능해 발견!")
             else:
                 self.logger.error(f"❌ CP-SAT 통합 최적화 실패: {solver.StatusName(status)}")
+                # 실패 시 주요 변수/제약/상태 추가 출력
+                self.logger.error(f"[진단] 주요 변수/제약/상태:")
+                for k, v in variables.items():
+                    self.logger.error(f"  - {k}: {len(v)}개")
+                self.logger.error(f"  #variables={model.NumVariables()}, #constraints={model.NumConstraints()}")
+                self.logger.error(f"  NumConflicts={solver.NumConflicts()}, NumBranches={solver.NumBranches()}, WallTime={solver.WallTime():.2f}s")
                 return None, None
-            
+
             # 체류시간 통계 출력
             if objective_vars:
                 total_minutes = solver.Value(total_stay_time)
                 avg_hours = total_minutes / len(objective_vars) / 60
                 self.logger.info(f"📊 통합 최적화 결과: 평균 체류시간 {avg_hours:.1f}시간")
-            
+
             # 결과 추출 및 분리
             return self._extract_results(solver, config, level1_result, variables, start_time)
-            
+
         except Exception as e:
             self.logger.error(f"❌ 통합 스케줄링 중 예외 발생: {str(e)}")
+            import traceback
+            self.logger.error(traceback.format_exc())
             return None, None
     
     def _create_variables(
@@ -157,7 +187,7 @@ class UnifiedCPSATScheduler:
         variables: Dict[str, any]
     ):
         """🏗️ Batched 활동 변수 생성"""
-        self.logger.info("🔧 Batched 활동 변수 생성 중...")
+        self.logger.info("🔧 Batched 활동 변수 생성 시작...")
         
         batched_count = 0
         for activity_name, groups in level1_result.groups.items():
@@ -170,6 +200,7 @@ class UnifiedCPSATScheduler:
             for group in groups:
                 group_id = group.id
                 suffix = f"{group_id}_{activity_name}"
+                self.logger.info(f"[진단] Batched 변수 생성: 그룹ID={group_id}, 활동={activity_name}, duration={duration_min}, 지원자={[a.id for a in group.applicants]}")
                 
                 # 시작/종료 시간 변수 (🚨 핵심: 고정된 순차 배치가 아닌 최적화 변수!)
                 start_var = model.NewIntVar(0, horizon - duration_min, f'batch_start_{suffix}')
@@ -211,7 +242,7 @@ class UnifiedCPSATScheduler:
         variables: Dict[str, any]
     ):
         """🏗️ Individual 활동 변수 생성"""
-        self.logger.info("🔧 Individual 활동 변수 생성 중...")
+        self.logger.info("🔧 Individual 활동 변수 생성 시작...")
         
         individual_count = 0
         individual_activities = [a for a in config.activities if a.mode in [ActivityMode.INDIVIDUAL, ActivityMode.PARALLEL]]
@@ -220,10 +251,10 @@ class UnifiedCPSATScheduler:
             for activity in individual_activities:
                 if activity.name not in applicant.required_activities:
                     continue
-                    
                 suffix = f"{applicant.id}_{activity.name}"
                 duration_min = int(activity.duration.total_seconds() / 60)
-                
+                self.logger.info(f"[진단] Individual 변수 생성: 지원자={applicant.id}, 활동={activity.name}, duration={duration_min}")
+                    
                 # 시작/종료 시간 변수
                 start_var = model.NewIntVar(0, horizon - duration_min, f'ind_start_{suffix}')
                 end_var = model.NewIntVar(duration_min, horizon, f'ind_end_{suffix}')
@@ -272,7 +303,7 @@ class UnifiedCPSATScheduler:
         horizon: int
     ):
         """🔗 제약조건 추가"""
-        self.logger.info("🔧 제약조건 추가 중...")
+        self.logger.info("🔧 제약조건 추가 시작...")
         
         # 1. 방 용량 제약 (같은 시간에 같은 방 사용 불가)
         self._add_room_constraints(model, config, level1_result, variables)
@@ -450,7 +481,7 @@ class UnifiedCPSATScheduler:
         start_time: timedelta
     ) -> Tuple[Level2Result, Level3Result]:
         """📤 결과 추출 및 Level2Result, Level3Result로 분리"""
-        self.logger.info("📤 통합 최적화 결과 추출 중...")
+        self.logger.info("[진단] 결과 추출 단계 진입")
         
         # Level 2 결과 (Batched 활동)
         level2_result = Level2Result()
@@ -563,6 +594,11 @@ class UnifiedCPSATScheduler:
         
         level3_result.schedule = individual_schedule
         level3_result.unscheduled = []  # CP-SAT로 모든 활동 배정됨
+        
+        self.logger.info(f"[진단] 추출된 Batched 스케줄 개수: {len(batched_schedule)}")
+        self.logger.info(f"[진단] 추출된 Individual 스케줄 개수: {len(individual_schedule)}")
+        if not batched_schedule and not individual_schedule:
+            self.logger.error("[진단] 결과가 비어 있음! (Batched/Individual 모두 0개)")
         
         self.logger.info(f"✅ 결과 추출 완료: Batched {len(batched_schedule)}개, Individual {len(individual_schedule)}개")
         

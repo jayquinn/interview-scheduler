@@ -1,0 +1,14 @@
+2025-07-15 16:46:50,267 - INFO - === app.py 디폴트 데이터 빠른 CP-SAT 테스트 시작 ===
+2025-07-15 16:46:50,268 - INFO - 총 지원자: 137명, 날짜: 4일
+2025-07-15 16:46:50,269 - INFO - 📅 [2025-07-15] 처리 시작 (46명)
+2025-07-15 16:46:50,269 - INFO - 🚀 [2025-07-15] 빠른 스케줄링 시작
+2025-07-15 16:46:50,269 - ERROR - 💥 전체 프로세스 실패: SchedulingContext.__init__() got an unexpected keyword argument 'enable_progress_logging'
+2025-07-15 16:46:50,271 - ERROR - 상세 오류: Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_app_default_data_fast.py", line 207, in main
+    df, success = schedule_single_date_fast(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_app_default_data_fast.py", line 124, in schedule_single_date_fast
+    context = SchedulingContext(
+              ^^^^^^^^^^^^^^^^^^
+TypeError: SchedulingContext.__init__() got an unexpected keyword argument 'enable_progress_logging'
+

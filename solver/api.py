@@ -21,52 +21,14 @@ def schedule_interviews(
     global_config: Dict,
     rooms: Dict,
     activities: Dict,
-    logger: Optional[logging.Logger] = None
+    logger: Optional[logging.Logger] = None,
+    context: Optional[SchedulingContext] = None
 ) -> Union[MultiDateResult, Dict]:
     """
     면접 스케줄링 메인 API
-    
-    Args:
-        date_plans: 날짜별 설정
-            {
-                "2025-07-01": {
-                    "jobs": {"JOB01": 23, "JOB02": 20},
-                    "selected_activities": ["토론면접", "발표면접"],
-                    "overrides": {...}  # Optional
-                }
-            }
-            
-        global_config: 전역 설정
-            {
-                "precedence": [("발표준비", "발표면접", 0, True)],
-                "operating_hours": {"start": "09:00", "end": "17:30"},
-                "batched_group_sizes": {"토론면접": [4, 6]},
-                "global_gap_min": 5,
-                "max_stay_hours": 8
-            }
-            
-        rooms: 방 설정
-            {
-                "토론면접실": {"count": 2, "capacity": 6},
-                "발표면접실": {"count": 2, "capacity": 1}
-            }
-            
-        activities: 활동 설정
-            {
-                "토론면접": {
-                    "mode": "batched",
-                    "duration_min": 30,
-                    "room_type": "토론면접실",
-                    "min_capacity": 4,
-                    "max_capacity": 6
-                }
-            }
-            
-    Returns:
-        스케줄링 결과 (성공시 DataFrame 포함)
     """
-    
-    # 1. 입력 데이터 변환
+    logger = logger or logging.getLogger(__name__)
+    logger.info("[진단] schedule_interviews: 입력 데이터 변환 시작")
     try:
         # DatePlan 객체들로 변환
         date_plan_objects = {}
@@ -78,7 +40,7 @@ def schedule_interviews(
                 selected_activities=plan_data["selected_activities"],
                 overrides=plan_data.get("overrides")
             )
-        
+        logger.info(f"[진단] 변환된 날짜 수: {len(date_plan_objects)}")
         # GlobalConfig 객체로 변환
         precedence_rules = []
         for rule in global_config.get("precedence", []):
@@ -89,11 +51,8 @@ def schedule_interviews(
                     gap_min=rule[2] if len(rule) > 2 else 0,
                     is_adjacent=rule[3] if len(rule) > 3 else False
                 ))
-        
-        # 운영시간 변환
         op_hours = global_config.get("operating_hours", {})
         if isinstance(op_hours, dict) and "start" in op_hours:
-            # 단일 설정을 default로
             operating_hours = {
                 "default": (
                     time.fromisoformat(op_hours["start"]),
@@ -102,52 +61,49 @@ def schedule_interviews(
             }
         else:
             operating_hours = {"default": (time(9, 0), time(17, 30))}
-        
-        # batched 그룹 크기 변환
         batched_sizes = {}
         for act, sizes in global_config.get("batched_group_sizes", {}).items():
             if isinstance(sizes, list) and len(sizes) >= 2:
                 batched_sizes[act] = (sizes[0], sizes[1])
-        
         global_config_obj = GlobalConfig(
             precedence_rules=precedence_rules,
             operating_hours=operating_hours,
-            room_settings=rooms,  # 그대로 사용
+            room_settings=rooms,
             time_settings={act: data["duration_min"] for act, data in activities.items()},
             batched_group_sizes=batched_sizes,
             global_gap_min=global_config.get("global_gap_min", 5),
             max_stay_hours=global_config.get("max_stay_hours", 8)
         )
-        
+        logger.info("[진단] 입력 데이터 변환 완료")
     except Exception as e:
+        logger.error(f"[오류] 입력 데이터 변환 실패: {e}")
         return {
             "status": "ERROR",
             "message": f"입력 데이터 변환 오류: {str(e)}"
         }
-    
     # 2. 스케줄러 실행
     scheduler = MultiDateScheduler(logger)
-    
-    # 검증
+    logger.info("[진단] config 검증 시작")
     errors = scheduler.validate_config(date_plan_objects, global_config_obj)
     if errors:
+        logger.error(f"[오류] config 검증 실패: {errors}")
         return {
             "status": "VALIDATION_ERROR",
             "errors": errors
         }
-    
-    # 스케줄링
+    logger.info("[진단] 스케줄러 실행 시작")
     result = scheduler.schedule(
         date_plan_objects,
         global_config_obj,
         rooms,
-        activities
+        activities,
+        context=context
     )
-    
+    logger.info(f"[진단] 스케줄러 실행 완료, status={result.status}")
     # 3. 결과 반환
     if result.status == "SUCCESS":
-        # DataFrame으로 변환하여 반환
         df = result.to_dataframe()
+        logger.info(f"[진단] 스케줄링 성공, 지원자 수: {result.scheduled_applicants}/{result.total_applicants}")
         return {
             "status": "SUCCESS",
             "schedule": df,
@@ -158,7 +114,6 @@ def schedule_interviews(
             }
         }
     else:
-        # 실패 정보 반환
         failed_info = {}
         for date, date_result in result.results.items():
             if date_result.status == "FAILED":
@@ -166,14 +121,18 @@ def schedule_interviews(
                     "error": date_result.error_message,
                     "logs": date_result.logs
                 }
-        
+        logger.error(f"[오류] 스케줄링 실패, 실패 날짜: {result.failed_dates}")
+        # partial_schedule이 있으면 반드시 반환
+        partial_df = result.to_dataframe() if result.scheduled_applicants > 0 else None
+        if partial_df is not None:
+            logger.info(f"[진단] 부분 스케줄 {result.scheduled_applicants}명 포함")
         return {
             "status": result.status,
             "scheduled_applicants": result.scheduled_applicants,
             "total_applicants": result.total_applicants,
             "failed_dates": [d.strftime("%Y-%m-%d") for d in result.failed_dates],
             "failed_info": failed_info,
-            "partial_schedule": result.to_dataframe() if result.scheduled_applicants > 0 else None
+            "partial_schedule": partial_df
         }
 
 
@@ -295,7 +254,7 @@ def solve_for_days_v2(
         context = SchedulingContext(
             progress_callback=progress_callback,
             debug=debug,
-            time_limit_sec=params.get('time_limit_sec', 120.0)
+            time_limit_sec=(params or {}).get('time_limit_sec', 120.0)
         )
         
         # UI 데이터 변환

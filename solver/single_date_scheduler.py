@@ -79,6 +79,17 @@ class SingleDateScheduler:
                 "dummies": level1_result.dummy_count,
                 "time": level1_time
             })
+            # [진단] Level 1 그룹/지원자 상세 로그
+            self.logger.info("[진단] Level 1 그룹/지원자 상세 로그")
+            for activity_name, groups in (level1_result.groups or {}).items():
+                self.logger.info(f"[진단] 활동: {activity_name}, 그룹 수: {len(groups)}")
+                for group in groups:
+                    self.logger.info(f"  - 그룹ID: {group.id}, 크기: {group.size}, 지원자: {[a.id for a in group.applicants]}")
+                    for app in group.applicants:
+                        self.logger.info(f"    * 지원자ID: {app.id}, required_activities: {app.required_activities}, is_dummy: {getattr(app, 'is_dummy', False)}")
+            self.logger.info("[진단] Level 1 전체 지원자 목록:")
+            for app in (level1_result.applicants or []):
+                self.logger.info(f"  - 지원자ID: {app.id}, required_activities: {app.required_activities}, is_dummy: {getattr(app, 'is_dummy', False)}")
             
             # 🚀 Level 2-3: 통합 CP-SAT 스케줄링 vs 기존 분리 스케줄링
             if self.use_unified_cpsat:
@@ -87,32 +98,43 @@ class SingleDateScheduler:
                 level23_start = time_module.time()
                 level2_result, level3_result = self._run_level23_unified(config, level1_result)
                 level23_time = time_module.time() - level23_start
-            
+                
                 if not level2_result or not level3_result:
                     # 통합 스케줄링 실패시 기존 방식으로 폴백
                     result.error_message = "통합 CP-SAT 스케줄링 실패 - 기존 방식으로 폴백"
                     result.logs.append(f"통합 스케줄링 실패 ({level23_time:.1f}초) - 기존 방식 시도")
                     self._report_progress("Level23", 1.0, "통합 스케줄링 실패 - 기존 방식 폴백", {
-                    "error": result.error_message
-                })
+                        "error": result.error_message
+                    })
                     # 기존 방식으로 재시도
                     return self._run_legacy_level23(config, level1_result, result, overall_start_time)
-            
-            result.level2_result = level2_result
+                
+                result.level2_result = level2_result
                 result.level3_result = level3_result
                 level2_time = level23_time  # 시간 호환성
                 level3_time = 0  # 통합에서 처리됨
                 
-            result.logs.append(
+                # 스케줄이 생성되었으면 성공으로 처리
+                total_schedule_count = len(level2_result.schedule) + len(level3_result.schedule)
+                if total_schedule_count > 0:
+                    result.status = "SUCCESS"
+                    result.error_message = None
+                    # 전체 스케줄 통합
+                    all_schedule = []
+                    all_schedule.extend(level2_result.schedule)
+                    all_schedule.extend(level3_result.schedule)
+                    result.schedule = all_schedule
+                    
+                result.logs.append(
                     f"🚀 통합 CP-SAT 완료 ({level23_time:.1f}초): "
                     f"Batched {len(level2_result.schedule)}개, Individual {len(level3_result.schedule)}개"
-            )
+                )
                 self._report_progress("Level23", 1.0, "통합 CP-SAT 스케줄링 완료", {
                     "batched_count": len(level2_result.schedule),
                     "individual_count": len(level3_result.schedule),
                     "time": level23_time
                 })
-                
+                    
             else:
                 # ========== 기존 분리 스케줄링 ==========
                 level2_result, level3_result, level2_time, level3_time = self._run_legacy_level23_only(config, level1_result)
@@ -120,65 +142,65 @@ class SingleDateScheduler:
                 if not level2_result or not level3_result:
                     result.error_message = "기존 스케줄링 실패"
                     return result
-            
-            # Level 4: 후처리 조정
-            self._report_progress("Level4", 0.0, "후처리 조정 시작")
-            level4_start = time_module.time()
-            
-            # 전체 스케줄 통합 (Level 2 + Level 3)
-            all_schedule = []
-            all_schedule.extend(level2_result.schedule)
-            all_schedule.extend(level3_result.schedule)
-            
-            # Level 4 후처리 조정 실행
-            level4_result = self._run_level4(config, all_schedule)
-            level4_time = time_module.time() - level4_start
-            
-            if not level4_result or not level4_result.success:
-                # Level 4 실패해도 기본 스케줄은 유지
-                result.logs.append(f"Level 4 후처리 조정 실패 ({level4_time:.1f}초) - 기본 스케줄 유지")
-                self._report_progress("Level4", 1.0, "후처리 조정 실패 - 기본 스케줄 유지", {
-                    "error": "후처리 조정 실패"
-                })
-                # 기본 스케줄 사용
-                result.schedule = all_schedule
-                result.level4_result = level4_result
-            else:
-                # Level 4 성공 - 최적화된 스케줄 사용
-                result.logs.append(
-                    f"Level 4 완료 ({level4_time:.1f}초): "
-                    f"{level4_result.total_improvement_hours:.1f}시간 개선"
-                )
-                self._report_progress("Level4", 1.0, "후처리 조정 완료", {
-                    "improvement_hours": level4_result.total_improvement_hours,
-                    "adjusted_groups": level4_result.adjusted_groups,
-                    "time": level4_time
-                })
-                # 최적화된 스케줄 사용
-                result.schedule = level4_result.optimized_schedule
-                result.level4_result = level4_result
-            
-            result.status = "SUCCESS"
-            result.error_message = None
-            
-            total_time = time_module.time() - overall_start_time
-            result.logs.append(f"=== 스케줄링 성공 (총 {total_time:.1f}초) ===")
-            
-            # 최종 완료 보고
-            improvement_info = ""
-            if level4_result and level4_result.success:
-                improvement_info = f" (체류시간 {level4_result.total_improvement_hours:.1f}시간 개선)"
                 
-            self._report_progress("Complete", 1.0, f"스케줄링 성공{improvement_info}", {
-                "total_time": total_time,
-                "level1_time": level1_time,
-                "level2_time": level2_time, 
-                "level3_time": level3_time,
-                "level4_time": level4_time,
-                "total_schedule": len(result.schedule),
-                "level4_improvement": level4_result.total_improvement_hours if level4_result else 0.0
-            })
-            
+                # Level 4: 후처리 조정
+                self._report_progress("Level4", 0.0, "후처리 조정 시작")
+                level4_start = time_module.time()
+                
+                # 전체 스케줄 통합 (Level 2 + Level 3)
+                all_schedule = []
+                all_schedule.extend(level2_result.schedule)
+                all_schedule.extend(level3_result.schedule)
+                
+                # Level 4 후처리 조정 실행
+                level4_result = self._run_level4(config, all_schedule)
+                level4_time = time_module.time() - level4_start
+                
+                if not level4_result or not level4_result.success:
+                    # Level 4 실패해도 기본 스케줄은 유지
+                    result.logs.append(f"Level 4 후처리 조정 실패 ({level4_time:.1f}초) - 기본 스케줄 유지")
+                    self._report_progress("Level4", 1.0, "후처리 조정 실패 - 기본 스케줄 유지", {
+                        "error": "후처리 조정 실패"
+                    })
+                    # 기본 스케줄 사용
+                    result.schedule = all_schedule
+                    result.level4_result = level4_result
+                else:
+                    # Level 4 성공 - 최적화된 스케줄 사용
+                    result.logs.append(
+                        f"Level 4 완료 ({level4_time:.1f}초): "
+                        f"{level4_result.total_improvement_hours:.1f}시간 개선"
+                    )
+                    self._report_progress("Level4", 1.0, "후처리 조정 완료", {
+                        "improvement_hours": level4_result.total_improvement_hours,
+                        "adjusted_groups": level4_result.adjusted_groups,
+                        "time": level4_time
+                    })
+                    # 최적화된 스케줄 사용
+                    result.schedule = level4_result.optimized_schedule
+                    result.level4_result = level4_result
+                
+                result.status = "SUCCESS"
+                result.error_message = None
+                
+                total_time = time_module.time() - overall_start_time
+                result.logs.append(f"=== 스케줄링 성공 (총 {total_time:.1f}초) ===")
+                
+                # 최종 완료 보고
+                improvement_info = ""
+                if level4_result and level4_result.success:
+                    improvement_info = f" (체류시간 {level4_result.total_improvement_hours:.1f}시간 개선)"
+                    
+                self._report_progress("Complete", 1.0, f"스케줄링 성공{improvement_info}", {
+                    "total_time": total_time,
+                    "level1_time": level1_time,
+                    "level2_time": level2_time, 
+                    "level3_time": level3_time,
+                    "level4_time": level4_time,
+                    "total_schedule": len(result.schedule),
+                    "level4_improvement": level4_result.total_improvement_hours if level4_result else 0.0
+                })
+                
         except Exception as e:
             result.error_message = f"예외 발생: {str(e)}"
             result.logs.append(f"예외: {str(e)}")
@@ -342,24 +364,39 @@ class SingleDateScheduler:
     
     def _create_applicants(self, config: DateConfig) -> List[Applicant]:
         """설정을 기반으로 지원자 리스트 생성"""
+        self.logger.info("[진단] _create_applicants 시작")
+        self.logger.info(f"[진단] config.jobs: {config.jobs}")
+        self.logger.info(f"[진단] config.activities: {[a.name for a in config.activities]}")
+        self.logger.info(f"[진단] config.job_activity_matrix: {config.job_activity_matrix}")
+        
         applicants = []
         
         for job_code, count in config.jobs.items():
+            self.logger.info(f"[진단] 직무 {job_code} 처리 중 (지원자 {count}명)")
+            
             # 해당 직무가 수행할 활동 추출
-            activities = [
-                activity.name for activity in config.activities
-                if config.job_activity_matrix.get((job_code, activity.name), False)
-            ]
+            activities = []
+            for activity in config.activities:
+                matrix_key = (job_code, activity.name)
+                has_activity = config.job_activity_matrix.get(matrix_key, False)
+                self.logger.info(f"[진단] 매트릭스 키 {matrix_key}: {has_activity}")
+                if has_activity:
+                    activities.append(activity.name)
+            
+            self.logger.info(f"[진단] 직무 {job_code}의 required_activities: {activities}")
             
             # 실제 지원자 생성
             for i in range(count):
-                applicants.append(Applicant(
+                applicant = Applicant(
                     id=f"{job_code}_{str(i + 1).zfill(3)}",
                     job_code=job_code,
                     required_activities=activities,
                     is_dummy=False
-                ))
+                )
+                applicants.append(applicant)
+                self.logger.info(f"[진단] 생성된 지원자 {applicant.id}: required_activities={applicant.required_activities}")
         
+        self.logger.info(f"[진단] _create_applicants 완료: 총 {len(applicants)}명 지원자 생성")
         return applicants
     
     def _extract_batched_constraints(

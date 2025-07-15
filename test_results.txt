@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_cpsat_proof.py", line 214, in <module>
+    main() 
+    ^^^^^^
+  File "C:\git\interview-scheduler\test_cpsat_proof.py", line 172, in main
+    print("\U0001f3af CP-SAT 확실한 작동 증거 테스트")
+UnicodeEncodeError: 'cp949' codec can't encode character '\U0001f3af' in position 0: illegal multibyte sequence

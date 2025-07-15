@@ -1,0 +1,39 @@
+2025-07-15 13:40:52,273 - __main__ - INFO - === app.py 디폴트 데이터 CP-SAT 멀티데이트 테스트 시작 ===
+2025-07-15 13:40:52,295 - __main__ - INFO - === CP-SAT 멀티데이트 스케줄링 테스트 시작 ===
+2025-07-15 13:40:52,306 - __main__ - INFO - === app.py 디폴트 세션 상태 생성 시작 ===
+2025-07-15 13:40:52,349 - __main__ - INFO - [진단] 기본 활동 템플릿: 3개 활동
+2025-07-15 13:40:52,519 - __main__ - INFO - [진단] 스마트 직무 매핑: 1개 직무
+2025-07-15 13:40:52,551 - __main__ - INFO - [진단] 기본 선후행 제약: 1개 규칙
+2025-07-15 13:40:52,583 - __main__ - INFO - [진단] 기본 운영 시간: 09:00:00 ~ 17:30:00
+2025-07-15 13:40:52,603 - __main__ - INFO - [진단] 스마트 방 템플릿: 3개 방 타입
+2025-07-15 13:40:52,636 - __main__ - INFO - [진단] 방 계획: 1개 행
+2025-07-15 13:40:52,666 - __main__ - INFO - [진단] 운영 시간: 1개 행
+2025-07-15 13:40:52,686 - __main__ - INFO - [진단] 집단면접 설정: 4~6명, 간격 5분, 최대 체류 5시간
+2025-07-15 13:40:52,702 - __main__ - INFO - [진단] 멀티 날짜 계획: 4일
+2025-07-15 13:40:52,718 - __main__ - INFO - === 가상 지원자 생성 시작 ===
+2025-07-15 13:40:52,904 - __main__ - INFO - [진단] 가상 지원자 생성 완료: 23명
+2025-07-15 13:40:53,238 - __main__ - INFO - [진단] 지원자 샘플:
+          id   code            activity interview_date
+0  JOB01_001  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+1  JOB01_002  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+2  JOB01_003  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+3  JOB01_004  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+4  JOB01_005  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+2025-07-15 13:40:53,270 - __main__ - INFO - [진단] 가상 지원자: 23명
+2025-07-15 13:40:53,288 - __main__ - INFO - [진단] 면접 날짜: 4일
+2025-07-15 13:40:53,327 - __main__ - INFO - === app.py 디폴트 세션 상태 생성 완료 ===
+2025-07-15 13:40:53,354 - __main__ - INFO - === schedule_interviews API 형식으로 변환 시작 ===
+2025-07-15 13:40:53,369 - __main__ - INFO - [변환] 날짜별 계획: 4일
+2025-07-15 13:40:53,412 - __main__ - INFO - [변환] 활동 설정: 3개
+2025-07-15 13:40:53,441 - __main__ - INFO - [변환] 방 설정: 3개
+2025-07-15 13:40:53,461 - __main__ - INFO - [변환] 전역 설정: 1개 선후행 규칙
+2025-07-15 13:40:53,493 - __main__ - INFO - === schedule_interviews API 형식 변환 완료 ===
+2025-07-15 13:40:53,516 - __main__ - INFO - === schedule_interviews API 실행 시작 ===
+2025-07-15 13:40:53,537 - __main__ - ERROR - schedule_interviews 실행 중 오류: schedule_interviews() got an unexpected keyword argument 'time_limit_sec'
+2025-07-15 13:40:53,547 - __main__ - ERROR - 오류 타입: <class 'TypeError'>
+2025-07-15 13:40:53,625 - __main__ - ERROR - 스택 트레이스: Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 449, in test_cpsat_multidate_scheduling
+    result = schedule_interviews(
+             ^^^^^^^^^^^^^^^^^^^^
+TypeError: schedule_interviews() got an unexpected keyword argument 'time_limit_sec'
+

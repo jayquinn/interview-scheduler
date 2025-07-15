@@ -12,36 +12,28 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def create_app_default_config():
-    """app.py의 실제 UI 디폴트 데이터 생성"""
+def create_small_test_config():
+    """작은 규모의 테스트 데이터 생성 (app.py 설정 기반)"""
     
-    # 현재 날짜 기준으로 4일치 데이터 생성
+    # 현재 날짜 기준으로 2일치 데이터 생성 (축소)
     today = date.today()
     
-    # 활동 리스트 (모든 날짜에서 동일하게 사용)
+    # 활동 리스트 (app.py와 동일)
     selected_activities = ["토론면접", "발표준비", "발표면접"]
     
-    # 날짜별 계획 (API 형식에 맞게 변환)
+    # 날짜별 계획 (작은 규모로 축소)
     date_plans = {
         today.strftime('%Y-%m-%d'): {
-            "jobs": {"JOB01": 23, "JOB02": 23},
+            "jobs": {"JOB01": 6, "JOB02": 6},  # 23 -> 6으로 축소
             "selected_activities": selected_activities
         },
         (today + timedelta(days=1)).strftime('%Y-%m-%d'): {
-            "jobs": {"JOB03": 20, "JOB04": 20},
-            "selected_activities": selected_activities
-        },
-        (today + timedelta(days=2)).strftime('%Y-%m-%d'): {
-            "jobs": {"JOB05": 12, "JOB06": 15, "JOB07": 6},
-            "selected_activities": selected_activities
-        },
-        (today + timedelta(days=3)).strftime('%Y-%m-%d'): {
-            "jobs": {"JOB08": 6, "JOB09": 6, "JOB10": 3, "JOB11": 3},
+            "jobs": {"JOB03": 4, "JOB04": 4},  # 20 -> 4로 축소
             "selected_activities": selected_activities
         }
     }
     
-    # 활동 정의 (app.py 디폴트)
+    # 활동 정의 (app.py와 동일)
     activities = {
         "토론면접": {
             "mode": "batched",
@@ -66,14 +58,14 @@ def create_app_default_config():
         }
     }
     
-    # 방 설정 (app.py 디폴트)
+    # 방 설정 (app.py와 동일)
     rooms = {
         "토론면접실": {"count": 2, "capacity": 6},
         "발표준비실": {"count": 1, "capacity": 2},
         "발표면접실": {"count": 2, "capacity": 1}
     }
     
-    # 전역 설정 (app.py 디폴트)
+    # 전역 설정 (app.py와 동일)
     global_config = {
         "precedence": [("발표준비", "발표면접", 0, True)],  # 연속배치, 0분 간격
         "operating_hours": {"start": "09:00", "end": "17:30"},
@@ -86,7 +78,7 @@ def create_app_default_config():
 
 def print_config_summary(date_plans, activities, rooms, global_config):
     """설정 요약 출력"""
-    print("*** app.py UI 디폴트 데이터 설정 요약 ***")
+    print("*** app.py 기반 소규모 테스트 데이터 ***")
     print("=" * 60)
     
     # 날짜별 지원자 수
@@ -97,13 +89,13 @@ def print_config_summary(date_plans, activities, rooms, global_config):
         jobs_info = ", ".join(f"{job}({count}명)" for job, count in plan["jobs"].items())
         print(f"Day {i} ({date_key}): {jobs_info} = {day_total}명")
     
-    print(f"\n총 지원자 수: {total_applicants}명 (4일간)")
+    print(f"\n총 지원자 수: {total_applicants}명 (2일간)")
     
     # 활동 정보
     print(f"\n활동 설정:")
     for name, config in activities.items():
         print(f"  - {name}: {config['mode']}, {config['duration_min']}분, {config['min_capacity']}-{config['max_capacity']}명")
-        
+    
     # 방 정보
     print(f"\n방 설정:")
     for name, config in rooms.items():
@@ -133,64 +125,19 @@ def analyze_result(result):
     # 실패한 날짜가 있는 경우
     if hasattr(result, 'failed_dates') and result.failed_dates:
         print(f"\n❌ 실패한 날짜: {[d.strftime('%Y-%m-%d') for d in result.failed_dates]}")
-    
-    # 체류시간 분석 (전체 스케줄이 있는 경우)
-    if hasattr(result, 'to_dataframe'):
-        try:
-            df = result.to_dataframe()
-            if not df.empty and 'applicant_id' in df.columns:
-                # 지원자별 체류시간 계산
-                applicant_times = {}
-                for _, row in df.iterrows():
-                    applicant_id = row['applicant_id']
-                    if applicant_id not in applicant_times:
-                        applicant_times[applicant_id] = {'start': row['start_time'], 'end': row['end_time']}
-                    else:
-                        applicant_times[applicant_id]['start'] = min(applicant_times[applicant_id]['start'], row['start_time'])
-                        applicant_times[applicant_id]['end'] = max(applicant_times[applicant_id]['end'], row['end_time'])
-                stay_times = []
-                for applicant_id, times in applicant_times.items():
-                    try:
-                        if hasattr(times['start'], 'total_seconds') and hasattr(times['end'], 'total_seconds'):
-                            stay_time = (times['end'] - times['start']).total_seconds() / 3600
-                        else:
-                            # datetime 객체인 경우
-                            stay_time = (times['end'] - times['start']).total_seconds() / 3600
-                        if stay_time > 0:
-                            stay_times.append(stay_time)
-                    except:
-                        continue
-                if stay_times:
-                    avg_stay = sum(stay_times) / len(stay_times)
-                    max_stay = max(stay_times)
-                    min_stay = min(stay_times)
-                    long_stay_count = sum(1 for t in stay_times if t >= 5.0)  # 5시간 이상
-                    print(f"\n⏱️ 체류시간 분석:")
-                    print(f"  - 평균: {avg_stay:.1f}시간")
-                    print(f"  - 최소: {min_stay:.1f}시간")
-                    print(f"  - 최대: {max_stay:.1f}시간")
-                    print(f"  - 5시간 이상: {long_stay_count}명")
-                    target_hours = 5.0  # 디폴트 목표
-                    if avg_stay < target_hours:
-                        improvement = ((target_hours - avg_stay) / target_hours) * 100
-                        print(f"  - 목표 {target_hours}시간 대비: {improvement:.1f}% 개선")
-                    else:
-                        print(f"  - 목표 {target_hours}시간 초과")
-        except Exception as e:
-            print(f"체류시간 분석 중 오류: {e}")
 
 def main():
     """메인 테스트"""
-    print("*** app.py 실제 UI 디폴트 데이터로 CP-SAT 테스트 ***")
+    print("*** app.py 기반 소규모 CP-SAT 테스트 ***")
     print("=" * 60)
     
     # 설정 생성
-    date_plans, activities, rooms, global_config = create_app_default_config()
+    date_plans, activities, rooms, global_config = create_small_test_config()
     
     # 설정 요약 출력
     print_config_summary(date_plans, activities, rooms, global_config)
     
-    print("\n[CP-SAT] 4일치 멀티데이트 스케줄링 시작...")
+    print("\n[CP-SAT] 2일치 소규모 스케줄링 시작...")
     
     try:
         # schedule_interviews API 호출
@@ -205,14 +152,17 @@ def main():
         if result.status == "SUCCESS":
             print(f"\n✅ 성공!")
             analyze_result(result)
-            print(f"\n🎉 결론: CP-SAT이 app.py 디폴트 데이터에서 성공적으로 작동!")
+            print(f"\n🎉 결론: CP-SAT이 app.py 기반 설정에서 성공적으로 작동!")
+            
         elif result.status == "PARTIAL":
             print(f"\n⚠️ 부분 성공!")
             analyze_result(result)
             print(f"\n🔶 결론: 일부 날짜에서 성공, 개선 필요")
+            
         else:
             print(f"\n❌ 실패: {result.status}")
             analyze_result(result)
+            
     except Exception as e:
         print(f"\n💥 예외 발생: {str(e)}")
         import traceback

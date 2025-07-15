@@ -5,10 +5,11 @@
 - 캐싱 최적화
 """
 from typing import Dict, List, Optional
-from datetime import date
+from datetime import date, datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time as time_module
+import traceback
 
 from .types import (
     DateConfig, MultiDateResult, SingleDateResult, SchedulingContext,
@@ -182,7 +183,11 @@ class OptimizedMultiDateScheduler:
     
     def _schedule_single_date(self, target_date: date, date_config: DateConfig, 
                             context: Optional[SchedulingContext]) -> SingleDateResult:
-        """단일 날짜 스케줄링 (최적화된 스케줄러 사용)"""
+        """
+        단일 날짜 스케줄링 (최적화된 스케줄러 사용)
+        """
+        start_time = datetime.now()
+        self.logger.info(f"[병목분석] [{target_date}] 단일 날짜 스케줄링 시작: {start_time}")
         
         scheduler = OptimizedScheduler(self.logger)
         
@@ -195,17 +200,99 @@ class OptimizedMultiDateScheduler:
                 real_time_updates=context.real_time_updates
             )
         
-        result = scheduler.schedule(
-            config=date_config,
-            context=date_context,
-            optimization_config=self.optimization_config
-        )
-        
-        # 통계 수집
-        if hasattr(scheduler, 'stats'):
-            self._merge_stats(scheduler.stats)
-        
-        return result
+        # 변수/제약조건 개수, 주요 제약조건 로그
+        try:
+            # 지원자 수 계산
+            total_applicants = sum(date_config.jobs.values())
+            self.logger.info(f"[병목분석] [{target_date}] 지원자 수: {total_applicants}명")
+            
+            # 활동 수 계산
+            activity_count = len(date_config.activities)
+            self.logger.info(f"[병목분석] [{target_date}] 활동 수: {activity_count}개")
+            
+            # 방 수 계산
+            room_count = len(date_config.rooms)
+            self.logger.info(f"[병목분석] [{target_date}] 방 수: {room_count}개")
+            
+            # 운영 시간 계산
+            start_time_config, end_time_config = date_config.operating_hours
+            operating_minutes = int((end_time_config - start_time_config).total_seconds() / 60)
+            self.logger.info(f"[병목분석] [{target_date}] 운영 시간: {operating_minutes}분")
+            
+            # 예상 변수 수 계산 (대략적)
+            estimated_variables = total_applicants * activity_count * room_count * (operating_minutes // 30)  # 30분 단위로 가정
+            self.logger.info(f"[병목분석] [{target_date}] 예상 변수 수: {estimated_variables:,}개")
+            
+            # 선후행 제약 수
+            precedence_count = len(date_config.precedence_rules)
+            self.logger.info(f"[병목분석] [{target_date}] 선후행 제약: {precedence_count}개")
+            
+            # 복잡도 지수 계산
+            complexity_index = (total_applicants * activity_count * room_count * precedence_count) / 1000
+            self.logger.info(f"[병목분석] [{target_date}] 복잡도 지수: {complexity_index:.2f}")
+            
+            # 복잡도에 따른 예상 소요시간
+            if complexity_index < 10:
+                expected_time = "30초 이내"
+            elif complexity_index < 50:
+                expected_time = "1-2분"
+            elif complexity_index < 100:
+                expected_time = "2-5분"
+            else:
+                expected_time = "5분 이상"
+            self.logger.info(f"[병목분석] [{target_date}] 예상 소요시간: {expected_time}")
+            
+            # 스케줄링 실행
+            scheduler_start = datetime.now()
+            self.logger.info(f"[병목분석] [{target_date}] CP-SAT 스케줄러 시작: {scheduler_start}")
+            
+            result = scheduler.schedule(date_config, date_context)
+            
+            scheduler_end = datetime.now()
+            scheduler_elapsed = (scheduler_end - scheduler_start).total_seconds()
+            self.logger.info(f"[병목분석] [{target_date}] CP-SAT 스케줄러 완료: {scheduler_end} (소요시간: {scheduler_elapsed:.2f}초)")
+            
+            # 결과 분석
+            if result and hasattr(result, 'schedule'):
+                scheduled_count = len(result.schedule) if result.schedule else 0
+                self.logger.info(f"[병목분석] [{target_date}] 스케줄링 성공: {scheduled_count}개 항목")
+                
+                # 성공률 계산
+                success_rate = (scheduled_count / (total_applicants * activity_count)) * 100 if total_applicants * activity_count > 0 else 0
+                self.logger.info(f"[병목분석] [{target_date}] 성공률: {success_rate:.1f}%")
+                
+                # 시간당 처리량
+                throughput = scheduled_count / (scheduler_elapsed / 3600) if scheduler_elapsed > 0 else 0
+                self.logger.info(f"[병목분석] [{target_date}] 처리량: {throughput:.1f} 항목/시간")
+            else:
+                self.logger.warning(f"[병목분석] [{target_date}] 스케줄링 실패 또는 결과 없음")
+            
+            return result
+            
+        except Exception as e:
+            end_time = datetime.now()
+            elapsed = (end_time - start_time).total_seconds()
+            self.logger.error(f"[병목분석] [{target_date}] 예외 발생: {str(e)} (소요시간: {elapsed:.2f}초)")
+            self.logger.error(f"[병목분석] [{target_date}] 상세 오류: {traceback.format_exc()}")
+            
+            # 실패 시에도 부분 결과 반환 시도
+            try:
+                if hasattr(scheduler, 'get_partial_result'):
+                    partial_result = scheduler.get_partial_result()
+                    if partial_result:
+                        self.logger.info(f"[병목분석] [{target_date}] 부분 결과 반환: {len(partial_result.schedule)}개 항목")
+                        return partial_result
+            except:
+                pass
+            
+            # 최소한의 실패 결과 반환
+            return SingleDateResult(
+                date=datetime.combine(target_date, datetime.min.time()),
+                status="FAILED",
+                error_message=str(e),
+                total_applicants=sum(date_config.jobs.values()),
+                scheduled_applicants=0
+            )
     
     def _analyze_results(self, result: MultiDateResult):
         """결과 분석 및 상태 결정"""

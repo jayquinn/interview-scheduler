@@ -1,0 +1,25 @@
+2025-07-15 11:31:42,351 - __main__ - INFO - === app.py 디폴트 데이터 CP-SAT 테스트 시작 ===
+2025-07-15 11:31:42,351 - __main__ - INFO - === CP-SAT 스케줄링 테스트 시작 ===
+2025-07-15 11:31:42,351 - __main__ - INFO - === app.py 디폴트 데이터로 DateConfig 생성 시작 ===
+2025-07-15 11:31:42,351 - __main__ - INFO - [진단] app.py 디폴트 활동 데이터: {'use': [True, True, True], 'activity': ['토론면접', '발표준비', '발표면접'], 'mode': ['batched', 'parallel', 'individual'], 'duration_min': [30, 5, 15], 'room_type': ['토론면접실', '발표준비실', '발표면접실'], 'min_cap': [4, 1, 1], 'max_cap': [6, 2, 1]}
+2025-07-15 11:31:42,355 - __main__ - ERROR - 테스트 중 예외 발생: 'Activity' object has no attribute 'duration_minutes'
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 132, in test_cpsat_scheduling
+    config = create_app_default_config()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 63, in create_app_default_config
+    logger.info(f"[진단] 생성된 Activity: {activity.name}, mode={activity.mode}, duration={activity.duration_minutes}분, room={activity.room_type}, cap={activity.min_capacity}~{activity.max_capacity}")
+                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Activity' object has no attribute 'duration_minutes'
+2025-07-15 11:31:42,355 - __main__ - ERROR - 테스트 실패
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 175, in <module>
+    result = test_cpsat_scheduling()
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 132, in test_cpsat_scheduling
+    config = create_app_default_config()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 63, in create_app_default_config
+    logger.info(f"[진단] 생성된 Activity: {activity.name}, mode={activity.mode}, duration={activity.duration_minutes}분, room={activity.room_type}, cap={activity.min_capacity}~{activity.max_capacity}")
+                                                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Activity' object has no attribute 'duration_minutes'

@@ -1101,7 +1101,7 @@ class IndividualScheduler:
                 # 방 배정 변수
                 activity_rooms = [r for r in rooms if any(rt in r.room_type for rt in activity.required_rooms)]
                 for room in activity_rooms:
-                        room_var = model.NewBoolVar(f'room_{suffix}_{room.name}')
+                    room_var = model.NewBoolVar(f'room_{suffix}_{room.name}')
                     room_vars[(applicant.id, activity.name, room.name)] = room_var
                 
                 # 방 배정 제약: 정확히 하나의 방 선택
@@ -1222,6 +1222,7 @@ class IndividualScheduler:
         
         # 🚀 Solver 실행
         solver = cp_model.CpSolver()
+        set_safe_cpsat_parameters(solver)
         solver.parameters.max_time_in_seconds = 60.0  # 체류시간 최적화를 위해 시간 연장
         solver.parameters.log_search_progress = True
         

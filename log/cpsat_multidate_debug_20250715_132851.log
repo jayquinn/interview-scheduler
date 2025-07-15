@@ -1,0 +1,1744 @@
+2025-07-15 13:28:51,843 - __main__ - INFO - === app.py 디폴트 데이터 CP-SAT 멀티데이트 테스트 시작 ===
+2025-07-15 13:28:51,845 - __main__ - INFO - === CP-SAT 멀티데이트 스케줄링 테스트 시작 ===
+2025-07-15 13:28:51,845 - __main__ - INFO - === app.py 디폴트 세션 상태 생성 시작 ===
+2025-07-15 13:28:51,849 - __main__ - INFO - [진단] 기본 활동 템플릿: 3개 활동
+2025-07-15 13:28:51,854 - __main__ - INFO - [진단] 스마트 직무 매핑: 1개 직무
+2025-07-15 13:28:51,855 - __main__ - INFO - [진단] 기본 선후행 제약: 1개 규칙
+2025-07-15 13:28:51,857 - __main__ - INFO - [진단] 기본 운영 시간: 09:00:00 ~ 17:30:00
+2025-07-15 13:28:51,857 - __main__ - INFO - [진단] 스마트 방 템플릿: 3개 방 타입
+2025-07-15 13:28:51,858 - __main__ - INFO - [진단] 방 계획: 1개 행
+2025-07-15 13:28:51,858 - __main__ - INFO - [진단] 운영 시간: 1개 행
+2025-07-15 13:28:51,858 - __main__ - INFO - [진단] 집단면접 설정: 4~6명, 간격 5분, 최대 체류 5시간
+2025-07-15 13:28:51,858 - __main__ - INFO - [진단] 멀티 날짜 계획: 4일
+2025-07-15 13:28:51,858 - __main__ - INFO - === 가상 지원자 생성 시작 ===
+2025-07-15 13:28:51,860 - __main__ - INFO - [진단] 가상 지원자 생성 완료: 23명
+2025-07-15 13:28:51,871 - __main__ - INFO - [진단] 지원자 샘플:
+          id   code            activity interview_date
+0  JOB01_001  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+1  JOB01_002  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+2  JOB01_003  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+3  JOB01_004  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+4  JOB01_005  JOB01  [토론면접, 발표준비, 발표면접]     2025-07-15
+2025-07-15 13:28:51,872 - __main__ - INFO - [진단] 가상 지원자: 23명
+2025-07-15 13:28:51,872 - __main__ - INFO - [진단] 면접 날짜: 4일
+2025-07-15 13:28:51,873 - __main__ - INFO - === app.py 디폴트 세션 상태 생성 완료 ===
+2025-07-15 13:28:51,873 - __main__ - INFO - === schedule_interviews API 형식으로 변환 시작 ===
+2025-07-15 13:28:51,873 - __main__ - INFO - [변환] 날짜별 계획: 4일
+2025-07-15 13:28:51,874 - __main__ - INFO - [변환] 활동 설정: 3개
+2025-07-15 13:28:51,874 - __main__ - INFO - [변환] 방 설정: 3개
+2025-07-15 13:28:51,874 - __main__ - INFO - [변환] 전역 설정: 1개 선후행 규칙
+2025-07-15 13:28:51,874 - __main__ - INFO - === schedule_interviews API 형식 변환 완료 ===
+2025-07-15 13:28:51,875 - __main__ - INFO - === schedule_interviews API 실행 시작 ===
+2025-07-15 13:28:51,875 - __main__ - INFO - 멀티 날짜 스케줄링 시작: 4개 날짜
+2025-07-15 13:28:51,875 - __main__ - INFO - [진단] _create_applicants 시작
+2025-07-15 13:28:51,875 - __main__ - INFO - [진단] config.jobs: {'JOB01': 23, 'JOB02': 23}
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] config.activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] config.job_activity_matrix: {('JOB01', '토론면접'): True, ('JOB01', '발표준비'): True, ('JOB01', '발표면접'): True, ('JOB02', '토론면접'): True, ('JOB02', '발표준비'): True, ('JOB02', '발표면접'): True}
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 직무 JOB01 처리 중 (지원자 23명)
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 매트릭스 키 ('JOB01', '토론면접'): True
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 매트릭스 키 ('JOB01', '발표준비'): True
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 매트릭스 키 ('JOB01', '발표면접'): True
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 직무 JOB01의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 생성된 지원자 JOB01_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 생성된 지원자 JOB01_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 생성된 지원자 JOB01_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 생성된 지원자 JOB01_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 생성된 지원자 JOB01_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,876 - __main__ - INFO - [진단] 생성된 지원자 JOB01_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_007: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_008: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_009: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_010: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_011: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_012: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_013: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_014: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,877 - __main__ - INFO - [진단] 생성된 지원자 JOB01_015: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_016: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_017: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_018: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_019: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_020: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_021: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,878 - __main__ - INFO - [진단] 생성된 지원자 JOB01_022: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 생성된 지원자 JOB01_023: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 직무 JOB02 처리 중 (지원자 23명)
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 매트릭스 키 ('JOB02', '토론면접'): True
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 매트릭스 키 ('JOB02', '발표준비'): True
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 매트릭스 키 ('JOB02', '발표면접'): True
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 직무 JOB02의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 생성된 지원자 JOB02_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,879 - __main__ - INFO - [진단] 생성된 지원자 JOB02_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_007: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_008: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_009: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,880 - __main__ - INFO - [진단] 생성된 지원자 JOB02_010: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,881 - __main__ - INFO - [진단] 생성된 지원자 JOB02_011: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,881 - __main__ - INFO - [진단] 생성된 지원자 JOB02_012: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,881 - __main__ - INFO - [진단] 생성된 지원자 JOB02_013: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,881 - __main__ - INFO - [진단] 생성된 지원자 JOB02_014: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,881 - __main__ - INFO - [진단] 생성된 지원자 JOB02_015: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,881 - __main__ - INFO - [진단] 생성된 지원자 JOB02_016: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_017: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_018: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_019: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_020: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_021: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_022: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,882 - __main__ - INFO - [진단] 생성된 지원자 JOB02_023: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,883 - __main__ - INFO - [진단] _create_applicants 완료: 총 46명 지원자 생성
+2025-07-15 13:28:51,883 - __main__ - INFO - [진단] 그룹 최적화 시작 (V2): 46명 지원자, 활동: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:28:51,883 - __main__ - INFO - [진단] Batched 활동: ['토론면접']
+2025-07-15 13:28:51,883 - __main__ - INFO - [진단] 직무별 지원자 분포: { JOB01: 23명, JOB02: 23명 }
+2025-07-15 13:28:51,884 - __main__ - INFO - [진단] 지원자 JOB01_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,884 - __main__ - INFO - [진단] 지원자 JOB01_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,884 - __main__ - INFO - [진단] 지원자 JOB01_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,884 - __main__ - INFO - [진단] 지원자 JOB01_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,884 - __main__ - INFO - [진단] 지원자 JOB01_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,884 - __main__ - INFO - [진단] 지원자 JOB01_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,885 - __main__ - INFO - [진단] 지원자 JOB01_007의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,885 - __main__ - INFO - [진단] 지원자 JOB01_008의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,885 - __main__ - INFO - [진단] 지원자 JOB01_009의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,885 - __main__ - INFO - [진단] 지원자 JOB01_010의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,885 - __main__ - INFO - [진단] 지원자 JOB01_011의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,885 - __main__ - INFO - [진단] 지원자 JOB01_012의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,886 - __main__ - INFO - [진단] 지원자 JOB01_013의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,886 - __main__ - INFO - [진단] 지원자 JOB01_014의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,886 - __main__ - INFO - [진단] 지원자 JOB01_015의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,886 - __main__ - INFO - [진단] 지원자 JOB01_016의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,886 - __main__ - INFO - [진단] 지원자 JOB01_017의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,887 - __main__ - INFO - [진단] 지원자 JOB01_018의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,887 - __main__ - INFO - [진단] 지원자 JOB01_019의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,887 - __main__ - INFO - [진단] 지원자 JOB01_020의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,887 - __main__ - INFO - [진단] 지원자 JOB01_021의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,887 - __main__ - INFO - [진단] 지원자 JOB01_022의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,888 - __main__ - INFO - [진단] 지원자 JOB01_023의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,888 - __main__ - INFO - [진단] 직무 JOB01에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:28:51,888 - __main__ - INFO - [진단] JOB01 직무의 batched 활동: ['토론면접']
+2025-07-15 13:28:51,888 - __main__ - INFO - [진단] JOB01: 지원자 23명, 그룹 크기 4~6
+2025-07-15 13:28:51,888 - __main__ - INFO - [진단] _create_common_groups: JOB01, 지원자 23명, 그룹 크기 4~6
+2025-07-15 13:28:51,889 - __main__ - INFO - [진단] 그룹 수: 4, 더미 수: 0
+2025-07-15 13:28:51,889 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 4개, 더미 0명
+2025-07-15 13:28:51,889 - __main__ - INFO - [진단] JOB01: 생성된 그룹 수 4, 더미 0명
+2025-07-15 13:28:51,889 - __main__ - INFO - [진단] 지원자 JOB02_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,889 - __main__ - INFO - [진단] 지원자 JOB02_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,889 - __main__ - INFO - [진단] 지원자 JOB02_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_007의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_008의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_009의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,890 - __main__ - INFO - [진단] 지원자 JOB02_010의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,891 - __main__ - INFO - [진단] 지원자 JOB02_011의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,891 - __main__ - INFO - [진단] 지원자 JOB02_012의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,891 - __main__ - INFO - [진단] 지원자 JOB02_013의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,891 - __main__ - INFO - [진단] 지원자 JOB02_014의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,891 - __main__ - INFO - [진단] 지원자 JOB02_015의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,892 - __main__ - INFO - [진단] 지원자 JOB02_016의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,892 - __main__ - INFO - [진단] 지원자 JOB02_017의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,892 - __main__ - INFO - [진단] 지원자 JOB02_018의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,892 - __main__ - INFO - [진단] 지원자 JOB02_019의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,893 - __main__ - INFO - [진단] 지원자 JOB02_020의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,893 - __main__ - INFO - [진단] 지원자 JOB02_021의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,893 - __main__ - INFO - [진단] 지원자 JOB02_022의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,893 - __main__ - INFO - [진단] 지원자 JOB02_023의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:28:51,893 - __main__ - INFO - [진단] 직무 JOB02에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:28:51,893 - __main__ - INFO - [진단] JOB02 직무의 batched 활동: ['토론면접']
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] JOB02: 지원자 23명, 그룹 크기 4~6
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] _create_common_groups: JOB02, 지원자 23명, 그룹 크기 4~6
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] 그룹 수: 4, 더미 수: 0
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 4개, 더미 0명
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] JOB02: 생성된 그룹 수 4, 더미 0명
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] 활동 토론면접에 할당된 그룹 수: 8
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] 그룹 최적화 완료 (V2): 8개 그룹, 0명 더미
+2025-07-15 13:28:51,894 - __main__ - INFO - [진단] Level 1 그룹/지원자 상세 로그
+2025-07-15 13:28:51,895 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 8
+2025-07-15 13:28:51,895 - __main__ - INFO -   - 그룹ID: JOB01_G001, 크기: 6, 지원자: ['JOB01_001', 'JOB01_002', 'JOB01_003', 'JOB01_004', 'JOB01_005', 'JOB01_006']
+2025-07-15 13:28:51,895 - __main__ - INFO -     * 지원자ID: JOB01_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,895 - __main__ - INFO -     * 지원자ID: JOB01_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,895 - __main__ - INFO -     * 지원자ID: JOB01_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,895 - __main__ - INFO -     * 지원자ID: JOB01_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,895 - __main__ - INFO -     * 지원자ID: JOB01_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,895 - __main__ - INFO -     * 지원자ID: JOB01_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -   - 그룹ID: JOB01_G002, 크기: 6, 지원자: ['JOB01_007', 'JOB01_008', 'JOB01_009', 'JOB01_010', 'JOB01_011', 'JOB01_012']
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -   - 그룹ID: JOB01_G003, 크기: 6, 지원자: ['JOB01_013', 'JOB01_014', 'JOB01_015', 'JOB01_016', 'JOB01_017', 'JOB01_018']
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,896 - __main__ - INFO -     * 지원자ID: JOB01_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,897 - __main__ - INFO -     * 지원자ID: JOB01_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,897 - __main__ - INFO -     * 지원자ID: JOB01_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,897 - __main__ - INFO -     * 지원자ID: JOB01_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,897 - __main__ - INFO -   - 그룹ID: JOB01_G004, 크기: 5, 지원자: ['JOB01_019', 'JOB01_020', 'JOB01_021', 'JOB01_022', 'JOB01_023']
+2025-07-15 13:28:51,897 - __main__ - INFO -     * 지원자ID: JOB01_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,897 - __main__ - INFO -     * 지원자ID: JOB01_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,897 - __main__ - INFO -     * 지원자ID: JOB01_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,898 - __main__ - INFO -     * 지원자ID: JOB01_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,898 - __main__ - INFO -     * 지원자ID: JOB01_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,898 - __main__ - INFO -   - 그룹ID: JOB02_G001, 크기: 6, 지원자: ['JOB02_001', 'JOB02_002', 'JOB02_003', 'JOB02_004', 'JOB02_005', 'JOB02_006']
+2025-07-15 13:28:51,898 - __main__ - INFO -     * 지원자ID: JOB02_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,898 - __main__ - INFO -     * 지원자ID: JOB02_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,898 - __main__ - INFO -     * 지원자ID: JOB02_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,898 - __main__ - INFO -     * 지원자ID: JOB02_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -   - 그룹ID: JOB02_G002, 크기: 6, 지원자: ['JOB02_007', 'JOB02_008', 'JOB02_009', 'JOB02_010', 'JOB02_011', 'JOB02_012']
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,899 - __main__ - INFO -   - 그룹ID: JOB02_G003, 크기: 6, 지원자: ['JOB02_013', 'JOB02_014', 'JOB02_015', 'JOB02_016', 'JOB02_017', 'JOB02_018']
+2025-07-15 13:28:51,899 - __main__ - INFO -     * 지원자ID: JOB02_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -   - 그룹ID: JOB02_G004, 크기: 5, 지원자: ['JOB02_019', 'JOB02_020', 'JOB02_021', 'JOB02_022', 'JOB02_023']
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,900 - __main__ - INFO -     * 지원자ID: JOB02_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO -     * 지원자ID: JOB02_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO - [진단] Level 1 전체 지원자 목록:
+2025-07-15 13:28:51,901 - __main__ - INFO -   - 지원자ID: JOB01_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO -   - 지원자ID: JOB01_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO -   - 지원자ID: JOB01_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO -   - 지원자ID: JOB01_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO -   - 지원자ID: JOB01_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,901 - __main__ - INFO -   - 지원자ID: JOB01_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,902 - __main__ - INFO -   - 지원자ID: JOB01_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,903 - __main__ - INFO -   - 지원자ID: JOB01_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,903 - __main__ - INFO -   - 지원자ID: JOB01_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,903 - __main__ - INFO -   - 지원자ID: JOB01_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,903 - __main__ - INFO -   - 지원자ID: JOB01_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,903 - __main__ - INFO -   - 지원자ID: JOB01_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,903 - __main__ - INFO -   - 지원자ID: JOB01_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,904 - __main__ - INFO -   - 지원자ID: JOB01_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,904 - __main__ - INFO -   - 지원자ID: JOB01_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,904 - __main__ - INFO -   - 지원자ID: JOB01_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,904 - __main__ - INFO -   - 지원자ID: JOB01_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,905 - __main__ - INFO -   - 지원자ID: JOB02_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,906 - __main__ - INFO -   - 지원자ID: JOB02_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,906 - __main__ - INFO -   - 지원자ID: JOB02_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,906 - __main__ - INFO -   - 지원자ID: JOB02_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,906 - __main__ - INFO -   - 지원자ID: JOB02_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,906 - __main__ - INFO -   - 지원자ID: JOB02_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,907 - __main__ - INFO -   - 지원자ID: JOB02_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,907 - __main__ - INFO -   - 지원자ID: JOB02_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,907 - __main__ - INFO -   - 지원자ID: JOB02_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,907 - __main__ - INFO -   - 지원자ID: JOB02_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,908 - __main__ - INFO -   - 지원자ID: JOB02_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,909 - __main__ - INFO - 
+===== [CP-SAT 통합 스케줄러 진단 시작] =====
+2025-07-15 13:28:51,909 - __main__ - INFO - [진단] 입력 데이터 상세 로그 (Level1 그룹/지원자/활동/방/제약조건)
+2025-07-15 13:28:51,909 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 8
+2025-07-15 13:28:51,909 - __main__ - INFO -   - 그룹ID: JOB01_G001, 크기: 6, 지원자: ['JOB01_001', 'JOB01_002', 'JOB01_003', 'JOB01_004', 'JOB01_005', 'JOB01_006']
+2025-07-15 13:28:51,910 - __main__ - INFO -     * 지원자ID: JOB01_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,910 - __main__ - INFO -     * 지원자ID: JOB01_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,910 - __main__ - INFO -     * 지원자ID: JOB01_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,910 - __main__ - INFO -     * 지원자ID: JOB01_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,910 - __main__ - INFO -     * 지원자ID: JOB01_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,911 - __main__ - INFO -     * 지원자ID: JOB01_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,911 - __main__ - INFO -   - 그룹ID: JOB01_G002, 크기: 6, 지원자: ['JOB01_007', 'JOB01_008', 'JOB01_009', 'JOB01_010', 'JOB01_011', 'JOB01_012']
+2025-07-15 13:28:51,911 - __main__ - INFO -     * 지원자ID: JOB01_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,911 - __main__ - INFO -     * 지원자ID: JOB01_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,911 - __main__ - INFO -     * 지원자ID: JOB01_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,911 - __main__ - INFO -     * 지원자ID: JOB01_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,912 - __main__ - INFO -     * 지원자ID: JOB01_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,912 - __main__ - INFO -     * 지원자ID: JOB01_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,912 - __main__ - INFO -   - 그룹ID: JOB01_G003, 크기: 6, 지원자: ['JOB01_013', 'JOB01_014', 'JOB01_015', 'JOB01_016', 'JOB01_017', 'JOB01_018']
+2025-07-15 13:28:51,912 - __main__ - INFO -     * 지원자ID: JOB01_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,912 - __main__ - INFO -     * 지원자ID: JOB01_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,912 - __main__ - INFO -     * 지원자ID: JOB01_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,912 - __main__ - INFO -     * 지원자ID: JOB01_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -   - 그룹ID: JOB01_G004, 크기: 5, 지원자: ['JOB01_019', 'JOB01_020', 'JOB01_021', 'JOB01_022', 'JOB01_023']
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,913 - __main__ - INFO -     * 지원자ID: JOB01_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -   - 그룹ID: JOB02_G001, 크기: 6, 지원자: ['JOB02_001', 'JOB02_002', 'JOB02_003', 'JOB02_004', 'JOB02_005', 'JOB02_006']
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -   - 그룹ID: JOB02_G002, 크기: 6, 지원자: ['JOB02_007', 'JOB02_008', 'JOB02_009', 'JOB02_010', 'JOB02_011', 'JOB02_012']
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,914 - __main__ - INFO -     * 지원자ID: JOB02_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -   - 그룹ID: JOB02_G003, 크기: 6, 지원자: ['JOB02_013', 'JOB02_014', 'JOB02_015', 'JOB02_016', 'JOB02_017', 'JOB02_018']
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -   - 그룹ID: JOB02_G004, 크기: 5, 지원자: ['JOB02_019', 'JOB02_020', 'JOB02_021', 'JOB02_022', 'JOB02_023']
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,915 - __main__ - INFO -     * 지원자ID: JOB02_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -     * 지원자ID: JOB02_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO - [진단] 전체 지원자 목록:
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,916 - __main__ - INFO -   - 지원자ID: JOB01_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,917 - __main__ - INFO -   - 지원자ID: JOB01_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB01_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB01_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB01_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB02_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB02_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB02_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB02_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,918 - __main__ - INFO -   - 지원자ID: JOB02_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,919 - __main__ - INFO -   - 지원자ID: JOB02_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_021, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_022, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 지원자ID: JOB02_023, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:28:51,920 - __main__ - INFO - [진단] 활동 목록:
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 토론면접, mode=ActivityMode.BATCHED, duration=30, min_cap=4, max_cap=6, required_rooms=['토론면접실']
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 발표준비, mode=ActivityMode.PARALLEL, duration=5, min_cap=1, max_cap=2, required_rooms=['발표준비실']
+2025-07-15 13:28:51,920 - __main__ - INFO -   - 발표면접, mode=ActivityMode.INDIVIDUAL, duration=15, min_cap=1, max_cap=1, required_rooms=['발표면접실']
+2025-07-15 13:28:51,921 - __main__ - INFO - [진단] 방 목록:
+2025-07-15 13:28:51,921 - __main__ - INFO -   - 토론면접실A, type=토론면접실, cap=6
+2025-07-15 13:28:51,921 - __main__ - INFO -   - 토론면접실B, type=토론면접실, cap=6
+2025-07-15 13:28:51,921 - __main__ - INFO -   - 발표준비실, type=발표준비실, cap=2
+2025-07-15 13:28:51,921 - __main__ - INFO -   - 발표면접실A, type=발표면접실, cap=1
+2025-07-15 13:28:51,921 - __main__ - INFO -   - 발표면접실B, type=발표면접실, cap=1
+2025-07-15 13:28:51,921 - __main__ - INFO - [진단] 선후행 제약조건 목록:
+2025-07-15 13:28:51,921 - __main__ - INFO -   - 발표준비 → 발표면접, gap_min=0, is_adjacent=True
+2025-07-15 13:28:51,921 - __main__ - INFO - ⏰ 운영 시간: 9:00:00 ~ 17:30:00 (510분)
+2025-07-15 13:28:51,921 - __main__ - INFO - 🔧 Batched 활동 변수 생성 시작...
+2025-07-15 13:28:51,921 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB01_G001, 활동=토론면접, duration=30, 지원자=['JOB01_001', 'JOB01_002', 'JOB01_003', 'JOB01_004', 'JOB01_005', 'JOB01_006']
+2025-07-15 13:28:51,922 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB01_G002, 활동=토론면접, duration=30, 지원자=['JOB01_007', 'JOB01_008', 'JOB01_009', 'JOB01_010', 'JOB01_011', 'JOB01_012']
+2025-07-15 13:28:51,924 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB01_G003, 활동=토론면접, duration=30, 지원자=['JOB01_013', 'JOB01_014', 'JOB01_015', 'JOB01_016', 'JOB01_017', 'JOB01_018']
+2025-07-15 13:28:51,924 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB01_G004, 활동=토론면접, duration=30, 지원자=['JOB01_019', 'JOB01_020', 'JOB01_021', 'JOB01_022', 'JOB01_023']
+2025-07-15 13:28:51,925 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB02_G001, 활동=토론면접, duration=30, 지원자=['JOB02_001', 'JOB02_002', 'JOB02_003', 'JOB02_004', 'JOB02_005', 'JOB02_006']
+2025-07-15 13:28:51,926 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB02_G002, 활동=토론면접, duration=30, 지원자=['JOB02_007', 'JOB02_008', 'JOB02_009', 'JOB02_010', 'JOB02_011', 'JOB02_012']
+2025-07-15 13:28:51,926 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB02_G003, 활동=토론면접, duration=30, 지원자=['JOB02_013', 'JOB02_014', 'JOB02_015', 'JOB02_016', 'JOB02_017', 'JOB02_018']
+2025-07-15 13:28:51,927 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB02_G004, 활동=토론면접, duration=30, 지원자=['JOB02_019', 'JOB02_020', 'JOB02_021', 'JOB02_022', 'JOB02_023']
+2025-07-15 13:28:51,927 - __main__ - INFO - ✅ Batched 변수 생성 완료: 8개 그룹
+2025-07-15 13:28:51,928 - __main__ - INFO - 🔧 Individual 활동 변수 생성 시작...
+2025-07-15 13:28:51,928 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_001, 활동=발표준비, duration=5
+2025-07-15 13:28:51,929 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_001, 활동=발표면접, duration=15
+2025-07-15 13:28:51,929 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_002, 활동=발표준비, duration=5
+2025-07-15 13:28:51,930 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_002, 활동=발표면접, duration=15
+2025-07-15 13:28:51,930 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_003, 활동=발표준비, duration=5
+2025-07-15 13:28:51,930 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_003, 활동=발표면접, duration=15
+2025-07-15 13:28:51,931 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_004, 활동=발표준비, duration=5
+2025-07-15 13:28:51,931 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_004, 활동=발표면접, duration=15
+2025-07-15 13:28:51,931 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_005, 활동=발표준비, duration=5
+2025-07-15 13:28:51,932 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_005, 활동=발표면접, duration=15
+2025-07-15 13:28:51,932 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_006, 활동=발표준비, duration=5
+2025-07-15 13:28:51,932 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_006, 활동=발표면접, duration=15
+2025-07-15 13:28:51,933 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_007, 활동=발표준비, duration=5
+2025-07-15 13:28:51,933 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_007, 활동=발표면접, duration=15
+2025-07-15 13:28:51,933 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_008, 활동=발표준비, duration=5
+2025-07-15 13:28:51,934 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_008, 활동=발표면접, duration=15
+2025-07-15 13:28:51,934 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_009, 활동=발표준비, duration=5
+2025-07-15 13:28:51,934 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_009, 활동=발표면접, duration=15
+2025-07-15 13:28:51,935 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_010, 활동=발표준비, duration=5
+2025-07-15 13:28:51,935 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_010, 활동=발표면접, duration=15
+2025-07-15 13:28:51,935 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_011, 활동=발표준비, duration=5
+2025-07-15 13:28:51,935 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_011, 활동=발표면접, duration=15
+2025-07-15 13:28:51,936 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_012, 활동=발표준비, duration=5
+2025-07-15 13:28:51,936 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_012, 활동=발표면접, duration=15
+2025-07-15 13:28:51,936 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_013, 활동=발표준비, duration=5
+2025-07-15 13:28:51,936 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_013, 활동=발표면접, duration=15
+2025-07-15 13:28:51,936 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_014, 활동=발표준비, duration=5
+2025-07-15 13:28:51,937 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_014, 활동=발표면접, duration=15
+2025-07-15 13:28:51,937 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_015, 활동=발표준비, duration=5
+2025-07-15 13:28:51,937 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_015, 활동=발표면접, duration=15
+2025-07-15 13:28:51,937 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_016, 활동=발표준비, duration=5
+2025-07-15 13:28:51,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_016, 활동=발표면접, duration=15
+2025-07-15 13:28:51,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_017, 활동=발표준비, duration=5
+2025-07-15 13:28:51,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_017, 활동=발표면접, duration=15
+2025-07-15 13:28:51,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_018, 활동=발표준비, duration=5
+2025-07-15 13:28:51,939 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_018, 활동=발표면접, duration=15
+2025-07-15 13:28:51,939 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_019, 활동=발표준비, duration=5
+2025-07-15 13:28:51,940 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_019, 활동=발표면접, duration=15
+2025-07-15 13:28:51,940 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_020, 활동=발표준비, duration=5
+2025-07-15 13:28:51,940 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_020, 활동=발표면접, duration=15
+2025-07-15 13:28:51,940 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_021, 활동=발표준비, duration=5
+2025-07-15 13:28:51,941 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_021, 활동=발표면접, duration=15
+2025-07-15 13:28:51,941 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_022, 활동=발표준비, duration=5
+2025-07-15 13:28:51,941 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_022, 활동=발표면접, duration=15
+2025-07-15 13:28:51,942 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_023, 활동=발표준비, duration=5
+2025-07-15 13:28:51,943 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB01_023, 활동=발표면접, duration=15
+2025-07-15 13:28:51,944 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_001, 활동=발표준비, duration=5
+2025-07-15 13:28:51,944 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_001, 활동=발표면접, duration=15
+2025-07-15 13:28:51,945 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_002, 활동=발표준비, duration=5
+2025-07-15 13:28:51,946 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_002, 활동=발표면접, duration=15
+2025-07-15 13:28:51,946 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_003, 활동=발표준비, duration=5
+2025-07-15 13:28:51,947 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_003, 활동=발표면접, duration=15
+2025-07-15 13:28:51,947 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_004, 활동=발표준비, duration=5
+2025-07-15 13:28:51,948 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_004, 활동=발표면접, duration=15
+2025-07-15 13:28:51,948 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_005, 활동=발표준비, duration=5
+2025-07-15 13:28:51,949 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_005, 활동=발표면접, duration=15
+2025-07-15 13:28:51,949 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_006, 활동=발표준비, duration=5
+2025-07-15 13:28:51,950 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_006, 활동=발표면접, duration=15
+2025-07-15 13:28:51,950 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_007, 활동=발표준비, duration=5
+2025-07-15 13:28:51,951 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_007, 활동=발표면접, duration=15
+2025-07-15 13:28:51,951 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_008, 활동=발표준비, duration=5
+2025-07-15 13:28:51,951 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_008, 활동=발표면접, duration=15
+2025-07-15 13:28:51,951 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_009, 활동=발표준비, duration=5
+2025-07-15 13:28:51,952 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_009, 활동=발표면접, duration=15
+2025-07-15 13:28:51,952 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_010, 활동=발표준비, duration=5
+2025-07-15 13:28:51,952 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_010, 활동=발표면접, duration=15
+2025-07-15 13:28:51,952 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_011, 활동=발표준비, duration=5
+2025-07-15 13:28:51,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_011, 활동=발표면접, duration=15
+2025-07-15 13:28:51,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_012, 활동=발표준비, duration=5
+2025-07-15 13:28:51,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_012, 활동=발표면접, duration=15
+2025-07-15 13:28:51,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_013, 활동=발표준비, duration=5
+2025-07-15 13:28:51,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_013, 활동=발표면접, duration=15
+2025-07-15 13:28:51,954 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_014, 활동=발표준비, duration=5
+2025-07-15 13:28:51,954 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_014, 활동=발표면접, duration=15
+2025-07-15 13:28:51,954 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_015, 활동=발표준비, duration=5
+2025-07-15 13:28:51,955 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_015, 활동=발표면접, duration=15
+2025-07-15 13:28:51,955 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_016, 활동=발표준비, duration=5
+2025-07-15 13:28:51,956 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_016, 활동=발표면접, duration=15
+2025-07-15 13:28:51,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_017, 활동=발표준비, duration=5
+2025-07-15 13:28:51,958 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_017, 활동=발표면접, duration=15
+2025-07-15 13:28:51,959 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_018, 활동=발표준비, duration=5
+2025-07-15 13:28:51,959 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_018, 활동=발표면접, duration=15
+2025-07-15 13:28:51,960 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_019, 활동=발표준비, duration=5
+2025-07-15 13:28:51,960 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_019, 활동=발표면접, duration=15
+2025-07-15 13:28:51,961 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_020, 활동=발표준비, duration=5
+2025-07-15 13:28:51,962 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_020, 활동=발표면접, duration=15
+2025-07-15 13:28:51,962 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_021, 활동=발표준비, duration=5
+2025-07-15 13:28:51,962 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_021, 활동=발표면접, duration=15
+2025-07-15 13:28:51,963 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_022, 활동=발표준비, duration=5
+2025-07-15 13:28:51,964 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_022, 활동=발표면접, duration=15
+2025-07-15 13:28:51,964 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_023, 활동=발표준비, duration=5
+2025-07-15 13:28:51,965 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB02_023, 활동=발표면접, duration=15
+2025-07-15 13:28:51,967 - __main__ - INFO - ✅ Individual 변수 생성 완료: 92개 활동
+2025-07-15 13:28:51,967 - __main__ - INFO - [진단] 변수 생성 완료 (소요: 0.05s)
+2025-07-15 13:28:51,967 - __main__ - INFO -   - group_intervals: 8개
+2025-07-15 13:28:51,967 - __main__ - INFO -   - group_starts: 8개
+2025-07-15 13:28:51,967 - __main__ - INFO -   - group_ends: 8개
+2025-07-15 13:28:51,968 - __main__ - INFO -   - group_rooms: 8개
+2025-07-15 13:28:51,968 - __main__ - INFO -   - individual_intervals: 92개
+2025-07-15 13:28:51,968 - __main__ - INFO -   - individual_starts: 92개
+2025-07-15 13:28:51,968 - __main__ - INFO -   - individual_ends: 92개
+2025-07-15 13:28:51,968 - __main__ - INFO -   - individual_presence: 92개
+2025-07-15 13:28:51,968 - __main__ - INFO -   - individual_rooms: 92개
+2025-07-15 13:28:51,968 - __main__ - INFO - 🔧 제약조건 추가 시작...
+2025-07-15 13:28:51,973 - __main__ - INFO - ✅ 모든 제약조건 추가 완료
+2025-07-15 13:28:51,974 - __main__ - INFO - [진단] 제약조건 추가 완료 (소요: 0.01s)
+2025-07-15 13:28:51,974 - __main__ - INFO - 🎯 체류시간 최소화 목적함수 생성 중...
+2025-07-15 13:28:51,975 - __main__ - DEBUG - 지원자 JOB01_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,976 - __main__ - DEBUG - 지원자 JOB01_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,976 - __main__ - DEBUG - 지원자 JOB01_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,977 - __main__ - DEBUG - 지원자 JOB01_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,977 - __main__ - DEBUG - 지원자 JOB01_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,977 - __main__ - DEBUG - 지원자 JOB01_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,979 - __main__ - DEBUG - 지원자 JOB01_007: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,979 - __main__ - DEBUG - 지원자 JOB01_008: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,979 - __main__ - DEBUG - 지원자 JOB01_009: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,980 - __main__ - DEBUG - 지원자 JOB01_010: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,980 - __main__ - DEBUG - 지원자 JOB01_011: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,980 - __main__ - DEBUG - 지원자 JOB01_012: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,980 - __main__ - DEBUG - 지원자 JOB01_013: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,981 - __main__ - DEBUG - 지원자 JOB01_014: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,982 - __main__ - DEBUG - 지원자 JOB01_015: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,982 - __main__ - DEBUG - 지원자 JOB01_016: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,982 - __main__ - DEBUG - 지원자 JOB01_017: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,983 - __main__ - DEBUG - 지원자 JOB01_018: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,983 - __main__ - DEBUG - 지원자 JOB01_019: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,983 - __main__ - DEBUG - 지원자 JOB01_020: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,984 - __main__ - DEBUG - 지원자 JOB01_021: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,984 - __main__ - DEBUG - 지원자 JOB01_022: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,984 - __main__ - DEBUG - 지원자 JOB01_023: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,985 - __main__ - DEBUG - 지원자 JOB02_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,985 - __main__ - DEBUG - 지원자 JOB02_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,985 - __main__ - DEBUG - 지원자 JOB02_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,986 - __main__ - DEBUG - 지원자 JOB02_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,987 - __main__ - DEBUG - 지원자 JOB02_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,987 - __main__ - DEBUG - 지원자 JOB02_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,987 - __main__ - DEBUG - 지원자 JOB02_007: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,987 - __main__ - DEBUG - 지원자 JOB02_008: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,988 - __main__ - DEBUG - 지원자 JOB02_009: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,988 - __main__ - DEBUG - 지원자 JOB02_010: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,988 - __main__ - DEBUG - 지원자 JOB02_011: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,988 - __main__ - DEBUG - 지원자 JOB02_012: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,989 - __main__ - DEBUG - 지원자 JOB02_013: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,989 - __main__ - DEBUG - 지원자 JOB02_014: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,989 - __main__ - DEBUG - 지원자 JOB02_015: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,990 - __main__ - DEBUG - 지원자 JOB02_016: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,990 - __main__ - DEBUG - 지원자 JOB02_017: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,990 - __main__ - DEBUG - 지원자 JOB02_018: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,991 - __main__ - DEBUG - 지원자 JOB02_019: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,991 - __main__ - DEBUG - 지원자 JOB02_020: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,991 - __main__ - DEBUG - 지원자 JOB02_021: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,991 - __main__ - DEBUG - 지원자 JOB02_022: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,992 - __main__ - DEBUG - 지원자 JOB02_023: 3개 활동 체류시간 변수 생성
+2025-07-15 13:28:51,992 - __main__ - INFO - ✅ 체류시간 목적함수 생성 완료: 46명
+2025-07-15 13:28:51,992 - __main__ - INFO - [진단] 목적함수 변수 개수: 46 (소요: 0.02s)
+2025-07-15 13:28:51,992 - __main__ - INFO - ✅ 목적함수 설정: 46명의 총 체류시간 최소화
+2025-07-15 13:28:51,993 - __main__ - INFO - 🔍 CP-SAT 통합 최적화 실행 중... (최대 120초)
+2025-07-15 13:33:52,758 - __main__ - INFO - [진단] Solve 종료 (소요: 300.76s), status: FEASIBLE
+2025-07-15 13:33:52,760 - __main__ - INFO - [진단] Objective value: 2440.0
+2025-07-15 13:33:52,760 - __main__ - INFO - [진단] NumConflicts: 0, NumBranches: 181, WallTime: 300.73s
+2025-07-15 13:33:52,761 - __main__ - INFO - [진단] Model stats: #variables=N/A, #constraints=N/A
+2025-07-15 13:33:52,761 - __main__ - INFO - [진단] 전체 소요 시간: 300.85s
+2025-07-15 13:33:52,762 - __main__ - INFO - ✅ 실행 가능해 발견!
+2025-07-15 13:33:52,762 - __main__ - INFO - 📊 통합 최적화 결과: 평균 체류시간 0.9시간
+2025-07-15 13:33:52,762 - __main__ - INFO - [진단] 결과 추출 단계 진입
+2025-07-15 13:33:52,765 - __main__ - INFO - [진단] 추출된 Batched 스케줄 개수: 46
+2025-07-15 13:33:52,767 - __main__ - INFO - [진단] 추출된 Individual 스케줄 개수: 92
+2025-07-15 13:33:52,768 - __main__ - INFO - ✅ 결과 추출 완료: Batched 46개, Individual 92개
+2025-07-15 13:33:52,777 - __main__ - INFO - 2025-07-15: 성공 - 46명 스케줄링
+2025-07-15 13:33:52,779 - __main__ - INFO - [진단] _create_applicants 시작
+2025-07-15 13:33:52,780 - __main__ - INFO - [진단] config.jobs: {'JOB03': 20, 'JOB04': 20}
+2025-07-15 13:33:52,781 - __main__ - INFO - [진단] config.activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,781 - __main__ - INFO - [진단] config.job_activity_matrix: {('JOB03', '토론면접'): True, ('JOB03', '발표준비'): True, ('JOB03', '발표면접'): True, ('JOB04', '토론면접'): True, ('JOB04', '발표준비'): True, ('JOB04', '발표면접'): True}
+2025-07-15 13:33:52,782 - __main__ - INFO - [진단] 직무 JOB03 처리 중 (지원자 20명)
+2025-07-15 13:33:52,782 - __main__ - INFO - [진단] 매트릭스 키 ('JOB03', '토론면접'): True
+2025-07-15 13:33:52,783 - __main__ - INFO - [진단] 매트릭스 키 ('JOB03', '발표준비'): True
+2025-07-15 13:33:52,783 - __main__ - INFO - [진단] 매트릭스 키 ('JOB03', '발표면접'): True
+2025-07-15 13:33:52,783 - __main__ - INFO - [진단] 직무 JOB03의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,784 - __main__ - INFO - [진단] 생성된 지원자 JOB03_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,784 - __main__ - INFO - [진단] 생성된 지원자 JOB03_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,784 - __main__ - INFO - [진단] 생성된 지원자 JOB03_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,785 - __main__ - INFO - [진단] 생성된 지원자 JOB03_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,785 - __main__ - INFO - [진단] 생성된 지원자 JOB03_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,785 - __main__ - INFO - [진단] 생성된 지원자 JOB03_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,785 - __main__ - INFO - [진단] 생성된 지원자 JOB03_007: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_008: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_009: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_010: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_011: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_012: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_013: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_014: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_015: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,786 - __main__ - INFO - [진단] 생성된 지원자 JOB03_016: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,788 - __main__ - INFO - [진단] 생성된 지원자 JOB03_017: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,788 - __main__ - INFO - [진단] 생성된 지원자 JOB03_018: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,788 - __main__ - INFO - [진단] 생성된 지원자 JOB03_019: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,788 - __main__ - INFO - [진단] 생성된 지원자 JOB03_020: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,788 - __main__ - INFO - [진단] 직무 JOB04 처리 중 (지원자 20명)
+2025-07-15 13:33:52,791 - __main__ - INFO - [진단] 매트릭스 키 ('JOB04', '토론면접'): True
+2025-07-15 13:33:52,791 - __main__ - INFO - [진단] 매트릭스 키 ('JOB04', '발표준비'): True
+2025-07-15 13:33:52,792 - __main__ - INFO - [진단] 매트릭스 키 ('JOB04', '발표면접'): True
+2025-07-15 13:33:52,792 - __main__ - INFO - [진단] 직무 JOB04의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,793 - __main__ - INFO - [진단] 생성된 지원자 JOB04_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,793 - __main__ - INFO - [진단] 생성된 지원자 JOB04_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,794 - __main__ - INFO - [진단] 생성된 지원자 JOB04_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,794 - __main__ - INFO - [진단] 생성된 지원자 JOB04_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,795 - __main__ - INFO - [진단] 생성된 지원자 JOB04_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,795 - __main__ - INFO - [진단] 생성된 지원자 JOB04_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,796 - __main__ - INFO - [진단] 생성된 지원자 JOB04_007: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,797 - __main__ - INFO - [진단] 생성된 지원자 JOB04_008: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,797 - __main__ - INFO - [진단] 생성된 지원자 JOB04_009: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,799 - __main__ - INFO - [진단] 생성된 지원자 JOB04_010: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,800 - __main__ - INFO - [진단] 생성된 지원자 JOB04_011: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,800 - __main__ - INFO - [진단] 생성된 지원자 JOB04_012: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,800 - __main__ - INFO - [진단] 생성된 지원자 JOB04_013: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,801 - __main__ - INFO - [진단] 생성된 지원자 JOB04_014: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,801 - __main__ - INFO - [진단] 생성된 지원자 JOB04_015: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,802 - __main__ - INFO - [진단] 생성된 지원자 JOB04_016: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,802 - __main__ - INFO - [진단] 생성된 지원자 JOB04_017: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,802 - __main__ - INFO - [진단] 생성된 지원자 JOB04_018: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,803 - __main__ - INFO - [진단] 생성된 지원자 JOB04_019: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,803 - __main__ - INFO - [진단] 생성된 지원자 JOB04_020: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,803 - __main__ - INFO - [진단] _create_applicants 완료: 총 40명 지원자 생성
+2025-07-15 13:33:52,804 - __main__ - INFO - [진단] 그룹 최적화 시작 (V2): 40명 지원자, 활동: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:33:52,804 - __main__ - INFO - [진단] Batched 활동: ['토론면접']
+2025-07-15 13:33:52,804 - __main__ - INFO - [진단] 직무별 지원자 분포: { JOB03: 20명, JOB04: 20명 }
+2025-07-15 13:33:52,804 - __main__ - INFO - [진단] 지원자 JOB03_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,804 - __main__ - INFO - [진단] 지원자 JOB03_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,806 - __main__ - INFO - [진단] 지원자 JOB03_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,806 - __main__ - INFO - [진단] 지원자 JOB03_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,806 - __main__ - INFO - [진단] 지원자 JOB03_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,807 - __main__ - INFO - [진단] 지원자 JOB03_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,807 - __main__ - INFO - [진단] 지원자 JOB03_007의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,807 - __main__ - INFO - [진단] 지원자 JOB03_008의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,808 - __main__ - INFO - [진단] 지원자 JOB03_009의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,808 - __main__ - INFO - [진단] 지원자 JOB03_010의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,808 - __main__ - INFO - [진단] 지원자 JOB03_011의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,809 - __main__ - INFO - [진단] 지원자 JOB03_012의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,810 - __main__ - INFO - [진단] 지원자 JOB03_013의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,810 - __main__ - INFO - [진단] 지원자 JOB03_014의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,810 - __main__ - INFO - [진단] 지원자 JOB03_015의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,811 - __main__ - INFO - [진단] 지원자 JOB03_016의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,811 - __main__ - INFO - [진단] 지원자 JOB03_017의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,811 - __main__ - INFO - [진단] 지원자 JOB03_018의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,812 - __main__ - INFO - [진단] 지원자 JOB03_019의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,812 - __main__ - INFO - [진단] 지원자 JOB03_020의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,812 - __main__ - INFO - [진단] 직무 JOB03에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:33:52,813 - __main__ - INFO - [진단] JOB03 직무의 batched 활동: ['토론면접']
+2025-07-15 13:33:52,813 - __main__ - INFO - [진단] JOB03: 지원자 20명, 그룹 크기 4~6
+2025-07-15 13:33:52,814 - __main__ - INFO - [진단] _create_common_groups: JOB03, 지원자 20명, 그룹 크기 4~6
+2025-07-15 13:33:52,814 - __main__ - INFO - [진단] 그룹 수: 4, 더미 수: 0
+2025-07-15 13:33:52,815 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 4개, 더미 0명
+2025-07-15 13:33:52,816 - __main__ - INFO - [진단] JOB03: 생성된 그룹 수 4, 더미 0명
+2025-07-15 13:33:52,816 - __main__ - INFO - [진단] 지원자 JOB04_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,816 - __main__ - INFO - [진단] 지원자 JOB04_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,817 - __main__ - INFO - [진단] 지원자 JOB04_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,817 - __main__ - INFO - [진단] 지원자 JOB04_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,817 - __main__ - INFO - [진단] 지원자 JOB04_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,818 - __main__ - INFO - [진단] 지원자 JOB04_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,818 - __main__ - INFO - [진단] 지원자 JOB04_007의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,819 - __main__ - INFO - [진단] 지원자 JOB04_008의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,819 - __main__ - INFO - [진단] 지원자 JOB04_009의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,819 - __main__ - INFO - [진단] 지원자 JOB04_010의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,820 - __main__ - INFO - [진단] 지원자 JOB04_011의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,820 - __main__ - INFO - [진단] 지원자 JOB04_012의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,820 - __main__ - INFO - [진단] 지원자 JOB04_013의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,821 - __main__ - INFO - [진단] 지원자 JOB04_014의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,821 - __main__ - INFO - [진단] 지원자 JOB04_015의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,822 - __main__ - INFO - [진단] 지원자 JOB04_016의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,822 - __main__ - INFO - [진단] 지원자 JOB04_017의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,823 - __main__ - INFO - [진단] 지원자 JOB04_018의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,823 - __main__ - INFO - [진단] 지원자 JOB04_019의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,823 - __main__ - INFO - [진단] 지원자 JOB04_020의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:33:52,823 - __main__ - INFO - [진단] 직무 JOB04에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:33:52,823 - __main__ - INFO - [진단] JOB04 직무의 batched 활동: ['토론면접']
+2025-07-15 13:33:52,825 - __main__ - INFO - [진단] JOB04: 지원자 20명, 그룹 크기 4~6
+2025-07-15 13:33:52,825 - __main__ - INFO - [진단] _create_common_groups: JOB04, 지원자 20명, 그룹 크기 4~6
+2025-07-15 13:33:52,825 - __main__ - INFO - [진단] 그룹 수: 4, 더미 수: 0
+2025-07-15 13:33:52,825 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 4개, 더미 0명
+2025-07-15 13:33:52,825 - __main__ - INFO - [진단] JOB04: 생성된 그룹 수 4, 더미 0명
+2025-07-15 13:33:52,827 - __main__ - INFO - [진단] 활동 토론면접에 할당된 그룹 수: 8
+2025-07-15 13:33:52,827 - __main__ - INFO - [진단] 그룹 최적화 완료 (V2): 8개 그룹, 0명 더미
+2025-07-15 13:33:52,828 - __main__ - INFO - [진단] Level 1 그룹/지원자 상세 로그
+2025-07-15 13:33:52,828 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 8
+2025-07-15 13:33:52,828 - __main__ - INFO -   - 그룹ID: JOB03_G001, 크기: 5, 지원자: ['JOB03_001', 'JOB03_002', 'JOB03_003', 'JOB03_004', 'JOB03_005']
+2025-07-15 13:33:52,829 - __main__ - INFO -     * 지원자ID: JOB03_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,829 - __main__ - INFO -     * 지원자ID: JOB03_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,830 - __main__ - INFO -     * 지원자ID: JOB03_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,830 - __main__ - INFO -     * 지원자ID: JOB03_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,831 - __main__ - INFO -     * 지원자ID: JOB03_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,831 - __main__ - INFO -   - 그룹ID: JOB03_G002, 크기: 5, 지원자: ['JOB03_006', 'JOB03_007', 'JOB03_008', 'JOB03_009', 'JOB03_010']
+2025-07-15 13:33:52,831 - __main__ - INFO -     * 지원자ID: JOB03_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,832 - __main__ - INFO -     * 지원자ID: JOB03_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,832 - __main__ - INFO -     * 지원자ID: JOB03_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,833 - __main__ - INFO -     * 지원자ID: JOB03_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,833 - __main__ - INFO -     * 지원자ID: JOB03_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,833 - __main__ - INFO -   - 그룹ID: JOB03_G003, 크기: 5, 지원자: ['JOB03_011', 'JOB03_012', 'JOB03_013', 'JOB03_014', 'JOB03_015']
+2025-07-15 13:33:52,834 - __main__ - INFO -     * 지원자ID: JOB03_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,834 - __main__ - INFO -     * 지원자ID: JOB03_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,835 - __main__ - INFO -     * 지원자ID: JOB03_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,835 - __main__ - INFO -     * 지원자ID: JOB03_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,836 - __main__ - INFO -     * 지원자ID: JOB03_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,836 - __main__ - INFO -   - 그룹ID: JOB03_G004, 크기: 5, 지원자: ['JOB03_016', 'JOB03_017', 'JOB03_018', 'JOB03_019', 'JOB03_020']
+2025-07-15 13:33:52,837 - __main__ - INFO -     * 지원자ID: JOB03_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,837 - __main__ - INFO -     * 지원자ID: JOB03_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,837 - __main__ - INFO -     * 지원자ID: JOB03_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,837 - __main__ - INFO -     * 지원자ID: JOB03_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,838 - __main__ - INFO -     * 지원자ID: JOB03_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,838 - __main__ - INFO -   - 그룹ID: JOB04_G001, 크기: 5, 지원자: ['JOB04_001', 'JOB04_002', 'JOB04_003', 'JOB04_004', 'JOB04_005']
+2025-07-15 13:33:52,838 - __main__ - INFO -     * 지원자ID: JOB04_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,839 - __main__ - INFO -     * 지원자ID: JOB04_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,839 - __main__ - INFO -     * 지원자ID: JOB04_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,839 - __main__ - INFO -     * 지원자ID: JOB04_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,839 - __main__ - INFO -     * 지원자ID: JOB04_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,840 - __main__ - INFO -   - 그룹ID: JOB04_G002, 크기: 5, 지원자: ['JOB04_006', 'JOB04_007', 'JOB04_008', 'JOB04_009', 'JOB04_010']
+2025-07-15 13:33:52,840 - __main__ - INFO -     * 지원자ID: JOB04_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,840 - __main__ - INFO -     * 지원자ID: JOB04_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,840 - __main__ - INFO -     * 지원자ID: JOB04_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,841 - __main__ - INFO -     * 지원자ID: JOB04_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,841 - __main__ - INFO -     * 지원자ID: JOB04_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,841 - __main__ - INFO -   - 그룹ID: JOB04_G003, 크기: 5, 지원자: ['JOB04_011', 'JOB04_012', 'JOB04_013', 'JOB04_014', 'JOB04_015']
+2025-07-15 13:33:52,842 - __main__ - INFO -     * 지원자ID: JOB04_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,842 - __main__ - INFO -     * 지원자ID: JOB04_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,843 - __main__ - INFO -     * 지원자ID: JOB04_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,843 - __main__ - INFO -     * 지원자ID: JOB04_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,843 - __main__ - INFO -     * 지원자ID: JOB04_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,844 - __main__ - INFO -   - 그룹ID: JOB04_G004, 크기: 5, 지원자: ['JOB04_016', 'JOB04_017', 'JOB04_018', 'JOB04_019', 'JOB04_020']
+2025-07-15 13:33:52,844 - __main__ - INFO -     * 지원자ID: JOB04_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,845 - __main__ - INFO -     * 지원자ID: JOB04_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,845 - __main__ - INFO -     * 지원자ID: JOB04_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,845 - __main__ - INFO -     * 지원자ID: JOB04_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,846 - __main__ - INFO -     * 지원자ID: JOB04_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,846 - __main__ - INFO - [진단] Level 1 전체 지원자 목록:
+2025-07-15 13:33:52,846 - __main__ - INFO -   - 지원자ID: JOB03_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,847 - __main__ - INFO -   - 지원자ID: JOB03_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,847 - __main__ - INFO -   - 지원자ID: JOB03_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,847 - __main__ - INFO -   - 지원자ID: JOB03_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,848 - __main__ - INFO -   - 지원자ID: JOB03_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,848 - __main__ - INFO -   - 지원자ID: JOB03_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,848 - __main__ - INFO -   - 지원자ID: JOB03_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,848 - __main__ - INFO -   - 지원자ID: JOB03_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,849 - __main__ - INFO -   - 지원자ID: JOB03_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,849 - __main__ - INFO -   - 지원자ID: JOB03_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,850 - __main__ - INFO -   - 지원자ID: JOB03_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,850 - __main__ - INFO -   - 지원자ID: JOB03_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,850 - __main__ - INFO -   - 지원자ID: JOB03_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,851 - __main__ - INFO -   - 지원자ID: JOB03_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,851 - __main__ - INFO -   - 지원자ID: JOB03_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,851 - __main__ - INFO -   - 지원자ID: JOB03_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,852 - __main__ - INFO -   - 지원자ID: JOB03_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,852 - __main__ - INFO -   - 지원자ID: JOB03_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,852 - __main__ - INFO -   - 지원자ID: JOB03_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,852 - __main__ - INFO -   - 지원자ID: JOB03_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,853 - __main__ - INFO -   - 지원자ID: JOB04_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,853 - __main__ - INFO -   - 지원자ID: JOB04_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,853 - __main__ - INFO -   - 지원자ID: JOB04_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,854 - __main__ - INFO -   - 지원자ID: JOB04_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,854 - __main__ - INFO -   - 지원자ID: JOB04_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,854 - __main__ - INFO -   - 지원자ID: JOB04_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,855 - __main__ - INFO -   - 지원자ID: JOB04_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,856 - __main__ - INFO -   - 지원자ID: JOB04_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,857 - __main__ - INFO -   - 지원자ID: JOB04_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,858 - __main__ - INFO -   - 지원자ID: JOB04_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,858 - __main__ - INFO -   - 지원자ID: JOB04_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,859 - __main__ - INFO -   - 지원자ID: JOB04_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,859 - __main__ - INFO -   - 지원자ID: JOB04_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,860 - __main__ - INFO -   - 지원자ID: JOB04_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,860 - __main__ - INFO -   - 지원자ID: JOB04_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,861 - __main__ - INFO -   - 지원자ID: JOB04_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,861 - __main__ - INFO -   - 지원자ID: JOB04_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,862 - __main__ - INFO -   - 지원자ID: JOB04_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,862 - __main__ - INFO -   - 지원자ID: JOB04_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,862 - __main__ - INFO -   - 지원자ID: JOB04_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,863 - __main__ - INFO - 
+===== [CP-SAT 통합 스케줄러 진단 시작] =====
+2025-07-15 13:33:52,863 - __main__ - INFO - [진단] 입력 데이터 상세 로그 (Level1 그룹/지원자/활동/방/제약조건)
+2025-07-15 13:33:52,863 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 8
+2025-07-15 13:33:52,864 - __main__ - INFO -   - 그룹ID: JOB03_G001, 크기: 5, 지원자: ['JOB03_001', 'JOB03_002', 'JOB03_003', 'JOB03_004', 'JOB03_005']
+2025-07-15 13:33:52,864 - __main__ - INFO -     * 지원자ID: JOB03_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,864 - __main__ - INFO -     * 지원자ID: JOB03_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,865 - __main__ - INFO -     * 지원자ID: JOB03_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,865 - __main__ - INFO -     * 지원자ID: JOB03_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,865 - __main__ - INFO -     * 지원자ID: JOB03_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,865 - __main__ - INFO -   - 그룹ID: JOB03_G002, 크기: 5, 지원자: ['JOB03_006', 'JOB03_007', 'JOB03_008', 'JOB03_009', 'JOB03_010']
+2025-07-15 13:33:52,866 - __main__ - INFO -     * 지원자ID: JOB03_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,866 - __main__ - INFO -     * 지원자ID: JOB03_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,866 - __main__ - INFO -     * 지원자ID: JOB03_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,866 - __main__ - INFO -     * 지원자ID: JOB03_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,866 - __main__ - INFO -     * 지원자ID: JOB03_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,866 - __main__ - INFO -   - 그룹ID: JOB03_G003, 크기: 5, 지원자: ['JOB03_011', 'JOB03_012', 'JOB03_013', 'JOB03_014', 'JOB03_015']
+2025-07-15 13:33:52,867 - __main__ - INFO -     * 지원자ID: JOB03_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,867 - __main__ - INFO -     * 지원자ID: JOB03_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,867 - __main__ - INFO -     * 지원자ID: JOB03_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,868 - __main__ - INFO -     * 지원자ID: JOB03_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,868 - __main__ - INFO -     * 지원자ID: JOB03_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,868 - __main__ - INFO -   - 그룹ID: JOB03_G004, 크기: 5, 지원자: ['JOB03_016', 'JOB03_017', 'JOB03_018', 'JOB03_019', 'JOB03_020']
+2025-07-15 13:33:52,868 - __main__ - INFO -     * 지원자ID: JOB03_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,869 - __main__ - INFO -     * 지원자ID: JOB03_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,869 - __main__ - INFO -     * 지원자ID: JOB03_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,869 - __main__ - INFO -     * 지원자ID: JOB03_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,869 - __main__ - INFO -     * 지원자ID: JOB03_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -   - 그룹ID: JOB04_G001, 크기: 5, 지원자: ['JOB04_001', 'JOB04_002', 'JOB04_003', 'JOB04_004', 'JOB04_005']
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -   - 그룹ID: JOB04_G002, 크기: 5, 지원자: ['JOB04_006', 'JOB04_007', 'JOB04_008', 'JOB04_009', 'JOB04_010']
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,870 - __main__ - INFO -     * 지원자ID: JOB04_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,872 - __main__ - INFO -     * 지원자ID: JOB04_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,872 - __main__ - INFO -     * 지원자ID: JOB04_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,872 - __main__ - INFO -     * 지원자ID: JOB04_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,873 - __main__ - INFO -   - 그룹ID: JOB04_G003, 크기: 5, 지원자: ['JOB04_011', 'JOB04_012', 'JOB04_013', 'JOB04_014', 'JOB04_015']
+2025-07-15 13:33:52,874 - __main__ - INFO -     * 지원자ID: JOB04_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,874 - __main__ - INFO -     * 지원자ID: JOB04_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,875 - __main__ - INFO -     * 지원자ID: JOB04_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,875 - __main__ - INFO -     * 지원자ID: JOB04_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,876 - __main__ - INFO -     * 지원자ID: JOB04_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,876 - __main__ - INFO -   - 그룹ID: JOB04_G004, 크기: 5, 지원자: ['JOB04_016', 'JOB04_017', 'JOB04_018', 'JOB04_019', 'JOB04_020']
+2025-07-15 13:33:52,877 - __main__ - INFO -     * 지원자ID: JOB04_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,879 - __main__ - INFO -     * 지원자ID: JOB04_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,881 - __main__ - INFO -     * 지원자ID: JOB04_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,881 - __main__ - INFO -     * 지원자ID: JOB04_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,882 - __main__ - INFO -     * 지원자ID: JOB04_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,882 - __main__ - INFO - [진단] 전체 지원자 목록:
+2025-07-15 13:33:52,883 - __main__ - INFO -   - 지원자ID: JOB03_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,883 - __main__ - INFO -   - 지원자ID: JOB03_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,883 - __main__ - INFO -   - 지원자ID: JOB03_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,884 - __main__ - INFO -   - 지원자ID: JOB03_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,884 - __main__ - INFO -   - 지원자ID: JOB03_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,884 - __main__ - INFO -   - 지원자ID: JOB03_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,885 - __main__ - INFO -   - 지원자ID: JOB03_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,885 - __main__ - INFO -   - 지원자ID: JOB03_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,885 - __main__ - INFO -   - 지원자ID: JOB03_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,886 - __main__ - INFO -   - 지원자ID: JOB03_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,886 - __main__ - INFO -   - 지원자ID: JOB03_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,887 - __main__ - INFO -   - 지원자ID: JOB03_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,887 - __main__ - INFO -   - 지원자ID: JOB03_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,887 - __main__ - INFO -   - 지원자ID: JOB03_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,887 - __main__ - INFO -   - 지원자ID: JOB03_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,888 - __main__ - INFO -   - 지원자ID: JOB03_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,888 - __main__ - INFO -   - 지원자ID: JOB03_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,889 - __main__ - INFO -   - 지원자ID: JOB03_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,889 - __main__ - INFO -   - 지원자ID: JOB03_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,890 - __main__ - INFO -   - 지원자ID: JOB03_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,890 - __main__ - INFO -   - 지원자ID: JOB04_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,892 - __main__ - INFO -   - 지원자ID: JOB04_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,893 - __main__ - INFO -   - 지원자ID: JOB04_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,894 - __main__ - INFO -   - 지원자ID: JOB04_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,894 - __main__ - INFO -   - 지원자ID: JOB04_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,895 - __main__ - INFO -   - 지원자ID: JOB04_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,895 - __main__ - INFO -   - 지원자ID: JOB04_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,895 - __main__ - INFO -   - 지원자ID: JOB04_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,896 - __main__ - INFO -   - 지원자ID: JOB04_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,896 - __main__ - INFO -   - 지원자ID: JOB04_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,896 - __main__ - INFO -   - 지원자ID: JOB04_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,897 - __main__ - INFO -   - 지원자ID: JOB04_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,897 - __main__ - INFO -   - 지원자ID: JOB04_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,898 - __main__ - INFO -   - 지원자ID: JOB04_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,898 - __main__ - INFO -   - 지원자ID: JOB04_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,899 - __main__ - INFO -   - 지원자ID: JOB04_016, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,900 - __main__ - INFO -   - 지원자ID: JOB04_017, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,900 - __main__ - INFO -   - 지원자ID: JOB04_018, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,901 - __main__ - INFO -   - 지원자ID: JOB04_019, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,902 - __main__ - INFO -   - 지원자ID: JOB04_020, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:33:52,902 - __main__ - INFO - [진단] 활동 목록:
+2025-07-15 13:33:52,903 - __main__ - INFO -   - 토론면접, mode=ActivityMode.BATCHED, duration=30, min_cap=4, max_cap=6, required_rooms=['토론면접실']
+2025-07-15 13:33:52,904 - __main__ - INFO -   - 발표준비, mode=ActivityMode.PARALLEL, duration=5, min_cap=1, max_cap=2, required_rooms=['발표준비실']
+2025-07-15 13:33:52,905 - __main__ - INFO -   - 발표면접, mode=ActivityMode.INDIVIDUAL, duration=15, min_cap=1, max_cap=1, required_rooms=['발표면접실']
+2025-07-15 13:33:52,905 - __main__ - INFO - [진단] 방 목록:
+2025-07-15 13:33:52,906 - __main__ - INFO -   - 토론면접실A, type=토론면접실, cap=6
+2025-07-15 13:33:52,907 - __main__ - INFO -   - 토론면접실B, type=토론면접실, cap=6
+2025-07-15 13:33:52,907 - __main__ - INFO -   - 발표준비실, type=발표준비실, cap=2
+2025-07-15 13:33:52,907 - __main__ - INFO -   - 발표면접실A, type=발표면접실, cap=1
+2025-07-15 13:33:52,908 - __main__ - INFO -   - 발표면접실B, type=발표면접실, cap=1
+2025-07-15 13:33:52,908 - __main__ - INFO - [진단] 선후행 제약조건 목록:
+2025-07-15 13:33:52,909 - __main__ - INFO -   - 발표준비 → 발표면접, gap_min=0, is_adjacent=True
+2025-07-15 13:33:52,910 - __main__ - INFO - ⏰ 운영 시간: 9:00:00 ~ 17:30:00 (510분)
+2025-07-15 13:33:52,911 - __main__ - INFO - 🔧 Batched 활동 변수 생성 시작...
+2025-07-15 13:33:52,911 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB03_G001, 활동=토론면접, duration=30, 지원자=['JOB03_001', 'JOB03_002', 'JOB03_003', 'JOB03_004', 'JOB03_005']
+2025-07-15 13:33:52,914 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB03_G002, 활동=토론면접, duration=30, 지원자=['JOB03_006', 'JOB03_007', 'JOB03_008', 'JOB03_009', 'JOB03_010']
+2025-07-15 13:33:52,915 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB03_G003, 활동=토론면접, duration=30, 지원자=['JOB03_011', 'JOB03_012', 'JOB03_013', 'JOB03_014', 'JOB03_015']
+2025-07-15 13:33:52,916 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB03_G004, 활동=토론면접, duration=30, 지원자=['JOB03_016', 'JOB03_017', 'JOB03_018', 'JOB03_019', 'JOB03_020']
+2025-07-15 13:33:52,917 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB04_G001, 활동=토론면접, duration=30, 지원자=['JOB04_001', 'JOB04_002', 'JOB04_003', 'JOB04_004', 'JOB04_005']
+2025-07-15 13:33:52,919 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB04_G002, 활동=토론면접, duration=30, 지원자=['JOB04_006', 'JOB04_007', 'JOB04_008', 'JOB04_009', 'JOB04_010']
+2025-07-15 13:33:52,920 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB04_G003, 활동=토론면접, duration=30, 지원자=['JOB04_011', 'JOB04_012', 'JOB04_013', 'JOB04_014', 'JOB04_015']
+2025-07-15 13:33:52,922 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB04_G004, 활동=토론면접, duration=30, 지원자=['JOB04_016', 'JOB04_017', 'JOB04_018', 'JOB04_019', 'JOB04_020']
+2025-07-15 13:33:52,924 - __main__ - INFO - ✅ Batched 변수 생성 완료: 8개 그룹
+2025-07-15 13:33:52,925 - __main__ - INFO - 🔧 Individual 활동 변수 생성 시작...
+2025-07-15 13:33:52,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_001, 활동=발표준비, duration=5
+2025-07-15 13:33:52,928 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_001, 활동=발표면접, duration=15
+2025-07-15 13:33:52,929 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_002, 활동=발표준비, duration=5
+2025-07-15 13:33:52,931 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_002, 활동=발표면접, duration=15
+2025-07-15 13:33:52,933 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_003, 활동=발표준비, duration=5
+2025-07-15 13:33:52,934 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_003, 활동=발표면접, duration=15
+2025-07-15 13:33:52,935 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_004, 활동=발표준비, duration=5
+2025-07-15 13:33:52,936 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_004, 활동=발표면접, duration=15
+2025-07-15 13:33:52,937 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_005, 활동=발표준비, duration=5
+2025-07-15 13:33:52,937 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_005, 활동=발표면접, duration=15
+2025-07-15 13:33:52,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_006, 활동=발표준비, duration=5
+2025-07-15 13:33:52,939 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_006, 활동=발표면접, duration=15
+2025-07-15 13:33:52,940 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_007, 활동=발표준비, duration=5
+2025-07-15 13:33:52,941 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_007, 활동=발표면접, duration=15
+2025-07-15 13:33:52,942 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_008, 활동=발표준비, duration=5
+2025-07-15 13:33:52,945 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_008, 활동=발표면접, duration=15
+2025-07-15 13:33:52,948 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_009, 활동=발표준비, duration=5
+2025-07-15 13:33:52,952 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_009, 활동=발표면접, duration=15
+2025-07-15 13:33:52,954 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_010, 활동=발표준비, duration=5
+2025-07-15 13:33:52,955 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_010, 활동=발표면접, duration=15
+2025-07-15 13:33:52,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_011, 활동=발표준비, duration=5
+2025-07-15 13:33:52,959 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_011, 활동=발표면접, duration=15
+2025-07-15 13:33:52,961 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_012, 활동=발표준비, duration=5
+2025-07-15 13:33:52,962 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_012, 활동=발표면접, duration=15
+2025-07-15 13:33:52,963 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_013, 활동=발표준비, duration=5
+2025-07-15 13:33:52,964 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_013, 활동=발표면접, duration=15
+2025-07-15 13:33:52,965 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_014, 활동=발표준비, duration=5
+2025-07-15 13:33:52,968 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_014, 활동=발표면접, duration=15
+2025-07-15 13:33:52,971 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_015, 활동=발표준비, duration=5
+2025-07-15 13:33:52,975 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_015, 활동=발표면접, duration=15
+2025-07-15 13:33:52,978 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_016, 활동=발표준비, duration=5
+2025-07-15 13:33:52,980 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_016, 활동=발표면접, duration=15
+2025-07-15 13:33:52,982 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_017, 활동=발표준비, duration=5
+2025-07-15 13:33:52,984 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_017, 활동=발표면접, duration=15
+2025-07-15 13:33:52,986 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_018, 활동=발표준비, duration=5
+2025-07-15 13:33:52,987 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_018, 활동=발표면접, duration=15
+2025-07-15 13:33:52,988 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_019, 활동=발표준비, duration=5
+2025-07-15 13:33:52,989 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_019, 활동=발표면접, duration=15
+2025-07-15 13:33:52,991 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_020, 활동=발표준비, duration=5
+2025-07-15 13:33:52,993 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB03_020, 활동=발표면접, duration=15
+2025-07-15 13:33:52,994 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_001, 활동=발표준비, duration=5
+2025-07-15 13:33:52,995 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_001, 활동=발표면접, duration=15
+2025-07-15 13:33:52,997 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_002, 활동=발표준비, duration=5
+2025-07-15 13:33:52,999 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_002, 활동=발표면접, duration=15
+2025-07-15 13:33:53,001 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_003, 활동=발표준비, duration=5
+2025-07-15 13:33:53,003 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_003, 활동=발표면접, duration=15
+2025-07-15 13:33:53,004 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_004, 활동=발표준비, duration=5
+2025-07-15 13:33:53,005 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_004, 활동=발표면접, duration=15
+2025-07-15 13:33:53,006 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_005, 활동=발표준비, duration=5
+2025-07-15 13:33:53,007 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_005, 활동=발표면접, duration=15
+2025-07-15 13:33:53,008 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_006, 활동=발표준비, duration=5
+2025-07-15 13:33:53,010 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_006, 활동=발표면접, duration=15
+2025-07-15 13:33:53,011 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_007, 활동=발표준비, duration=5
+2025-07-15 13:33:53,012 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_007, 활동=발표면접, duration=15
+2025-07-15 13:33:53,013 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_008, 활동=발표준비, duration=5
+2025-07-15 13:33:53,014 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_008, 활동=발표면접, duration=15
+2025-07-15 13:33:53,015 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_009, 활동=발표준비, duration=5
+2025-07-15 13:33:53,016 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_009, 활동=발표면접, duration=15
+2025-07-15 13:33:53,017 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_010, 활동=발표준비, duration=5
+2025-07-15 13:33:53,018 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_010, 활동=발표면접, duration=15
+2025-07-15 13:33:53,019 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_011, 활동=발표준비, duration=5
+2025-07-15 13:33:53,019 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_011, 활동=발표면접, duration=15
+2025-07-15 13:33:53,020 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_012, 활동=발표준비, duration=5
+2025-07-15 13:33:53,021 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_012, 활동=발표면접, duration=15
+2025-07-15 13:33:53,021 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_013, 활동=발표준비, duration=5
+2025-07-15 13:33:53,022 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_013, 활동=발표면접, duration=15
+2025-07-15 13:33:53,023 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_014, 활동=발표준비, duration=5
+2025-07-15 13:33:53,024 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_014, 활동=발표면접, duration=15
+2025-07-15 13:33:53,025 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_015, 활동=발표준비, duration=5
+2025-07-15 13:33:53,026 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_015, 활동=발표면접, duration=15
+2025-07-15 13:33:53,026 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_016, 활동=발표준비, duration=5
+2025-07-15 13:33:53,027 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_016, 활동=발표면접, duration=15
+2025-07-15 13:33:53,028 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_017, 활동=발표준비, duration=5
+2025-07-15 13:33:53,028 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_017, 활동=발표면접, duration=15
+2025-07-15 13:33:53,029 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_018, 활동=발표준비, duration=5
+2025-07-15 13:33:53,030 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_018, 활동=발표면접, duration=15
+2025-07-15 13:33:53,031 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_019, 활동=발표준비, duration=5
+2025-07-15 13:33:53,032 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_019, 활동=발표면접, duration=15
+2025-07-15 13:33:53,032 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_020, 활동=발표준비, duration=5
+2025-07-15 13:33:53,033 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB04_020, 활동=발표면접, duration=15
+2025-07-15 13:33:53,034 - __main__ - INFO - ✅ Individual 변수 생성 완료: 80개 활동
+2025-07-15 13:33:53,034 - __main__ - INFO - [진단] 변수 생성 완료 (소요: 0.12s)
+2025-07-15 13:33:53,034 - __main__ - INFO -   - group_intervals: 8개
+2025-07-15 13:33:53,035 - __main__ - INFO -   - group_starts: 8개
+2025-07-15 13:33:53,035 - __main__ - INFO -   - group_ends: 8개
+2025-07-15 13:33:53,035 - __main__ - INFO -   - group_rooms: 8개
+2025-07-15 13:33:53,035 - __main__ - INFO -   - individual_intervals: 80개
+2025-07-15 13:33:53,036 - __main__ - INFO -   - individual_starts: 80개
+2025-07-15 13:33:53,036 - __main__ - INFO -   - individual_ends: 80개
+2025-07-15 13:33:53,036 - __main__ - INFO -   - individual_presence: 80개
+2025-07-15 13:33:53,036 - __main__ - INFO -   - individual_rooms: 80개
+2025-07-15 13:33:53,036 - __main__ - INFO - 🔧 제약조건 추가 시작...
+2025-07-15 13:33:53,044 - __main__ - INFO - ✅ 모든 제약조건 추가 완료
+2025-07-15 13:33:53,045 - __main__ - INFO - [진단] 제약조건 추가 완료 (소요: 0.01s)
+2025-07-15 13:33:53,046 - __main__ - INFO - 🎯 체류시간 최소화 목적함수 생성 중...
+2025-07-15 13:33:53,048 - __main__ - DEBUG - 지원자 JOB03_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,049 - __main__ - DEBUG - 지원자 JOB03_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,050 - __main__ - DEBUG - 지원자 JOB03_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,050 - __main__ - DEBUG - 지원자 JOB03_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,051 - __main__ - DEBUG - 지원자 JOB03_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,052 - __main__ - DEBUG - 지원자 JOB03_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,052 - __main__ - DEBUG - 지원자 JOB03_007: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,052 - __main__ - DEBUG - 지원자 JOB03_008: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,053 - __main__ - DEBUG - 지원자 JOB03_009: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,053 - __main__ - DEBUG - 지원자 JOB03_010: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,054 - __main__ - DEBUG - 지원자 JOB03_011: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,054 - __main__ - DEBUG - 지원자 JOB03_012: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,055 - __main__ - DEBUG - 지원자 JOB03_013: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,055 - __main__ - DEBUG - 지원자 JOB03_014: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,056 - __main__ - DEBUG - 지원자 JOB03_015: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,056 - __main__ - DEBUG - 지원자 JOB03_016: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,056 - __main__ - DEBUG - 지원자 JOB03_017: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,057 - __main__ - DEBUG - 지원자 JOB03_018: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,057 - __main__ - DEBUG - 지원자 JOB03_019: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,057 - __main__ - DEBUG - 지원자 JOB03_020: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,058 - __main__ - DEBUG - 지원자 JOB04_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,058 - __main__ - DEBUG - 지원자 JOB04_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,058 - __main__ - DEBUG - 지원자 JOB04_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,059 - __main__ - DEBUG - 지원자 JOB04_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,059 - __main__ - DEBUG - 지원자 JOB04_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,060 - __main__ - DEBUG - 지원자 JOB04_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,060 - __main__ - DEBUG - 지원자 JOB04_007: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,061 - __main__ - DEBUG - 지원자 JOB04_008: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,061 - __main__ - DEBUG - 지원자 JOB04_009: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,062 - __main__ - DEBUG - 지원자 JOB04_010: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,062 - __main__ - DEBUG - 지원자 JOB04_011: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,063 - __main__ - DEBUG - 지원자 JOB04_012: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,064 - __main__ - DEBUG - 지원자 JOB04_013: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,064 - __main__ - DEBUG - 지원자 JOB04_014: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,065 - __main__ - DEBUG - 지원자 JOB04_015: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,065 - __main__ - DEBUG - 지원자 JOB04_016: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,066 - __main__ - DEBUG - 지원자 JOB04_017: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,067 - __main__ - DEBUG - 지원자 JOB04_018: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,068 - __main__ - DEBUG - 지원자 JOB04_019: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,068 - __main__ - DEBUG - 지원자 JOB04_020: 3개 활동 체류시간 변수 생성
+2025-07-15 13:33:53,069 - __main__ - INFO - ✅ 체류시간 목적함수 생성 완료: 40명
+2025-07-15 13:33:53,069 - __main__ - INFO - [진단] 목적함수 변수 개수: 40 (소요: 0.02s)
+2025-07-15 13:33:53,069 - __main__ - INFO - ✅ 목적함수 설정: 40명의 총 체류시간 최소화
+2025-07-15 13:33:53,069 - __main__ - INFO - 🔍 CP-SAT 통합 최적화 실행 중... (최대 120초)
+2025-07-15 13:38:53,751 - __main__ - INFO - [진단] Solve 종료 (소요: 300.68s), status: FEASIBLE
+2025-07-15 13:38:53,751 - __main__ - INFO - [진단] Objective value: 2080.0
+2025-07-15 13:38:53,753 - __main__ - INFO - [진단] NumConflicts: 0, NumBranches: 134, WallTime: 300.66s
+2025-07-15 13:38:53,754 - __main__ - INFO - [진단] Model stats: #variables=N/A, #constraints=N/A
+2025-07-15 13:38:53,754 - __main__ - INFO - [진단] 전체 소요 시간: 300.89s
+2025-07-15 13:38:53,755 - __main__ - INFO - ✅ 실행 가능해 발견!
+2025-07-15 13:38:53,755 - __main__ - INFO - 📊 통합 최적화 결과: 평균 체류시간 0.9시간
+2025-07-15 13:38:53,756 - __main__ - INFO - [진단] 결과 추출 단계 진입
+2025-07-15 13:38:53,760 - __main__ - INFO - [진단] 추출된 Batched 스케줄 개수: 40
+2025-07-15 13:38:53,761 - __main__ - INFO - [진단] 추출된 Individual 스케줄 개수: 80
+2025-07-15 13:38:53,762 - __main__ - INFO - ✅ 결과 추출 완료: Batched 40개, Individual 80개
+2025-07-15 13:38:53,770 - __main__ - INFO - 2025-07-16: 성공 - 40명 스케줄링
+2025-07-15 13:38:53,772 - __main__ - INFO - [진단] _create_applicants 시작
+2025-07-15 13:38:53,773 - __main__ - INFO - [진단] config.jobs: {'JOB05': 12, 'JOB06': 15, 'JOB07': 6}
+2025-07-15 13:38:53,774 - __main__ - INFO - [진단] config.activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,774 - __main__ - INFO - [진단] config.job_activity_matrix: {('JOB05', '토론면접'): True, ('JOB05', '발표준비'): True, ('JOB05', '발표면접'): True, ('JOB06', '토론면접'): True, ('JOB06', '발표준비'): True, ('JOB06', '발표면접'): True, ('JOB07', '토론면접'): True, ('JOB07', '발표준비'): True, ('JOB07', '발표면접'): True}
+2025-07-15 13:38:53,774 - __main__ - INFO - [진단] 직무 JOB05 처리 중 (지원자 12명)
+2025-07-15 13:38:53,775 - __main__ - INFO - [진단] 매트릭스 키 ('JOB05', '토론면접'): True
+2025-07-15 13:38:53,776 - __main__ - INFO - [진단] 매트릭스 키 ('JOB05', '발표준비'): True
+2025-07-15 13:38:53,776 - __main__ - INFO - [진단] 매트릭스 키 ('JOB05', '발표면접'): True
+2025-07-15 13:38:53,776 - __main__ - INFO - [진단] 직무 JOB05의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,776 - __main__ - INFO - [진단] 생성된 지원자 JOB05_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,777 - __main__ - INFO - [진단] 생성된 지원자 JOB05_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,778 - __main__ - INFO - [진단] 생성된 지원자 JOB05_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,778 - __main__ - INFO - [진단] 생성된 지원자 JOB05_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,779 - __main__ - INFO - [진단] 생성된 지원자 JOB05_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,779 - __main__ - INFO - [진단] 생성된 지원자 JOB05_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,779 - __main__ - INFO - [진단] 생성된 지원자 JOB05_007: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,779 - __main__ - INFO - [진단] 생성된 지원자 JOB05_008: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,779 - __main__ - INFO - [진단] 생성된 지원자 JOB05_009: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,781 - __main__ - INFO - [진단] 생성된 지원자 JOB05_010: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,781 - __main__ - INFO - [진단] 생성된 지원자 JOB05_011: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,781 - __main__ - INFO - [진단] 생성된 지원자 JOB05_012: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,782 - __main__ - INFO - [진단] 직무 JOB06 처리 중 (지원자 15명)
+2025-07-15 13:38:53,782 - __main__ - INFO - [진단] 매트릭스 키 ('JOB06', '토론면접'): True
+2025-07-15 13:38:53,782 - __main__ - INFO - [진단] 매트릭스 키 ('JOB06', '발표준비'): True
+2025-07-15 13:38:53,783 - __main__ - INFO - [진단] 매트릭스 키 ('JOB06', '발표면접'): True
+2025-07-15 13:38:53,784 - __main__ - INFO - [진단] 직무 JOB06의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,784 - __main__ - INFO - [진단] 생성된 지원자 JOB06_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,784 - __main__ - INFO - [진단] 생성된 지원자 JOB06_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,785 - __main__ - INFO - [진단] 생성된 지원자 JOB06_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,786 - __main__ - INFO - [진단] 생성된 지원자 JOB06_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,787 - __main__ - INFO - [진단] 생성된 지원자 JOB06_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,788 - __main__ - INFO - [진단] 생성된 지원자 JOB06_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,788 - __main__ - INFO - [진단] 생성된 지원자 JOB06_007: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,789 - __main__ - INFO - [진단] 생성된 지원자 JOB06_008: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,789 - __main__ - INFO - [진단] 생성된 지원자 JOB06_009: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,790 - __main__ - INFO - [진단] 생성된 지원자 JOB06_010: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,790 - __main__ - INFO - [진단] 생성된 지원자 JOB06_011: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB06_012: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB06_013: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB06_014: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB06_015: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 직무 JOB07 처리 중 (지원자 6명)
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 매트릭스 키 ('JOB07', '토론면접'): True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 매트릭스 키 ('JOB07', '발표준비'): True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 매트릭스 키 ('JOB07', '발표면접'): True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 직무 JOB07의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB07_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB07_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB07_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB07_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB07_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 생성된 지원자 JOB07_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] _create_applicants 완료: 총 33명 지원자 생성
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 그룹 최적화 시작 (V2): 33명 지원자, 활동: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] Batched 활동: ['토론면접']
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 직무별 지원자 분포: { JOB05: 12명, JOB06: 15명, JOB07: 6명 }
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_007의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_008의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_009의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_010의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,791 - __main__ - INFO - [진단] 지원자 JOB05_011의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,805 - __main__ - INFO - [진단] 지원자 JOB05_012의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,805 - __main__ - INFO - [진단] 직무 JOB05에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:38:53,805 - __main__ - INFO - [진단] JOB05 직무의 batched 활동: ['토론면접']
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] JOB05: 지원자 12명, 그룹 크기 4~6
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] _create_common_groups: JOB05, 지원자 12명, 그룹 크기 4~6
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 그룹 수: 2, 더미 수: 0
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 2개, 더미 0명
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] JOB05: 생성된 그룹 수 2, 더미 0명
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_007의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_008의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_009의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_010의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_011의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_012의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_013의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_014의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 지원자 JOB06_015의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 직무 JOB06에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] JOB06 직무의 batched 활동: ['토론면접']
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] JOB06: 지원자 15명, 그룹 크기 4~6
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] _create_common_groups: JOB06, 지원자 15명, 그룹 크기 4~6
+2025-07-15 13:38:53,806 - __main__ - INFO - [진단] 그룹 수: 3, 더미 수: 0
+2025-07-15 13:38:53,824 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 3개, 더미 0명
+2025-07-15 13:38:53,825 - __main__ - INFO - [진단] JOB06: 생성된 그룹 수 3, 더미 0명
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 지원자 JOB07_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 지원자 JOB07_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 지원자 JOB07_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 지원자 JOB07_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 지원자 JOB07_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 지원자 JOB07_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] 직무 JOB07에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] JOB07 직무의 batched 활동: ['토론면접']
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] JOB07: 지원자 6명, 그룹 크기 4~6
+2025-07-15 13:38:53,826 - __main__ - INFO - [진단] _create_common_groups: JOB07, 지원자 6명, 그룹 크기 4~6
+2025-07-15 13:38:53,838 - __main__ - INFO - [진단] 그룹 수: 1, 더미 수: 0
+2025-07-15 13:38:53,841 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 1개, 더미 0명
+2025-07-15 13:38:53,844 - __main__ - INFO - [진단] JOB07: 생성된 그룹 수 1, 더미 0명
+2025-07-15 13:38:53,845 - __main__ - INFO - [진단] 활동 토론면접에 할당된 그룹 수: 6
+2025-07-15 13:38:53,845 - __main__ - INFO - [진단] 그룹 최적화 완료 (V2): 6개 그룹, 0명 더미
+2025-07-15 13:38:53,845 - __main__ - INFO - [진단] Level 1 그룹/지원자 상세 로그
+2025-07-15 13:38:53,846 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 6
+2025-07-15 13:38:53,846 - __main__ - INFO -   - 그룹ID: JOB05_G001, 크기: 6, 지원자: ['JOB05_001', 'JOB05_002', 'JOB05_003', 'JOB05_004', 'JOB05_005', 'JOB05_006']
+2025-07-15 13:38:53,846 - __main__ - INFO -     * 지원자ID: JOB05_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,847 - __main__ - INFO -     * 지원자ID: JOB05_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,847 - __main__ - INFO -     * 지원자ID: JOB05_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,848 - __main__ - INFO -     * 지원자ID: JOB05_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,848 - __main__ - INFO -     * 지원자ID: JOB05_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,849 - __main__ - INFO -     * 지원자ID: JOB05_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,849 - __main__ - INFO -   - 그룹ID: JOB05_G002, 크기: 6, 지원자: ['JOB05_007', 'JOB05_008', 'JOB05_009', 'JOB05_010', 'JOB05_011', 'JOB05_012']
+2025-07-15 13:38:53,850 - __main__ - INFO -     * 지원자ID: JOB05_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,850 - __main__ - INFO -     * 지원자ID: JOB05_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,851 - __main__ - INFO -     * 지원자ID: JOB05_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,851 - __main__ - INFO -     * 지원자ID: JOB05_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,852 - __main__ - INFO -     * 지원자ID: JOB05_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,852 - __main__ - INFO -     * 지원자ID: JOB05_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,853 - __main__ - INFO -   - 그룹ID: JOB06_G001, 크기: 5, 지원자: ['JOB06_001', 'JOB06_002', 'JOB06_003', 'JOB06_004', 'JOB06_005']
+2025-07-15 13:38:53,853 - __main__ - INFO -     * 지원자ID: JOB06_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,854 - __main__ - INFO -     * 지원자ID: JOB06_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,854 - __main__ - INFO -     * 지원자ID: JOB06_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,854 - __main__ - INFO -     * 지원자ID: JOB06_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,856 - __main__ - INFO -     * 지원자ID: JOB06_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,856 - __main__ - INFO -   - 그룹ID: JOB06_G002, 크기: 5, 지원자: ['JOB06_006', 'JOB06_007', 'JOB06_008', 'JOB06_009', 'JOB06_010']
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 그룹ID: JOB06_G003, 크기: 5, 지원자: ['JOB06_011', 'JOB06_012', 'JOB06_013', 'JOB06_014', 'JOB06_015']
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB06_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 그룹ID: JOB07_G001, 크기: 6, 지원자: ['JOB07_001', 'JOB07_002', 'JOB07_003', 'JOB07_004', 'JOB07_005', 'JOB07_006']
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB07_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB07_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB07_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB07_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB07_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -     * 지원자ID: JOB07_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO - [진단] Level 1 전체 지원자 목록:
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB05_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB06_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,857 - __main__ - INFO -   - 지원자ID: JOB06_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,872 - __main__ - INFO -   - 지원자ID: JOB06_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,872 - __main__ - INFO -   - 지원자ID: JOB06_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,873 - __main__ - INFO -   - 지원자ID: JOB06_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,874 - __main__ - INFO -   - 지원자ID: JOB06_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,874 - __main__ - INFO -   - 지원자ID: JOB06_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,874 - __main__ - INFO -   - 지원자ID: JOB06_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,875 - __main__ - INFO -   - 지원자ID: JOB06_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,875 - __main__ - INFO -   - 지원자ID: JOB06_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,876 - __main__ - INFO -   - 지원자ID: JOB06_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,876 - __main__ - INFO -   - 지원자ID: JOB06_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,876 - __main__ - INFO -   - 지원자ID: JOB06_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,877 - __main__ - INFO -   - 지원자ID: JOB06_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,877 - __main__ - INFO -   - 지원자ID: JOB06_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,878 - __main__ - INFO -   - 지원자ID: JOB07_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,878 - __main__ - INFO -   - 지원자ID: JOB07_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,878 - __main__ - INFO -   - 지원자ID: JOB07_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,879 - __main__ - INFO -   - 지원자ID: JOB07_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,879 - __main__ - INFO -   - 지원자ID: JOB07_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,879 - __main__ - INFO -   - 지원자ID: JOB07_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,880 - __main__ - INFO - 
+===== [CP-SAT 통합 스케줄러 진단 시작] =====
+2025-07-15 13:38:53,880 - __main__ - INFO - [진단] 입력 데이터 상세 로그 (Level1 그룹/지원자/활동/방/제약조건)
+2025-07-15 13:38:53,881 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 6
+2025-07-15 13:38:53,881 - __main__ - INFO -   - 그룹ID: JOB05_G001, 크기: 6, 지원자: ['JOB05_001', 'JOB05_002', 'JOB05_003', 'JOB05_004', 'JOB05_005', 'JOB05_006']
+2025-07-15 13:38:53,881 - __main__ - INFO -     * 지원자ID: JOB05_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,881 - __main__ - INFO -     * 지원자ID: JOB05_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,882 - __main__ - INFO -     * 지원자ID: JOB05_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,882 - __main__ - INFO -     * 지원자ID: JOB05_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,883 - __main__ - INFO -     * 지원자ID: JOB05_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,883 - __main__ - INFO -     * 지원자ID: JOB05_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,884 - __main__ - INFO -   - 그룹ID: JOB05_G002, 크기: 6, 지원자: ['JOB05_007', 'JOB05_008', 'JOB05_009', 'JOB05_010', 'JOB05_011', 'JOB05_012']
+2025-07-15 13:38:53,885 - __main__ - INFO -     * 지원자ID: JOB05_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,885 - __main__ - INFO -     * 지원자ID: JOB05_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,885 - __main__ - INFO -     * 지원자ID: JOB05_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,885 - __main__ - INFO -     * 지원자ID: JOB05_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,886 - __main__ - INFO -     * 지원자ID: JOB05_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,886 - __main__ - INFO -     * 지원자ID: JOB05_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,887 - __main__ - INFO -   - 그룹ID: JOB06_G001, 크기: 5, 지원자: ['JOB06_001', 'JOB06_002', 'JOB06_003', 'JOB06_004', 'JOB06_005']
+2025-07-15 13:38:53,887 - __main__ - INFO -     * 지원자ID: JOB06_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,887 - __main__ - INFO -     * 지원자ID: JOB06_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,888 - __main__ - INFO -     * 지원자ID: JOB06_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,888 - __main__ - INFO -     * 지원자ID: JOB06_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,889 - __main__ - INFO -     * 지원자ID: JOB06_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,889 - __main__ - INFO -   - 그룹ID: JOB06_G002, 크기: 5, 지원자: ['JOB06_006', 'JOB06_007', 'JOB06_008', 'JOB06_009', 'JOB06_010']
+2025-07-15 13:38:53,889 - __main__ - INFO -     * 지원자ID: JOB06_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 그룹ID: JOB06_G003, 크기: 5, 지원자: ['JOB06_011', 'JOB06_012', 'JOB06_013', 'JOB06_014', 'JOB06_015']
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB06_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 그룹ID: JOB07_G001, 크기: 6, 지원자: ['JOB07_001', 'JOB07_002', 'JOB07_003', 'JOB07_004', 'JOB07_005', 'JOB07_006']
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB07_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB07_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB07_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB07_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB07_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -     * 지원자ID: JOB07_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO - [진단] 전체 지원자 목록:
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB05_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB06_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB06_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB06_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB06_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB06_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,890 - __main__ - INFO -   - 지원자ID: JOB06_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,905 - __main__ - INFO -   - 지원자ID: JOB06_007, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,905 - __main__ - INFO -   - 지원자ID: JOB06_008, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_009, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_010, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_011, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_012, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_013, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_014, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB06_015, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB07_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB07_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB07_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB07_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB07_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 지원자ID: JOB07_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] 활동 목록:
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 토론면접, mode=ActivityMode.BATCHED, duration=30, min_cap=4, max_cap=6, required_rooms=['토론면접실']
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 발표준비, mode=ActivityMode.PARALLEL, duration=5, min_cap=1, max_cap=2, required_rooms=['발표준비실']
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 발표면접, mode=ActivityMode.INDIVIDUAL, duration=15, min_cap=1, max_cap=1, required_rooms=['발표면접실']
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] 방 목록:
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 토론면접실A, type=토론면접실, cap=6
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 토론면접실B, type=토론면접실, cap=6
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 발표준비실, type=발표준비실, cap=2
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 발표면접실A, type=발표면접실, cap=1
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 발표면접실B, type=발표면접실, cap=1
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] 선후행 제약조건 목록:
+2025-07-15 13:38:53,906 - __main__ - INFO -   - 발표준비 → 발표면접, gap_min=0, is_adjacent=True
+2025-07-15 13:38:53,906 - __main__ - INFO - ⏰ 운영 시간: 9:00:00 ~ 17:30:00 (510분)
+2025-07-15 13:38:53,906 - __main__ - INFO - 🔧 Batched 활동 변수 생성 시작...
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB05_G001, 활동=토론면접, duration=30, 지원자=['JOB05_001', 'JOB05_002', 'JOB05_003', 'JOB05_004', 'JOB05_005', 'JOB05_006']
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB05_G002, 활동=토론면접, duration=30, 지원자=['JOB05_007', 'JOB05_008', 'JOB05_009', 'JOB05_010', 'JOB05_011', 'JOB05_012']
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB06_G001, 활동=토론면접, duration=30, 지원자=['JOB06_001', 'JOB06_002', 'JOB06_003', 'JOB06_004', 'JOB06_005']
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB06_G002, 활동=토론면접, duration=30, 지원자=['JOB06_006', 'JOB06_007', 'JOB06_008', 'JOB06_009', 'JOB06_010']
+2025-07-15 13:38:53,906 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB06_G003, 활동=토론면접, duration=30, 지원자=['JOB06_011', 'JOB06_012', 'JOB06_013', 'JOB06_014', 'JOB06_015']
+2025-07-15 13:38:53,921 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB07_G001, 활동=토론면접, duration=30, 지원자=['JOB07_001', 'JOB07_002', 'JOB07_003', 'JOB07_004', 'JOB07_005', 'JOB07_006']
+2025-07-15 13:38:53,922 - __main__ - INFO - ✅ Batched 변수 생성 완료: 6개 그룹
+2025-07-15 13:38:53,922 - __main__ - INFO - 🔧 Individual 활동 변수 생성 시작...
+2025-07-15 13:38:53,923 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_001, 활동=발표준비, duration=5
+2025-07-15 13:38:53,924 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_001, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_002, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_002, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_003, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_003, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_004, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_004, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_005, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_005, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_006, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_006, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_007, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_007, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_008, 활동=발표준비, duration=5
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_008, 활동=발표면접, duration=15
+2025-07-15 13:38:53,926 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_009, 활동=발표준비, duration=5
+2025-07-15 13:38:53,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_009, 활동=발표면접, duration=15
+2025-07-15 13:38:53,938 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_010, 활동=발표준비, duration=5
+2025-07-15 13:38:53,939 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_010, 활동=발표면접, duration=15
+2025-07-15 13:38:53,940 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_011, 활동=발표준비, duration=5
+2025-07-15 13:38:53,942 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_011, 활동=발표면접, duration=15
+2025-07-15 13:38:53,942 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_012, 활동=발표준비, duration=5
+2025-07-15 13:38:53,943 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB05_012, 활동=발표면접, duration=15
+2025-07-15 13:38:53,944 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_001, 활동=발표준비, duration=5
+2025-07-15 13:38:53,944 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_001, 활동=발표면접, duration=15
+2025-07-15 13:38:53,944 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_002, 활동=발표준비, duration=5
+2025-07-15 13:38:53,946 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_002, 활동=발표면접, duration=15
+2025-07-15 13:38:53,946 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_003, 활동=발표준비, duration=5
+2025-07-15 13:38:53,947 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_003, 활동=발표면접, duration=15
+2025-07-15 13:38:53,948 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_004, 활동=발표준비, duration=5
+2025-07-15 13:38:53,948 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_004, 활동=발표면접, duration=15
+2025-07-15 13:38:53,949 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_005, 활동=발표준비, duration=5
+2025-07-15 13:38:53,950 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_005, 활동=발표면접, duration=15
+2025-07-15 13:38:53,951 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_006, 활동=발표준비, duration=5
+2025-07-15 13:38:53,951 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_006, 활동=발표면접, duration=15
+2025-07-15 13:38:53,952 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_007, 활동=발표준비, duration=5
+2025-07-15 13:38:53,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_007, 활동=발표면접, duration=15
+2025-07-15 13:38:53,953 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_008, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_008, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_009, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_009, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_010, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_010, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_011, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_011, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_012, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_012, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_013, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_013, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_014, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_014, 활동=발표면접, duration=15
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_015, 활동=발표준비, duration=5
+2025-07-15 13:38:53,957 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB06_015, 활동=발표면접, duration=15
+2025-07-15 13:38:53,971 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_001, 활동=발표준비, duration=5
+2025-07-15 13:38:53,975 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_001, 활동=발표면접, duration=15
+2025-07-15 13:38:53,977 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_002, 활동=발표준비, duration=5
+2025-07-15 13:38:53,978 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_002, 활동=발표면접, duration=15
+2025-07-15 13:38:53,979 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_003, 활동=발표준비, duration=5
+2025-07-15 13:38:53,979 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_003, 활동=발표면접, duration=15
+2025-07-15 13:38:53,980 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_004, 활동=발표준비, duration=5
+2025-07-15 13:38:53,981 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_004, 활동=발표면접, duration=15
+2025-07-15 13:38:53,982 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_005, 활동=발표준비, duration=5
+2025-07-15 13:38:53,983 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_005, 활동=발표면접, duration=15
+2025-07-15 13:38:53,983 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_006, 활동=발표준비, duration=5
+2025-07-15 13:38:53,984 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB07_006, 활동=발표면접, duration=15
+2025-07-15 13:38:53,985 - __main__ - INFO - ✅ Individual 변수 생성 완료: 66개 활동
+2025-07-15 13:38:53,985 - __main__ - INFO - [진단] 변수 생성 완료 (소요: 0.08s)
+2025-07-15 13:38:53,986 - __main__ - INFO -   - group_intervals: 6개
+2025-07-15 13:38:53,986 - __main__ - INFO -   - group_starts: 6개
+2025-07-15 13:38:53,987 - __main__ - INFO -   - group_ends: 6개
+2025-07-15 13:38:53,987 - __main__ - INFO -   - group_rooms: 6개
+2025-07-15 13:38:53,987 - __main__ - INFO -   - individual_intervals: 66개
+2025-07-15 13:38:53,987 - __main__ - INFO -   - individual_starts: 66개
+2025-07-15 13:38:53,988 - __main__ - INFO -   - individual_ends: 66개
+2025-07-15 13:38:53,989 - __main__ - INFO -   - individual_presence: 66개
+2025-07-15 13:38:53,989 - __main__ - INFO -   - individual_rooms: 66개
+2025-07-15 13:38:53,989 - __main__ - INFO - 🔧 제약조건 추가 시작...
+2025-07-15 13:38:53,990 - __main__ - INFO - ✅ 모든 제약조건 추가 완료
+2025-07-15 13:38:53,990 - __main__ - INFO - [진단] 제약조건 추가 완료 (소요: 0.00s)
+2025-07-15 13:38:53,990 - __main__ - INFO - 🎯 체류시간 최소화 목적함수 생성 중...
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_007: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_008: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_009: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_010: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_011: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:53,990 - __main__ - DEBUG - 지원자 JOB05_012: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,005 - __main__ - DEBUG - 지원자 JOB06_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,007 - __main__ - DEBUG - 지원자 JOB06_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,008 - __main__ - DEBUG - 지원자 JOB06_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,008 - __main__ - DEBUG - 지원자 JOB06_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,009 - __main__ - DEBUG - 지원자 JOB06_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,010 - __main__ - DEBUG - 지원자 JOB06_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,011 - __main__ - DEBUG - 지원자 JOB06_007: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,011 - __main__ - DEBUG - 지원자 JOB06_008: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,012 - __main__ - DEBUG - 지원자 JOB06_009: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,013 - __main__ - DEBUG - 지원자 JOB06_010: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,013 - __main__ - DEBUG - 지원자 JOB06_011: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,014 - __main__ - DEBUG - 지원자 JOB06_012: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,014 - __main__ - DEBUG - 지원자 JOB06_013: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,015 - __main__ - DEBUG - 지원자 JOB06_014: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,016 - __main__ - DEBUG - 지원자 JOB06_015: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,017 - __main__ - DEBUG - 지원자 JOB07_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,017 - __main__ - DEBUG - 지원자 JOB07_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,018 - __main__ - DEBUG - 지원자 JOB07_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,019 - __main__ - DEBUG - 지원자 JOB07_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,019 - __main__ - DEBUG - 지원자 JOB07_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,020 - __main__ - DEBUG - 지원자 JOB07_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:38:54,021 - __main__ - INFO - ✅ 체류시간 목적함수 생성 완료: 33명
+2025-07-15 13:38:54,021 - __main__ - INFO - [진단] 목적함수 변수 개수: 33 (소요: 0.03s)
+2025-07-15 13:38:54,024 - __main__ - INFO - ✅ 목적함수 설정: 33명의 총 체류시간 최소화
+2025-07-15 13:38:54,024 - __main__ - INFO - 🔍 CP-SAT 통합 최적화 실행 중... (최대 120초)
+2025-07-15 13:43:59,091 - __main__ - INFO - [진단] Solve 종료 (소요: 305.07s), status: FEASIBLE
+2025-07-15 13:43:59,134 - __main__ - INFO - [진단] Objective value: 1740.0
+2025-07-15 13:43:59,190 - __main__ - INFO - [진단] NumConflicts: 0, NumBranches: 0, WallTime: 304.88s
+2025-07-15 13:43:59,244 - __main__ - INFO - [진단] Model stats: #variables=N/A, #constraints=N/A
+2025-07-15 13:43:59,303 - __main__ - INFO - [진단] 전체 소요 시간: 305.42s
+2025-07-15 13:43:59,356 - __main__ - INFO - ✅ 실행 가능해 발견!
+2025-07-15 13:43:59,404 - __main__ - INFO - 📊 통합 최적화 결과: 평균 체류시간 0.9시간
+2025-07-15 13:43:59,467 - __main__ - INFO - [진단] 결과 추출 단계 진입
+2025-07-15 13:43:59,570 - __main__ - INFO - [진단] 추출된 Batched 스케줄 개수: 33
+2025-07-15 13:43:59,654 - __main__ - INFO - [진단] 추출된 Individual 스케줄 개수: 66
+2025-07-15 13:43:59,715 - __main__ - INFO - ✅ 결과 추출 완료: Batched 33개, Individual 66개
+2025-07-15 13:43:59,841 - __main__ - INFO - 2025-07-17: 성공 - 33명 스케줄링
+2025-07-15 13:43:59,917 - __main__ - INFO - [진단] _create_applicants 시작
+2025-07-15 13:43:59,955 - __main__ - INFO - [진단] config.jobs: {'JOB08': 6, 'JOB09': 6, 'JOB10': 3, 'JOB11': 3}
+2025-07-15 13:44:00,006 - __main__ - INFO - [진단] config.activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,047 - __main__ - INFO - [진단] config.job_activity_matrix: {('JOB08', '토론면접'): True, ('JOB08', '발표준비'): True, ('JOB08', '발표면접'): True, ('JOB09', '토론면접'): True, ('JOB09', '발표준비'): True, ('JOB09', '발표면접'): True, ('JOB10', '토론면접'): True, ('JOB10', '발표준비'): True, ('JOB10', '발표면접'): True, ('JOB11', '토론면접'): True, ('JOB11', '발표준비'): True, ('JOB11', '발표면접'): True}
+2025-07-15 13:44:00,082 - __main__ - INFO - [진단] 직무 JOB08 처리 중 (지원자 6명)
+2025-07-15 13:44:00,120 - __main__ - INFO - [진단] 매트릭스 키 ('JOB08', '토론면접'): True
+2025-07-15 13:44:00,139 - __main__ - INFO - [진단] 매트릭스 키 ('JOB08', '발표준비'): True
+2025-07-15 13:44:00,154 - __main__ - INFO - [진단] 매트릭스 키 ('JOB08', '발표면접'): True
+2025-07-15 13:44:00,200 - __main__ - INFO - [진단] 직무 JOB08의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,276 - __main__ - INFO - [진단] 생성된 지원자 JOB08_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,313 - __main__ - INFO - [진단] 생성된 지원자 JOB08_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,333 - __main__ - INFO - [진단] 생성된 지원자 JOB08_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,366 - __main__ - INFO - [진단] 생성된 지원자 JOB08_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,407 - __main__ - INFO - [진단] 생성된 지원자 JOB08_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,477 - __main__ - INFO - [진단] 생성된 지원자 JOB08_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,593 - __main__ - INFO - [진단] 직무 JOB09 처리 중 (지원자 6명)
+2025-07-15 13:44:00,647 - __main__ - INFO - [진단] 매트릭스 키 ('JOB09', '토론면접'): True
+2025-07-15 13:44:00,724 - __main__ - INFO - [진단] 매트릭스 키 ('JOB09', '발표준비'): True
+2025-07-15 13:44:00,811 - __main__ - INFO - [진단] 매트릭스 키 ('JOB09', '발표면접'): True
+2025-07-15 13:44:00,854 - __main__ - INFO - [진단] 직무 JOB09의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,894 - __main__ - INFO - [진단] 생성된 지원자 JOB09_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:00,939 - __main__ - INFO - [진단] 생성된 지원자 JOB09_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,005 - __main__ - INFO - [진단] 생성된 지원자 JOB09_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,060 - __main__ - INFO - [진단] 생성된 지원자 JOB09_004: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,107 - __main__ - INFO - [진단] 생성된 지원자 JOB09_005: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,158 - __main__ - INFO - [진단] 생성된 지원자 JOB09_006: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,205 - __main__ - INFO - [진단] 직무 JOB10 처리 중 (지원자 3명)
+2025-07-15 13:44:01,252 - __main__ - INFO - [진단] 매트릭스 키 ('JOB10', '토론면접'): True
+2025-07-15 13:44:01,293 - __main__ - INFO - [진단] 매트릭스 키 ('JOB10', '발표준비'): True
+2025-07-15 13:44:01,316 - __main__ - INFO - [진단] 매트릭스 키 ('JOB10', '발표면접'): True
+2025-07-15 13:44:01,350 - __main__ - INFO - [진단] 직무 JOB10의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,390 - __main__ - INFO - [진단] 생성된 지원자 JOB10_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,451 - __main__ - INFO - [진단] 생성된 지원자 JOB10_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,502 - __main__ - INFO - [진단] 생성된 지원자 JOB10_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,542 - __main__ - INFO - [진단] 직무 JOB11 처리 중 (지원자 3명)
+2025-07-15 13:44:01,582 - __main__ - INFO - [진단] 매트릭스 키 ('JOB11', '토론면접'): True
+2025-07-15 13:44:01,637 - __main__ - INFO - [진단] 매트릭스 키 ('JOB11', '발표준비'): True
+2025-07-15 13:44:01,703 - __main__ - INFO - [진단] 매트릭스 키 ('JOB11', '발표면접'): True
+2025-07-15 13:44:01,801 - __main__ - INFO - [진단] 직무 JOB11의 required_activities: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,860 - __main__ - INFO - [진단] 생성된 지원자 JOB11_001: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,956 - __main__ - INFO - [진단] 생성된 지원자 JOB11_002: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:01,983 - __main__ - INFO - [진단] 생성된 지원자 JOB11_003: required_activities=['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:02,028 - __main__ - INFO - [진단] _create_applicants 완료: 총 18명 지원자 생성
+2025-07-15 13:44:02,043 - __main__ - INFO - [진단] 그룹 최적화 시작 (V2): 18명 지원자, 활동: ['토론면접', '발표준비', '발표면접']
+2025-07-15 13:44:02,056 - __main__ - INFO - [진단] Batched 활동: ['토론면접']
+2025-07-15 13:44:02,073 - __main__ - INFO - [진단] 직무별 지원자 분포: { JOB08: 6명, JOB09: 6명, JOB10: 3명, JOB11: 3명 }
+2025-07-15 13:44:02,087 - __main__ - INFO - [진단] 지원자 JOB08_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,095 - __main__ - INFO - [진단] 지원자 JOB08_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,106 - __main__ - INFO - [진단] 지원자 JOB08_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,119 - __main__ - INFO - [진단] 지원자 JOB08_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,140 - __main__ - INFO - [진단] 지원자 JOB08_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,159 - __main__ - INFO - [진단] 지원자 JOB08_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,175 - __main__ - INFO - [진단] 직무 JOB08에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:44:02,182 - __main__ - INFO - [진단] JOB08 직무의 batched 활동: ['토론면접']
+2025-07-15 13:44:02,199 - __main__ - INFO - [진단] JOB08: 지원자 6명, 그룹 크기 4~6
+2025-07-15 13:44:02,213 - __main__ - INFO - [진단] _create_common_groups: JOB08, 지원자 6명, 그룹 크기 4~6
+2025-07-15 13:44:02,245 - __main__ - INFO - [진단] 그룹 수: 1, 더미 수: 0
+2025-07-15 13:44:02,274 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 1개, 더미 0명
+2025-07-15 13:44:02,320 - __main__ - INFO - [진단] JOB08: 생성된 그룹 수 1, 더미 0명
+2025-07-15 13:44:02,351 - __main__ - INFO - [진단] 지원자 JOB09_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,393 - __main__ - INFO - [진단] 지원자 JOB09_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,438 - __main__ - INFO - [진단] 지원자 JOB09_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,474 - __main__ - INFO - [진단] 지원자 JOB09_004의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,543 - __main__ - INFO - [진단] 지원자 JOB09_005의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,592 - __main__ - INFO - [진단] 지원자 JOB09_006의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,608 - __main__ - INFO - [진단] 직무 JOB09에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:44:02,628 - __main__ - INFO - [진단] JOB09 직무의 batched 활동: ['토론면접']
+2025-07-15 13:44:02,649 - __main__ - INFO - [진단] JOB09: 지원자 6명, 그룹 크기 4~6
+2025-07-15 13:44:02,696 - __main__ - INFO - [진단] _create_common_groups: JOB09, 지원자 6명, 그룹 크기 4~6
+2025-07-15 13:44:02,711 - __main__ - INFO - [진단] 그룹 수: 1, 더미 수: 0
+2025-07-15 13:44:02,722 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 1개, 더미 0명
+2025-07-15 13:44:02,737 - __main__ - INFO - [진단] JOB09: 생성된 그룹 수 1, 더미 0명
+2025-07-15 13:44:02,759 - __main__ - INFO - [진단] 지원자 JOB10_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,810 - __main__ - INFO - [진단] 지원자 JOB10_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,856 - __main__ - INFO - [진단] 지원자 JOB10_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:02,915 - __main__ - INFO - [진단] 직무 JOB10에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:44:02,973 - __main__ - INFO - [진단] JOB10 직무의 batched 활동: ['토론면접']
+2025-07-15 13:44:02,994 - __main__ - INFO - [진단] JOB10: 지원자 3명, 그룹 크기 4~6
+2025-07-15 13:44:03,013 - __main__ - INFO - [진단] _create_common_groups: JOB10, 지원자 3명, 그룹 크기 4~6
+2025-07-15 13:44:03,032 - __main__ - ERROR - [진단] 지원자 수(3)가 최소 그룹 크기(4)보다 적어 그룹 생성 불가!
+2025-07-15 13:44:03,086 - __main__ - INFO - [진단] 그룹 수: 1, 더미 수: 1
+2025-07-15 13:44:03,132 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 1개, 더미 1명
+2025-07-15 13:44:03,161 - __main__ - INFO - [진단] JOB10: 생성된 그룹 수 1, 더미 1명
+2025-07-15 13:44:03,205 - __main__ - INFO - [진단] 지원자 JOB11_001의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:03,241 - __main__ - INFO - [진단] 지원자 JOB11_002의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:03,278 - __main__ - INFO - [진단] 지원자 JOB11_003의 required_activities: ['토론면접', '발표준비', '발표면접'], activity.name: 토론면접, 포함여부: True
+2025-07-15 13:44:03,300 - __main__ - INFO - [진단] 직무 JOB11에서 활동 '토론면접' 수행 지원자 존재 여부: True
+2025-07-15 13:44:03,322 - __main__ - INFO - [진단] JOB11 직무의 batched 활동: ['토론면접']
+2025-07-15 13:44:03,349 - __main__ - INFO - [진단] JOB11: 지원자 3명, 그룹 크기 4~6
+2025-07-15 13:44:03,392 - __main__ - INFO - [진단] _create_common_groups: JOB11, 지원자 3명, 그룹 크기 4~6
+2025-07-15 13:44:03,432 - __main__ - ERROR - [진단] 지원자 수(3)가 최소 그룹 크기(4)보다 적어 그룹 생성 불가!
+2025-07-15 13:44:03,468 - __main__ - INFO - [진단] 그룹 수: 1, 더미 수: 1
+2025-07-15 13:44:03,500 - __main__ - INFO - [진단] _create_common_groups: 생성된 그룹 1개, 더미 1명
+2025-07-15 13:44:03,531 - __main__ - INFO - [진단] JOB11: 생성된 그룹 수 1, 더미 1명
+2025-07-15 13:44:03,550 - __main__ - INFO - [진단] 활동 토론면접에 할당된 그룹 수: 4
+2025-07-15 13:44:03,588 - __main__ - INFO - [진단] 그룹 최적화 완료 (V2): 4개 그룹, 2명 더미
+2025-07-15 13:44:03,622 - __main__ - INFO - [진단] Level 1 그룹/지원자 상세 로그
+2025-07-15 13:44:03,643 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 4
+2025-07-15 13:44:03,672 - __main__ - INFO -   - 그룹ID: JOB08_G001, 크기: 6, 지원자: ['JOB08_001', 'JOB08_002', 'JOB08_003', 'JOB08_004', 'JOB08_005', 'JOB08_006']
+2025-07-15 13:44:03,696 - __main__ - INFO -     * 지원자ID: JOB08_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,722 - __main__ - INFO -     * 지원자ID: JOB08_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,736 - __main__ - INFO -     * 지원자ID: JOB08_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,761 - __main__ - INFO -     * 지원자ID: JOB08_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,789 - __main__ - INFO -     * 지원자ID: JOB08_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,816 - __main__ - INFO -     * 지원자ID: JOB08_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,844 - __main__ - INFO -   - 그룹ID: JOB09_G001, 크기: 6, 지원자: ['JOB09_001', 'JOB09_002', 'JOB09_003', 'JOB09_004', 'JOB09_005', 'JOB09_006']
+2025-07-15 13:44:03,871 - __main__ - INFO -     * 지원자ID: JOB09_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,912 - __main__ - INFO -     * 지원자ID: JOB09_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,943 - __main__ - INFO -     * 지원자ID: JOB09_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:03,975 - __main__ - INFO -     * 지원자ID: JOB09_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,009 - __main__ - INFO -     * 지원자ID: JOB09_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,040 - __main__ - INFO -     * 지원자ID: JOB09_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,071 - __main__ - INFO -   - 그룹ID: JOB10_G001, 크기: 4, 지원자: ['JOB10_001', 'JOB10_002', 'JOB10_003']
+2025-07-15 13:44:04,101 - __main__ - INFO -     * 지원자ID: JOB10_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,130 - __main__ - INFO -     * 지원자ID: JOB10_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,164 - __main__ - INFO -     * 지원자ID: JOB10_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,209 - __main__ - INFO -   - 그룹ID: JOB11_G001, 크기: 4, 지원자: ['JOB11_001', 'JOB11_002', 'JOB11_003']
+2025-07-15 13:44:04,258 - __main__ - INFO -     * 지원자ID: JOB11_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,292 - __main__ - INFO -     * 지원자ID: JOB11_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,321 - __main__ - INFO -     * 지원자ID: JOB11_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,347 - __main__ - INFO - [진단] Level 1 전체 지원자 목록:
+2025-07-15 13:44:04,375 - __main__ - INFO -   - 지원자ID: JOB08_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,413 - __main__ - INFO -   - 지원자ID: JOB08_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,453 - __main__ - INFO -   - 지원자ID: JOB08_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,461 - __main__ - INFO -   - 지원자ID: JOB08_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,475 - __main__ - INFO -   - 지원자ID: JOB08_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,490 - __main__ - INFO -   - 지원자ID: JOB08_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,504 - __main__ - INFO -   - 지원자ID: JOB09_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,547 - __main__ - INFO -   - 지원자ID: JOB09_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,581 - __main__ - INFO -   - 지원자ID: JOB09_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,617 - __main__ - INFO -   - 지원자ID: JOB09_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,657 - __main__ - INFO -   - 지원자ID: JOB09_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,674 - __main__ - INFO -   - 지원자ID: JOB09_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,695 - __main__ - INFO -   - 지원자ID: JOB10_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,718 - __main__ - INFO -   - 지원자ID: JOB10_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,752 - __main__ - INFO -   - 지원자ID: JOB10_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,781 - __main__ - INFO -   - 지원자ID: JOB11_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,805 - __main__ - INFO -   - 지원자ID: JOB11_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,824 - __main__ - INFO -   - 지원자ID: JOB11_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:04,846 - __main__ - INFO - 
+===== [CP-SAT 통합 스케줄러 진단 시작] =====
+2025-07-15 13:44:04,860 - __main__ - INFO - [진단] 입력 데이터 상세 로그 (Level1 그룹/지원자/활동/방/제약조건)
+2025-07-15 13:44:04,898 - __main__ - INFO - [진단] 활동: 토론면접, 그룹 수: 4
+2025-07-15 13:44:04,915 - __main__ - INFO -   - 그룹ID: JOB08_G001, 크기: 6, 지원자: ['JOB08_001', 'JOB08_002', 'JOB08_003', 'JOB08_004', 'JOB08_005', 'JOB08_006']
+2025-07-15 13:44:04,960 - __main__ - INFO -     * 지원자ID: JOB08_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,000 - __main__ - INFO -     * 지원자ID: JOB08_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,037 - __main__ - INFO -     * 지원자ID: JOB08_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,103 - __main__ - INFO -     * 지원자ID: JOB08_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,172 - __main__ - INFO -     * 지원자ID: JOB08_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,235 - __main__ - INFO -     * 지원자ID: JOB08_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,281 - __main__ - INFO -   - 그룹ID: JOB09_G001, 크기: 6, 지원자: ['JOB09_001', 'JOB09_002', 'JOB09_003', 'JOB09_004', 'JOB09_005', 'JOB09_006']
+2025-07-15 13:44:05,312 - __main__ - INFO -     * 지원자ID: JOB09_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,358 - __main__ - INFO -     * 지원자ID: JOB09_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,407 - __main__ - INFO -     * 지원자ID: JOB09_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,459 - __main__ - INFO -     * 지원자ID: JOB09_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,486 - __main__ - INFO -     * 지원자ID: JOB09_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,519 - __main__ - INFO -     * 지원자ID: JOB09_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,566 - __main__ - INFO -   - 그룹ID: JOB10_G001, 크기: 4, 지원자: ['JOB10_001', 'JOB10_002', 'JOB10_003']
+2025-07-15 13:44:05,607 - __main__ - INFO -     * 지원자ID: JOB10_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,631 - __main__ - INFO -     * 지원자ID: JOB10_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,657 - __main__ - INFO -     * 지원자ID: JOB10_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,689 - __main__ - INFO -   - 그룹ID: JOB11_G001, 크기: 4, 지원자: ['JOB11_001', 'JOB11_002', 'JOB11_003']
+2025-07-15 13:44:05,709 - __main__ - INFO -     * 지원자ID: JOB11_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,730 - __main__ - INFO -     * 지원자ID: JOB11_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,765 - __main__ - INFO -     * 지원자ID: JOB11_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,809 - __main__ - INFO - [진단] 전체 지원자 목록:
+2025-07-15 13:44:05,837 - __main__ - INFO -   - 지원자ID: JOB08_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,879 - __main__ - INFO -   - 지원자ID: JOB08_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,915 - __main__ - INFO -   - 지원자ID: JOB08_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,944 - __main__ - INFO -   - 지원자ID: JOB08_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:05,968 - __main__ - INFO -   - 지원자ID: JOB08_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,019 - __main__ - INFO -   - 지원자ID: JOB08_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,039 - __main__ - INFO -   - 지원자ID: JOB09_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,067 - __main__ - INFO -   - 지원자ID: JOB09_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,087 - __main__ - INFO -   - 지원자ID: JOB09_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,109 - __main__ - INFO -   - 지원자ID: JOB09_004, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,137 - __main__ - INFO -   - 지원자ID: JOB09_005, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,169 - __main__ - INFO -   - 지원자ID: JOB09_006, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,216 - __main__ - INFO -   - 지원자ID: JOB10_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,246 - __main__ - INFO -   - 지원자ID: JOB10_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,275 - __main__ - INFO -   - 지원자ID: JOB10_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,314 - __main__ - INFO -   - 지원자ID: JOB11_001, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,339 - __main__ - INFO -   - 지원자ID: JOB11_002, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,360 - __main__ - INFO -   - 지원자ID: JOB11_003, required_activities: ['토론면접', '발표준비', '발표면접'], is_dummy: False
+2025-07-15 13:44:06,386 - __main__ - INFO - [진단] 활동 목록:
+2025-07-15 13:44:06,420 - __main__ - INFO -   - 토론면접, mode=ActivityMode.BATCHED, duration=30, min_cap=4, max_cap=6, required_rooms=['토론면접실']
+2025-07-15 13:44:06,460 - __main__ - INFO -   - 발표준비, mode=ActivityMode.PARALLEL, duration=5, min_cap=1, max_cap=2, required_rooms=['발표준비실']
+2025-07-15 13:44:06,486 - __main__ - INFO -   - 발표면접, mode=ActivityMode.INDIVIDUAL, duration=15, min_cap=1, max_cap=1, required_rooms=['발표면접실']
+2025-07-15 13:44:06,500 - __main__ - INFO - [진단] 방 목록:
+2025-07-15 13:44:06,520 - __main__ - INFO -   - 토론면접실A, type=토론면접실, cap=6
+2025-07-15 13:44:06,547 - __main__ - INFO -   - 토론면접실B, type=토론면접실, cap=6
+2025-07-15 13:44:06,572 - __main__ - INFO -   - 발표준비실, type=발표준비실, cap=2
+2025-07-15 13:44:06,593 - __main__ - INFO -   - 발표면접실A, type=발표면접실, cap=1
+2025-07-15 13:44:06,611 - __main__ - INFO -   - 발표면접실B, type=발표면접실, cap=1
+2025-07-15 13:44:06,637 - __main__ - INFO - [진단] 선후행 제약조건 목록:
+2025-07-15 13:44:06,663 - __main__ - INFO -   - 발표준비 → 발표면접, gap_min=0, is_adjacent=True
+2025-07-15 13:44:06,684 - __main__ - INFO - ⏰ 운영 시간: 9:00:00 ~ 17:30:00 (510분)
+2025-07-15 13:44:06,705 - __main__ - INFO - 🔧 Batched 활동 변수 생성 시작...
+2025-07-15 13:44:06,760 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB08_G001, 활동=토론면접, duration=30, 지원자=['JOB08_001', 'JOB08_002', 'JOB08_003', 'JOB08_004', 'JOB08_005', 'JOB08_006']
+2025-07-15 13:44:06,787 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB09_G001, 활동=토론면접, duration=30, 지원자=['JOB09_001', 'JOB09_002', 'JOB09_003', 'JOB09_004', 'JOB09_005', 'JOB09_006']
+2025-07-15 13:44:06,816 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB10_G001, 활동=토론면접, duration=30, 지원자=['JOB10_001', 'JOB10_002', 'JOB10_003']
+2025-07-15 13:44:06,840 - __main__ - INFO - [진단] Batched 변수 생성: 그룹ID=JOB11_G001, 활동=토론면접, duration=30, 지원자=['JOB11_001', 'JOB11_002', 'JOB11_003']
+2025-07-15 13:44:06,860 - __main__ - INFO - ✅ Batched 변수 생성 완료: 4개 그룹
+2025-07-15 13:44:06,914 - __main__ - INFO - 🔧 Individual 활동 변수 생성 시작...
+2025-07-15 13:44:06,948 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_001, 활동=발표준비, duration=5
+2025-07-15 13:44:06,980 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_001, 활동=발표면접, duration=15
+2025-07-15 13:44:07,004 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_002, 활동=발표준비, duration=5
+2025-07-15 13:44:07,067 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_002, 활동=발표면접, duration=15
+2025-07-15 13:44:07,104 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_003, 활동=발표준비, duration=5
+2025-07-15 13:44:07,131 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_003, 활동=발표면접, duration=15
+2025-07-15 13:44:07,152 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_004, 활동=발표준비, duration=5
+2025-07-15 13:44:07,188 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_004, 활동=발표면접, duration=15
+2025-07-15 13:44:07,218 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_005, 활동=발표준비, duration=5
+2025-07-15 13:44:07,246 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_005, 활동=발표면접, duration=15
+2025-07-15 13:44:07,267 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_006, 활동=발표준비, duration=5
+2025-07-15 13:44:07,306 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB08_006, 활동=발표면접, duration=15
+2025-07-15 13:44:07,331 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_001, 활동=발표준비, duration=5
+2025-07-15 13:44:07,357 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_001, 활동=발표면접, duration=15
+2025-07-15 13:44:07,383 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_002, 활동=발표준비, duration=5
+2025-07-15 13:44:07,436 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_002, 활동=발표면접, duration=15
+2025-07-15 13:44:07,457 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_003, 활동=발표준비, duration=5
+2025-07-15 13:44:07,474 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_003, 활동=발표면접, duration=15
+2025-07-15 13:44:07,485 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_004, 활동=발표준비, duration=5
+2025-07-15 13:44:07,510 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_004, 활동=발표면접, duration=15
+2025-07-15 13:44:07,559 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_005, 활동=발표준비, duration=5
+2025-07-15 13:44:07,580 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_005, 활동=발표면접, duration=15
+2025-07-15 13:44:07,598 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_006, 활동=발표준비, duration=5
+2025-07-15 13:44:07,614 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB09_006, 활동=발표면접, duration=15
+2025-07-15 13:44:07,641 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB10_001, 활동=발표준비, duration=5
+2025-07-15 13:44:07,663 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB10_001, 활동=발표면접, duration=15
+2025-07-15 13:44:07,684 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB10_002, 활동=발표준비, duration=5
+2025-07-15 13:44:07,710 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB10_002, 활동=발표면접, duration=15
+2025-07-15 13:44:07,737 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB10_003, 활동=발표준비, duration=5
+2025-07-15 13:44:07,758 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB10_003, 활동=발표면접, duration=15
+2025-07-15 13:44:07,781 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB11_001, 활동=발표준비, duration=5
+2025-07-15 13:44:07,807 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB11_001, 활동=발표면접, duration=15
+2025-07-15 13:44:07,830 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB11_002, 활동=발표준비, duration=5
+2025-07-15 13:44:07,848 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB11_002, 활동=발표면접, duration=15
+2025-07-15 13:44:07,873 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB11_003, 활동=발표준비, duration=5
+2025-07-15 13:44:07,891 - __main__ - INFO - [진단] Individual 변수 생성: 지원자=JOB11_003, 활동=발표면접, duration=15
+2025-07-15 13:44:07,927 - __main__ - INFO - ✅ Individual 변수 생성 완료: 36개 활동
+2025-07-15 13:44:07,941 - __main__ - INFO - [진단] 변수 생성 완료 (소요: 1.24s)
+2025-07-15 13:44:07,961 - __main__ - INFO -   - group_intervals: 4개
+2025-07-15 13:44:07,982 - __main__ - INFO -   - group_starts: 4개
+2025-07-15 13:44:08,004 - __main__ - INFO -   - group_ends: 4개
+2025-07-15 13:44:08,026 - __main__ - INFO -   - group_rooms: 4개
+2025-07-15 13:44:08,057 - __main__ - INFO -   - individual_intervals: 36개
+2025-07-15 13:44:08,075 - __main__ - INFO -   - individual_starts: 36개
+2025-07-15 13:44:08,091 - __main__ - INFO -   - individual_ends: 36개
+2025-07-15 13:44:08,116 - __main__ - INFO -   - individual_presence: 36개
+2025-07-15 13:44:08,134 - __main__ - INFO -   - individual_rooms: 36개
+2025-07-15 13:44:08,149 - __main__ - INFO - 🔧 제약조건 추가 시작...
+2025-07-15 13:44:08,210 - __main__ - INFO - ✅ 모든 제약조건 추가 완료
+2025-07-15 13:44:08,232 - __main__ - INFO - [진단] 제약조건 추가 완료 (소요: 0.08s)
+2025-07-15 13:44:08,248 - __main__ - INFO - 🎯 체류시간 최소화 목적함수 생성 중...
+2025-07-15 13:44:08,290 - __main__ - DEBUG - 지원자 JOB08_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,321 - __main__ - DEBUG - 지원자 JOB08_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,351 - __main__ - DEBUG - 지원자 JOB08_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,387 - __main__ - DEBUG - 지원자 JOB08_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,420 - __main__ - DEBUG - 지원자 JOB08_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,452 - __main__ - DEBUG - 지원자 JOB08_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,478 - __main__ - DEBUG - 지원자 JOB09_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,517 - __main__ - DEBUG - 지원자 JOB09_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,557 - __main__ - DEBUG - 지원자 JOB09_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,587 - __main__ - DEBUG - 지원자 JOB09_004: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,603 - __main__ - DEBUG - 지원자 JOB09_005: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,619 - __main__ - DEBUG - 지원자 JOB09_006: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,632 - __main__ - DEBUG - 지원자 JOB10_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,652 - __main__ - DEBUG - 지원자 JOB10_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,675 - __main__ - DEBUG - 지원자 JOB10_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,707 - __main__ - DEBUG - 지원자 JOB11_001: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,749 - __main__ - DEBUG - 지원자 JOB11_002: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,774 - __main__ - DEBUG - 지원자 JOB11_003: 3개 활동 체류시간 변수 생성
+2025-07-15 13:44:08,795 - __main__ - INFO - ✅ 체류시간 목적함수 생성 완료: 18명
+2025-07-15 13:44:08,816 - __main__ - INFO - [진단] 목적함수 변수 개수: 18 (소요: 0.57s)
+2025-07-15 13:44:08,839 - __main__ - INFO - ✅ 목적함수 설정: 18명의 총 체류시간 최소화
+2025-07-15 13:44:08,857 - __main__ - INFO - 🔍 CP-SAT 통합 최적화 실행 중... (최대 120초)
+2025-07-15 13:48:44,823 - __main__ - INFO - [진단] Solve 종료 (소요: 275.96s), status: OPTIMAL
+2025-07-15 13:48:44,829 - __main__ - INFO - [진단] Objective value: 940.0
+2025-07-15 13:48:44,833 - __main__ - INFO - [진단] NumConflicts: 0, NumBranches: 0, WallTime: 275.92s
+2025-07-15 13:48:44,838 - __main__ - INFO - [진단] Model stats: #variables=N/A, #constraints=N/A
+2025-07-15 13:48:44,846 - __main__ - INFO - [진단] 전체 소요 시간: 279.99s
+2025-07-15 13:48:44,850 - __main__ - INFO - ✅ 최적해 발견!
+2025-07-15 13:48:44,856 - __main__ - INFO - 📊 통합 최적화 결과: 평균 체류시간 0.9시간
+2025-07-15 13:48:44,862 - __main__ - INFO - [진단] 결과 추출 단계 진입
+2025-07-15 13:48:44,864 - __main__ - INFO - [진단] 추출된 Batched 스케줄 개수: 18
+2025-07-15 13:48:44,864 - __main__ - INFO - [진단] 추출된 Individual 스케줄 개수: 36
+2025-07-15 13:48:44,868 - __main__ - INFO - ✅ 결과 추출 완료: Batched 18개, Individual 36개
+2025-07-15 13:48:44,874 - __main__ - INFO - 2025-07-18: 성공 - 18명 스케줄링
+2025-07-15 13:48:44,886 - __main__ - INFO - === 스케줄링 결과 분석 ===
+2025-07-15 13:48:44,890 - __main__ - INFO - 결과 타입: dict
+2025-07-15 13:48:44,896 - __main__ - INFO - 결과 키: ['status', 'schedule', 'summary']
+2025-07-15 13:48:44,902 - __main__ - INFO - 상태: SUCCESS
+2025-07-15 13:48:44,908 - __main__ - WARNING - 결과에 DataFrame이 없어 빈 DataFrame을 생성합니다.
+2025-07-15 13:48:44,914 - __main__ - INFO - DataFrame 크기: 빈 DataFrame
+2025-07-15 13:48:44,917 - __main__ - ERROR - DataFrame이 비어있어 엑셀 파일을 생성할 수 없습니다.

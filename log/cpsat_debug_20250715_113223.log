@@ -1,0 +1,39 @@
+2025-07-15 11:32:23,892 - __main__ - INFO - === app.py 디폴트 데이터 CP-SAT 테스트 시작 ===
+2025-07-15 11:32:23,896 - __main__ - INFO - === CP-SAT 스케줄링 테스트 시작 ===
+2025-07-15 11:32:23,897 - __main__ - INFO - === app.py 디폴트 데이터로 DateConfig 생성 시작 ===
+2025-07-15 11:32:23,897 - __main__ - INFO - [진단] app.py 디폴트 활동 데이터: {'use': [True, True, True], 'activity': ['토론면접', '발표준비', '발표면접'], 'mode': ['batched', 'parallel', 'individual'], 'duration_min': [30, 5, 15], 'room_type': ['토론면접실', '발표준비실', '발표면접실'], 'min_cap': [4, 1, 1], 'max_cap': [6, 2, 1]}
+2025-07-15 11:32:23,898 - __main__ - INFO - [진단] 생성된 Activity: 토론면접, mode=ActivityMode.BATCHED, duration=30분, room=토론면접실, cap=4~6
+2025-07-15 11:32:23,899 - __main__ - INFO - [진단] 생성된 Activity: 발표준비, mode=ActivityMode.PARALLEL, duration=5분, room=발표준비실, cap=1~2
+2025-07-15 11:32:23,899 - __main__ - INFO - [진단] 생성된 Activity: 발표면접, mode=ActivityMode.INDIVIDUAL, duration=15분, room=발표면접실, cap=1~1
+2025-07-15 11:32:23,899 - __main__ - INFO - [진단] app.py 디폴트 직무-활동 매핑: {('JOB01', '토론면접'): True, ('JOB01', '발표준비'): True, ('JOB01', '발표면접'): True}
+2025-07-15 11:32:23,900 - __main__ - INFO - [진단] app.py 디폴트 직무 데이터: {'JOB01': 20}
+2025-07-15 11:32:23,900 - __main__ - INFO - [진단] app.py 디폴트 운영 시간: 09:00:00 ~ 17:30:00
+2025-07-15 11:32:23,900 - __main__ - INFO - [진단] app.py 디폴트 방 템플릿: {'토론면접실': {'count': 2, 'cap': 6}, '발표준비실': {'count': 1, 'cap': 2}, '발표면접실': {'count': 2, 'cap': 1}}
+2025-07-15 11:32:23,900 - __main__ - INFO - [진단] 생성된 방 계획: {'토론면접실_count': 2, '토론면접실_cap': 6, '발표준비실_count': 1, '발표준비실_cap': 2, '발표면접실_count': 2, '발표면접실_cap': 1}
+2025-07-15 11:32:23,901 - __main__ - INFO - [진단] 생성된 rooms: ['토론면접실_1', '토론면접실_2', '발표준비실_1', '발표면접실_1', '발표면접실_2']
+2025-07-15 11:32:23,901 - __main__ - INFO - [진단] 생성된 operating_hours: (datetime.timedelta(seconds=32400), datetime.timedelta(seconds=63000))
+2025-07-15 11:32:23,901 - __main__ - INFO - [진단] app.py 디폴트 선후행 제약: [{'predecessor': '발표준비', 'successor': '발표면접', 'gap_min': 0, 'adjacent': True}]
+2025-07-15 11:32:23,901 - __main__ - INFO - === DateConfig 생성 완료 ===
+2025-07-15 11:32:23,902 - __main__ - INFO - [진단] 최종 DateConfig: date=2025-07-15, activities=['토론면접', '발표준비', '발표면접'], jobs={'JOB01': 20}
+2025-07-15 11:32:23,902 - __main__ - INFO - === 스케줄링 실행 시작 ===
+2025-07-15 11:32:23,902 - __main__ - ERROR - 테스트 중 예외 발생: 'datetime.date' object has no attribute 'date'
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 171, in test_cpsat_scheduling
+    result = scheduler.schedule(config, context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\solver\single_date_scheduler.py", line 51, in schedule
+    result.logs.append(f"=== {config.date.date()} 스케줄링 시작 ===")
+                              ^^^^^^^^^^^^^^^^
+AttributeError: 'datetime.date' object has no attribute 'date'
+2025-07-15 11:32:23,906 - __main__ - ERROR - 테스트 실패
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 201, in <module>
+    result = test_cpsat_scheduling()
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_app_default_cpsat_debug.py", line 171, in test_cpsat_scheduling
+    result = scheduler.schedule(config, context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\solver\single_date_scheduler.py", line 51, in schedule
+    result.logs.append(f"=== {config.date.date()} 스케줄링 시작 ===")
+                              ^^^^^^^^^^^^^^^^
+AttributeError: 'datetime.date' object has no attribute 'date'

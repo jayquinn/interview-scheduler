@@ -22,6 +22,9 @@ from .group_optimizer import GroupOptimizer
 from .batched_scheduler import BatchedScheduler
 from .individual_scheduler import IndividualScheduler
 
+from ortools.sat.python import cp_model
+import multiprocessing
+
 
 @dataclass
 class OptimizationConfig:
@@ -33,6 +36,18 @@ class OptimizationConfig:
     chunk_size_threshold: int = 100  # 이 수 이상일 때 청킹 적용
     memory_cleanup_interval: int = 50  # N명마다 메모리 정리
 
+
+def set_safe_cpsat_parameters(solver):
+    """아주 안전한 CP-SAT 파라미터만 보수적으로 적용"""
+    solver.parameters.num_search_workers = max(2, multiprocessing.cpu_count() - 1)
+    solver.parameters.symmetry_level = 2  # 안전한 대칭성 제거
+    solver.parameters.max_time_in_seconds = 15  # 기존 제한 유지
+    solver.parameters.linearization_level = 0   # 기본값
+    solver.parameters.search_branching = cp_model.AUTOMATIC  # 기본값(안전)
+    solver.parameters.log_search_progress = False  # 불필요한 로그 비활성화
+    solver.parameters.cp_model_presolve = True     # presolve 활성화(기본)
+    solver.parameters.cp_model_probing_level = 2   # probing(기본)
+    # solver.parameters.first_solution_strategy = cp_model.FIXED_SEARCH  # 필요시만
 
 class OptimizedScheduler:
     """성능 최적화된 스케줄러"""
@@ -64,6 +79,9 @@ class OptimizedScheduler:
         """
         최적화된 스케줄링 실행
         """
+        overall_start_time = time_module.time()
+        self.logger.info(f"[병목분석] CP-SAT 스케줄러 시작: {datetime.now()}")
+        
         self.context = context
         self.progress_callback = context.progress_callback if context else None
         
@@ -80,13 +98,33 @@ class OptimizedScheduler:
                           f"메모리최적화={self.optimization_config.enable_memory_optimization}, "
                           f"캐싱={self.optimization_config.enable_caching}")
         
-        overall_start_time = time_module.time()
+        # CP-SAT 파라미터 안전 적용
+        self.logger.info(f"[병목분석] 안전 파라미터 적용: 멀티스레드, symmetry_level=2 등")
+        # 실제 CP-SAT solver 생성 시 아래 함수 사용
+        # 예시: solver = cp_model.CpSolver(); set_safe_cpsat_parameters(solver)
+        # (실제 solver 생성 위치에 반드시 적용)
+        
+        # 병목 분석: 입력 데이터 크기 측정
+        total_applicants = sum(config.jobs.values())
+        total_activities = len(config.activities)
+        total_rooms = len(config.rooms)
+        total_precedence = len(config.precedence_rules)
+        
+        self.logger.info(f"[병목분석] 입력 데이터 크기:")
+        self.logger.info(f"  - 지원자: {total_applicants}명")
+        self.logger.info(f"  - 활동: {total_activities}개")
+        self.logger.info(f"  - 방: {total_rooms}개")
+        self.logger.info(f"  - 선후행제약: {total_precedence}개")
+        
+        # 복잡도 계산
+        complexity = (total_applicants * total_activities * total_rooms * total_precedence) / 1000
+        self.logger.info(f"[병목분석] 복잡도 지수: {complexity:.2f}")
+        
+        # 예상 처리 방식 결정
+        is_large_scale = total_applicants >= self.optimization_config.chunk_size_threshold
+        self.logger.info(f"[병목분석] 처리 방식: {'대규모' if is_large_scale else '일반'} ({total_applicants}명)")
         
         try:
-            # 대규모 처리 여부 판단
-            total_applicants = sum(config.jobs.values())
-            is_large_scale = total_applicants >= self.optimization_config.chunk_size_threshold
-            
             if is_large_scale:
                 result.logs.append(f"대규모 처리 모드 활성화 ({total_applicants}명)")
                 return self._schedule_large_scale(config, result)
@@ -95,6 +133,10 @@ class OptimizedScheduler:
                 return self._schedule_normal(config, result)
                 
         except Exception as e:
+            end_time = time_module.time()
+            elapsed = end_time - overall_start_time
+            self.logger.error(f"[병목분석] CP-SAT 스케줄러 예외: {str(e)} (소요시간: {elapsed:.2f}초)")
+            
             result.error_message = f"최적화된 스케줄링 예외: {str(e)}"
             result.logs.append(f"예외: {str(e)}")
             self.logger.exception("최적화된 스케줄링 중 예외 발생")
@@ -102,6 +144,8 @@ class OptimizedScheduler:
         finally:
             # 통계 보고
             total_time = time_module.time() - overall_start_time
+            self.logger.info(f"[병목분석] CP-SAT 스케줄러 완료: {datetime.now()} (총 소요시간: {total_time:.2f}초)")
+            
             result.logs.append(f"=== 최적화 통계 ===")
             result.logs.append(f"총 실행 시간: {total_time:.3f}초")
             result.logs.append(f"캐시 적중률: {self._get_cache_hit_rate():.1f}%")
