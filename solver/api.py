@@ -850,4 +850,94 @@ def solve_for_days_optimized(
     
     except Exception as e:
         logger.exception("최적화된 스케줄링 중 예외 발생")
-        return "ERROR", pd.DataFrame(), f"예외 발생: {str(e)}", 0 
+        return "ERROR", pd.DataFrame(), f"예외 발생: {str(e)}", 0
+
+
+def solve_for_days_two_phase(
+    cfg_ui: dict, 
+    params: dict = None, 
+    debug: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
+    percentile: float = 90.0
+) -> Tuple[str, pd.DataFrame, str, int, Dict[str, pd.DataFrame]]:
+    """
+    2단계 하드 제약 스케줄링
+    
+    Args:
+        cfg_ui: UI 설정 딕셔너리
+        params: 추가 파라미터
+        debug: 디버그 모드
+        progress_callback: 실시간 진행 상황 콜백 함수
+        percentile: 하드 제약 계산용 분위수 (기본값: 90.0)
+    
+    Returns:
+        (status, final_wide_df, logs, daily_limit, reports)
+    """
+    try:
+        # 로깅 설정
+        log_level = logging.DEBUG if debug else logging.WARNING
+        logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+        logger = logging.getLogger(__name__)
+        
+        logs_buffer = []
+        
+        # 2단계 하드 제약 스케줄러 실행
+        from .hard_constraint_scheduler import HardConstraintScheduler
+        
+        scheduler = HardConstraintScheduler(percentile=percentile)
+        result = scheduler.run_two_phase_scheduling(
+            cfg_ui=cfg_ui,
+            params=params,
+            debug=debug,
+            progress_callback=progress_callback
+        )
+        
+        # 결과 분석
+        logs_buffer.append(f"=== 2단계 하드 제약 스케줄링 결과 ===")
+        logs_buffer.append(f"전체 상태: {result['status']}")
+        
+        if result['status'] == "SUCCESS":
+            # 성공 - UI 형식으로 변환
+            final_df = result['phase2_result']
+            
+            # 일일 처리 가능 인원 계산
+            if not final_df.empty:
+                daily_limit = final_df.groupby('interview_date')['applicant_id'].nunique().max()
+            else:
+                daily_limit = 0
+            
+            # 종합 리포트 생성
+            reports = scheduler.generate_comprehensive_report(result)
+            
+            return "SUCCESS", final_df, "\n".join(logs_buffer), daily_limit, reports
+            
+        elif result['status'] == "PHASE1_FAILED":
+            logs_buffer.append(f"1단계 스케줄링 실패: {result['error']}")
+            return "FAILED", pd.DataFrame(), "\n".join(logs_buffer), 0, {}
+            
+        elif result['status'] == "ANALYSIS_FAILED":
+            logs_buffer.append(f"체류시간 분석 실패: {result['error']}")
+            return "FAILED", pd.DataFrame(), "\n".join(logs_buffer), 0, {}
+            
+        elif result['status'] == "PHASE2_FAILED":
+            logs_buffer.append(f"2단계 스케줄링 실패: {result['error']}")
+            # 1단계 결과라도 반환
+            final_df = result['phase1_result']
+            if not final_df.empty:
+                daily_limit = final_df.groupby('interview_date')['applicant_id'].nunique().max()
+            else:
+                daily_limit = 0
+            
+            reports = {}
+            if result.get('constraint_analysis'):
+                reports['constraint_analysis'] = result['constraint_analysis']
+            
+            return "PARTIAL", final_df, "\n".join(logs_buffer), daily_limit, reports
+            
+        else:
+            logs_buffer.append(f"알 수 없는 상태: {result['status']}")
+            return "FAILED", pd.DataFrame(), "\n".join(logs_buffer), 0, {}
+    
+    except Exception as e:
+        logger.exception("2단계 하드 제약 스케줄링 중 예외 발생")
+        return "ERROR", pd.DataFrame(), f"예외 발생: {str(e)}", 0, {} 

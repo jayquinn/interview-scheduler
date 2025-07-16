@@ -12,11 +12,11 @@ from st_aggrid import (
 from io import BytesIO
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from openpyxl.styles import PatternFill, Alignment
+from openpyxl.styles import PatternFill, Alignment, Font
 from openpyxl.utils import get_column_letter
 import core
 from solver.solver import solve_for_days
-from solver.api import solve_for_days_v2, get_scheduler_comparison
+from solver.api import solve_for_days_v2, solve_for_days_two_phase, get_scheduler_comparison
 from solver.types import ProgressInfo
 
 # 진행 상황 콜백 함수
@@ -215,17 +215,18 @@ col1, col2 = st.columns([2, 1])
 with col1:
     scheduler_choice = st.selectbox(
         "사용할 스케줄러를 선택하세요:",
-        ["계층적 스케줄러 v2 (권장)", "OR-Tools 스케줄러 (기존)"],
-        help="계층적 v2는 대규모 처리에 최적화되어 있습니다."
+        ["계층적 스케줄러 v2 (권장) - 2단계 하드 제약 포함", "OR-Tools 스케줄러 (기존)"],
+        help="계층적 v2는 대규모 처리에 최적화되어 있으며, 2단계 하드 제약 스케줄링을 기본으로 포함합니다."
     )
 
 with col2:
     st.info("🚀 **성능 정보**\n\n"
-           "**계층적 v2:**\n"
+           "**계층적 v2 (2단계 포함):**\n"
            "• 처리량: ~6,000명/초\n"
            "• 500명: ~0.1초\n"
            "• Batched 활동 지원\n"
-           "• 메모리 효율적\n\n"
+           "• 메모리 효율적\n"
+           "• 2단계 하드 제약 자동 적용\n\n"
            "**OR-Tools:**\n"
            "• 처리량: ~100명/초\n"
            "• 500명: ~5초\n"
@@ -608,7 +609,374 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
     # Schedule 시트 첫행 고정
     ws1.freeze_panes = 'A2'
     
-    # ===== 2) 타임슬롯 시트들 추가 =====
+    # ===== 2) 데이터 분석 시트들 추가 =====
+    
+    # 하드 제약 분석 시트 추가 (2단계 스케줄링 결과가 있는 경우)
+    if hasattr(st.session_state, 'two_phase_reports') and st.session_state.two_phase_reports:
+        reports = st.session_state.two_phase_reports
+        
+        # 제약 분석 리포트
+        if 'constraint_analysis' in reports and not reports['constraint_analysis'].empty:
+            ws_constraint = wb.create_sheet('Hard_Constraint_Analysis')
+            constraint_df = reports['constraint_analysis']
+            
+            for r in dataframe_to_rows(constraint_df, index=False, header=True):
+                ws_constraint.append(r)
+            
+            # 헤더 스타일링
+            for cell in ws_constraint[1]:
+                cell.fill = PatternFill('solid', fgColor='FFE6CC')
+                cell.font = Font(bold=True)
+        
+        # 제약 위반 리포트
+        if 'constraint_violations' in reports and not reports['constraint_violations'].empty:
+            ws_violations = wb.create_sheet('Constraint_Violations')
+            violations_df = reports['constraint_violations']
+            
+            for r in dataframe_to_rows(violations_df, index=False, header=True):
+                ws_violations.append(r)
+            
+            # 헤더 스타일링
+            for cell in ws_violations[1]:
+                cell.fill = PatternFill('solid', fgColor='FFCCCC')
+                cell.font = Font(bold=True)
+        
+        # 단계별 비교 리포트
+        if 'phase_comparison' in reports and not reports['phase_comparison'].empty:
+            ws_comparison = wb.create_sheet('Phase_Comparison')
+            comparison_df = reports['phase_comparison']
+            
+            for r in dataframe_to_rows(comparison_df, index=False, header=True):
+                ws_comparison.append(r)
+            
+            # 헤더 스타일링
+            for cell in ws_comparison[1]:
+                cell.fill = PatternFill('solid', fgColor='CCE6FF')
+                cell.font = Font(bold=True)
+    
+    # 체류시간 통계 계산 함수 (내부 정의)
+    def calculate_stay_duration_stats_internal(schedule_df):
+        """각 지원자의 체류시간을 계산하고 통계를 반환"""
+        stats_data = []
+        
+        # 컬럼명 매핑 (실제 데이터에 맞게 조정)
+        id_col = None
+        for col in ['applicant_id', 'id', 'candidate_id']:
+            if col in schedule_df.columns:
+                id_col = col
+                break
+        
+        job_col = None
+        for col in ['job_code', 'code']:
+            if col in schedule_df.columns:
+                job_col = col
+                break
+        
+        date_col = None
+        for col in ['interview_date', 'date']:
+            if col in schedule_df.columns:
+                date_col = col
+                break
+        
+        if not id_col or not job_col or not date_col:
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        
+        # 지원자별 체류시간 계산
+        for candidate_id in schedule_df[id_col].unique():
+            candidate_data = schedule_df[schedule_df[id_col] == candidate_id]
+            
+            # 더미 데이터 제외
+            if str(candidate_id).startswith('dummy'):
+                continue
+            
+            if len(candidate_data) == 0:
+                continue
+            
+            # 시간 파싱
+            all_start_times = []
+            all_end_times = []
+            
+            for _, row in candidate_data.iterrows():
+                try:
+                    start_time = row['start_time']
+                    end_time = row['end_time']
+                    
+                    # timedelta 처리
+                    if isinstance(start_time, pd.Timedelta):
+                        all_start_times.append(start_time)
+                    elif isinstance(start_time, str):
+                        start_time = pd.to_datetime(start_time, format='%H:%M:%S').time()
+                        start_td = timedelta(hours=start_time.hour, minutes=start_time.minute, seconds=start_time.second)
+                        all_start_times.append(start_td)
+                    
+                    if isinstance(end_time, pd.Timedelta):
+                        all_end_times.append(end_time)
+                    elif isinstance(end_time, str):
+                        end_time = pd.to_datetime(end_time, format='%H:%M:%S').time()
+                        end_td = timedelta(hours=end_time.hour, minutes=end_time.minute, seconds=end_time.second)
+                        all_end_times.append(end_td)
+                    
+                except Exception as e:
+                    continue
+            
+            if all_start_times and all_end_times:
+                # 전체 체류시간 = 첫 번째 활동 시작 ~ 마지막 활동 종료
+                total_start = min(all_start_times)
+                total_end = max(all_end_times)
+                stay_duration_hours = (total_end - total_start).total_seconds() / 3600
+                
+                # 직무 코드 및 날짜 (첫 번째 행에서 가져오기)
+                job_code = candidate_data.iloc[0].get(job_col, 'Unknown')
+                interview_date = candidate_data.iloc[0].get(date_col, 'Unknown')
+                
+                stats_data.append({
+                    'candidate_id': candidate_id,
+                    'job_code': job_code,
+                    'interview_date': interview_date,
+                    'stay_duration_hours': stay_duration_hours,
+                    'start_time': total_start,
+                    'end_time': total_end
+                })
+        
+        if not stats_data:
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        
+        stats_df = pd.DataFrame(stats_data)
+        
+        # 직무별 통계 계산
+        job_stats = []
+        for job_code, job_data in stats_df.groupby('job_code'):
+            durations = job_data['stay_duration_hours']
+            job_stats.append({
+                'job_code': job_code,
+                'count': len(job_data),
+                'min_duration': durations.min(),
+                'max_duration': durations.max(),
+                'avg_duration': durations.mean(),
+                'median_duration': durations.median()
+            })
+        
+        # 날짜별 통계 계산
+        date_stats = []
+        for date, date_data in stats_df.groupby('interview_date'):
+            durations = date_data['stay_duration_hours']
+            max_stay_candidate = date_data.loc[date_data['stay_duration_hours'].idxmax()]
+            
+            date_stats.append({
+                'interview_date': date,
+                'count': len(date_data),
+                'min_duration': durations.min(),
+                'max_duration': durations.max(),
+                'avg_duration': durations.mean(),
+                'max_stay_candidate': max_stay_candidate['candidate_id'],
+                'max_stay_job': max_stay_candidate['job_code']
+            })
+        
+        return pd.DataFrame(job_stats), stats_df, pd.DataFrame(date_stats)
+    
+    # 체류시간 통계 계산
+    job_stats_df, individual_stats_df, date_stats_df = calculate_stay_duration_stats_internal(df)
+    
+    # 날짜별 상세 통계 시트
+    if not individual_stats_df.empty:
+        ws_stats = wb.create_sheet('StayTime_Analysis')
+        
+        # 날짜별 통계 데이터 작성
+        stats_data = []
+        for date, date_data in individual_stats_df.groupby('interview_date'):
+            durations = date_data['stay_duration_hours']
+            
+            # 기본 통계
+            stats_row = {
+                '날짜': date,
+                '응시자수': len(date_data),
+                '평균체류시간(시간)': round(durations.mean(), 2),
+                '중간값체류시간(시간)': round(durations.median(), 2),
+                '최소체류시간(시간)': round(durations.min(), 2),
+                '최대체류시간(시간)': round(durations.max(), 2),
+                '표준편차(시간)': round(durations.std(), 2),
+                '최소체류자ID': date_data.loc[durations.idxmin(), 'candidate_id'],
+                '최소체류자직무': date_data.loc[durations.idxmin(), 'job_code'],
+                '최대체류자ID': date_data.loc[durations.idxmax(), 'candidate_id'],
+                '최대체류자직무': date_data.loc[durations.idxmax(), 'job_code']
+            }
+            stats_data.append(stats_row)
+        
+        # 통계 데이터프레임 생성
+        stats_df = pd.DataFrame(stats_data)
+        
+        # 엑셀에 작성
+        for r in dataframe_to_rows(stats_df, index=False, header=True):
+            ws_stats.append(r)
+        
+        # 헤더 스타일 적용
+        header_fill = PatternFill('solid', fgColor='D9D9D9')
+        for cell in ws_stats[1]:
+            cell.fill = header_fill
+        
+        # 컬럼 너비 조정
+        for column in ws_stats.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws_stats.column_dimensions[column_letter].width = adjusted_width
+    
+    # 개별 지원자 체류시간 시트
+    if not individual_stats_df.empty:
+        ws_individual = wb.create_sheet('Individual_StayTime')
+        
+        # 개별 데이터 정리
+        individual_data = individual_stats_df.copy()
+        individual_data['체류시간(시간)'] = individual_data['stay_duration_hours'].round(2)
+        
+        # 시간 표시 함수
+        def format_timedelta(td):
+            if pd.isna(td):
+                return ''
+            if isinstance(td, pd.Timedelta):
+                total_seconds = td.total_seconds()
+                hours = int(total_seconds // 3600)
+                minutes = int((total_seconds % 3600) // 60)
+                return f"{hours:02d}:{minutes:02d}"
+            return str(td)
+        
+        individual_data['시작시간'] = individual_data['start_time'].apply(format_timedelta)
+        individual_data['종료시간'] = individual_data['end_time'].apply(format_timedelta)
+        
+        # 컬럼 선택 및 한글화
+        display_columns = ['candidate_id', 'job_code', 'interview_date', '체류시간(시간)', '시작시간', '종료시간']
+        individual_display = individual_data[display_columns].copy()
+        individual_display.columns = ['지원자ID', '직무코드', '면접일자', '체류시간(시간)', '시작시간', '종료시간']
+        
+        # 정렬 (날짜별, 체류시간별)
+        individual_display = individual_display.sort_values(['면접일자', '체류시간(시간)'], ascending=[True, False])
+        
+        # 엑셀에 작성
+        for r in dataframe_to_rows(individual_display, index=False, header=True):
+            ws_individual.append(r)
+        
+        # 헤더 스타일 적용
+        header_fill = PatternFill('solid', fgColor='D9D9D9')
+        for cell in ws_individual[1]:
+            cell.fill = header_fill
+        
+        # 컬럼 너비 조정
+        for column in ws_individual.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 25)
+            ws_individual.column_dimensions[column_letter].width = adjusted_width
+    
+    # 직무별 통계 시트
+    if not job_stats_df.empty:
+        ws_job = wb.create_sheet('Job_Statistics')
+        
+        # 직무별 데이터 정리
+        job_display = job_stats_df.copy()
+        job_display['최소시간(시간)'] = job_display['min_duration'].round(2)
+        job_display['최대시간(시간)'] = job_display['max_duration'].round(2)
+        job_display['평균시간(시간)'] = job_display['avg_duration'].round(2)
+        job_display['중간값시간(시간)'] = job_display['median_duration'].round(2)
+        
+        # 컬럼 선택 및 한글화
+        display_columns = ['job_code', 'count', '최소시간(시간)', '최대시간(시간)', '평균시간(시간)', '중간값시간(시간)']
+        job_display = job_display[display_columns].copy()
+        job_display.columns = ['직무코드', '인원수', '최소시간(시간)', '최대시간(시간)', '평균시간(시간)', '중간값시간(시간)']
+        
+        # 엑셀에 작성
+        for r in dataframe_to_rows(job_display, index=False, header=True):
+            ws_job.append(r)
+        
+        # 헤더 스타일 적용
+        header_fill = PatternFill('solid', fgColor='D9D9D9')
+        for cell in ws_job[1]:
+            cell.fill = header_fill
+        
+        # 컬럼 너비 조정
+        for column in ws_job.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 20)
+            ws_job.column_dimensions[column_letter].width = adjusted_width
+    
+    # 방별 사용률 분석 시트
+    if not df.empty and 'room_name' in df.columns:
+        ws_room = wb.create_sheet('Room_Utilization')
+        
+        # 방별 사용 통계 계산
+        room_stats = []
+        for room_name in df['room_name'].unique():
+            room_data = df[df['room_name'] == room_name]
+            
+            # 방별 사용 시간 계산
+            total_usage_minutes = 0
+            for _, row in room_data.iterrows():
+                start_time = row['start_time']
+                end_time = row['end_time']
+                
+                if pd.notna(start_time) and pd.notna(end_time):
+                    if isinstance(start_time, pd.Timedelta) and isinstance(end_time, pd.Timedelta):
+                        duration = (end_time - start_time).total_seconds() / 60
+                        total_usage_minutes += duration
+            
+            # 운영 시간 (8시간 = 480분)
+            operating_minutes = 480
+            utilization_rate = (total_usage_minutes / operating_minutes) * 100 if operating_minutes > 0 else 0
+            
+            room_stats.append({
+                '방이름': room_name,
+                '사용횟수': len(room_data),
+                '총사용시간(분)': round(total_usage_minutes, 1),
+                '총사용시간(시간)': round(total_usage_minutes / 60, 2),
+                '사용률(%)': round(utilization_rate, 1),
+                '평균사용시간(분)': round(total_usage_minutes / len(room_data), 1) if len(room_data) > 0 else 0
+            })
+        
+        # 사용률 기준으로 정렬
+        room_stats_df = pd.DataFrame(room_stats)
+        room_stats_df = room_stats_df.sort_values('사용률(%)', ascending=False)
+        
+        # 엑셀에 작성
+        for r in dataframe_to_rows(room_stats_df, index=False, header=True):
+            ws_room.append(r)
+        
+        # 헤더 스타일 적용
+        header_fill = PatternFill('solid', fgColor='D9D9D9')
+        for cell in ws_room[1]:
+            cell.fill = header_fill
+        
+        # 컬럼 너비 조정
+        for column in ws_room.columns:
+            max_length = 0
+            column_letter = get_column_letter(column[0].column)
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 20)
+            ws_room.column_dimensions[column_letter].width = adjusted_width
+    
+    # ===== 4) 타임슬롯 시트들 추가 =====
     def _color_picker():
         """활동명 → 고정 색상 매핑"""
         mapping = {}
@@ -842,6 +1210,7 @@ def reset_run_state():
     st.session_state['last_solve_logs'] = ""
     st.session_state['solver_status'] = "미실행"
     st.session_state['daily_limit'] = 0
+    st.session_state['two_phase_reports'] = {}
 
 # 기본 파라미터 설정 (하드코딩)
 params = {
@@ -910,6 +1279,12 @@ if validation_errors:
 else:
     st.success("✅ 입력 데이터 검증 통과 – 운영일정추정을 시작할 수 있습니다!")
 
+# 스케줄링 옵션 선택
+st.markdown("### 🎯 스케줄링 옵션")
+
+st.info("💡 **계층적 스케줄러 v2**를 선택하면 자동으로 2단계 하드 제약 스케줄링이 적용됩니다.\n"
+        "1단계: 초기 스케줄링 → 2단계: 90% 분위수 기반 하드 제약 적용 → 3단계: 최적화된 재스케줄링")
+
 # 운영일정 추정 실행
 if st.button("🚀 운영일정추정 시작", type="primary", use_container_width=True, on_click=reset_run_state):
     if not validation_errors:
@@ -976,24 +1351,34 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
                         # 로그 업데이트
                         log_area.text(f"[{info.timestamp.strftime('%H:%M:%S')}] {info.message}")
                 
-                # 선택된 스케줄러에 따라 실행
-                use_new_scheduler = st.session_state.get("use_new_scheduler", True)
+                # 스케줄링 모드에 따라 실행
+                use_new_scheduler = "계층적" in scheduler_choice
                 
                 if use_new_scheduler:
-                    # 진행 상황 콜백과 함께 새로운 스케줄러 실행
-                    status, final_wide, logs, limit = solve_for_days_v2(
+                    # 계층적 스케줄러 v2 선택 시 자동으로 2단계 스케줄링 적용
+                    st.info("🚀 계층적 스케줄러 v2로 2단계 하드 제약 스케줄링을 실행합니다...")
+                    
+                    # 2단계 하드 제약 스케줄링 실행
+                    status, final_wide, logs, limit, reports = solve_for_days_two_phase(
                         cfg, params, debug=False, 
                         progress_callback=lambda info: (
                             progress_callback(info),
                             update_progress()
-                        )
+                        ),
+                        percentile=90.0  # 기본값 90%
                     )
-                    # v2 스케줄러의 상태를 UI 형식에 맞게 변환
+                    
+                    # 2단계 스케줄링 결과 저장
+                    st.session_state['two_phase_reports'] = reports
+                    
+                    # 상태 변환
                     if status == "SUCCESS":
                         status = "OK"
                     elif status in ["PARTIAL", "FAILED"]:
                         status = "FAILED"
+                        
                 else:
+                    # OR-Tools 스케줄러 선택 시
                     st.info("📊 OR-Tools 스케줄러로 실행 중...")
                     if has_batched:
                         st.warning("⚠️ OR-Tools 스케줄러는 Batched 활동을 완전히 지원하지 않을 수 있습니다.")
@@ -1031,6 +1416,63 @@ if "솔버 시간 초과" in st.session_state.get('last_solve_logs', ''):
 final_schedule = st.session_state.get('final_schedule')
 if final_schedule is not None and not final_schedule.empty:
     st.success("🎉 운영일정 추정이 완료되었습니다!")
+    
+    # 2단계 스케줄링 결과 표시 (계층적 스케줄러 v2 사용 시)
+    if "계층적" in scheduler_choice and st.session_state.get('two_phase_reports'):
+        st.subheader("🔧 2단계 하드 제약 스케줄링 결과")
+        
+        reports = st.session_state['two_phase_reports']
+        
+        # 하드 제약 분석 결과 표시
+        if 'constraint_analysis' in reports and not reports['constraint_analysis'].empty:
+            constraint_df = reports['constraint_analysis']
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.info(f"📊 **분석된 날짜**: {len(constraint_df)}일")
+            with col2:
+                total_candidates = constraint_df['applicant_count'].sum()
+                st.info(f"👥 **총 지원자**: {total_candidates}명")
+            with col3:
+                avg_constraint = constraint_df['hard_constraint_hours'].mean()
+                st.info(f"⏰ **평균 하드 제약**: {avg_constraint:.1f}시간")
+            
+            # 하드 제약 분석 테이블
+            st.markdown("**📋 날짜별 하드 제약 분석**")
+            display_constraint = constraint_df.copy()
+            display_constraint['hard_constraint_hours'] = display_constraint['hard_constraint_hours'].round(2)
+            if 'percentile' in display_constraint.columns:
+                display_constraint['percentile'] = display_constraint['percentile'].round(1)
+            else:
+                display_constraint['percentile'] = 90.0
+            # 컬럼 자동 한글화 및 선택
+            col_map = {
+                'interview_date': '날짜',
+                'applicant_count': '지원자수',
+                'mean_stay_hours': '평균체류시간(h)',
+                'max_stay_hours': '최대체류시간(h)',
+                'percentile': '분위수(%)',
+                'hard_constraint_hours': '하드제약(h)',
+                'exceed_count': '위반자수',
+                'exceed_rate': '위반율(%)'
+            }
+            display_cols = [c for c in col_map if c in display_constraint.columns]
+            display_constraint = display_constraint[display_cols].rename(columns=col_map)
+            st.dataframe(display_constraint, use_container_width=True, hide_index=True)
+        
+        # 제약 위반 분석 결과 표시
+        if 'constraint_violations' in reports and not reports['constraint_violations'].empty:
+            violations_df = reports['constraint_violations']
+            st.markdown("**⚠️ 제약 위반 분석**")
+            st.dataframe(violations_df, use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ 모든 지원자가 하드 제약 내에서 성공적으로 스케줄링되었습니다!")
+        
+        # 단계별 비교 결과 표시
+        if 'phase_comparison' in reports and not reports['phase_comparison'].empty:
+            comparison_df = reports['phase_comparison']
+            st.markdown("**📈 1단계 vs 2단계 비교**")
+            st.dataframe(comparison_df, use_container_width=True, hide_index=True)
     
     # 요약 정보
     total_candidates = len(final_schedule)

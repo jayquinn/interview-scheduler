@@ -1,0 +1,370 @@
+2025-07-15 18:28:16.685 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.687 WARNING streamlit.runtime.state.session_state_proxy: Session state does not function when running a script without `streamlit run`
+2025-07-15 18:28:16.687 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.687 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.697 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.698 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.699 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.699 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.699 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.699 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.699 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.699 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.706 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.707 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.707 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-07-15 18:28:16.708 WARNING streamlit.runtime.scriptrunner_utils.script_run_context: Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+INFO: === 2단계 하드 제약 스케줄링 시작 ===
+INFO: === 2단계 스케줄링 시작 ===
+INFO: 1단계: 초기 스케줄링 (소프트 제약)
+INFO: 멀티 날짜 스케줄링 시작: 2개 날짜
+INFO: 그룹 최적화 시작 (V2): 40명 지원자
+INFO: JOB01: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 20명 → 0명 더미 추가 → 20명 → 4개 그룹
+INFO: JOB02: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 20명 → 0명 더미 추가 → 20명 → 4개 그룹
+INFO: 그룹 최적화 완료 (V2): 8개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 6
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_020 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G003, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_011 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_012 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_013 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_014 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_015 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_020 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 30
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 40
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+INFO: \u2705 휴리스틱 방식 성공
+INFO: Level 4 후처리 조정 시작
+DEBUG: 개선 가능성 계산: 최대간격=1.7h, 임계값=1.5h, 개선잠재력=0.2h
+DEBUG: 개선 가능성 계산: 최대간격=1.7h, 임계값=1.5h, 개선잠재력=0.2h
+DEBUG: 개선 가능성 계산: 최대간격=2.0h, 임계값=1.5h, 개선잠재력=0.5h
+DEBUG: 개선 가능성 계산: 최대간격=2.0h, 임계값=1.5h, 개선잠재력=0.5h
+DEBUG: 개선 가능성 계산: 최대간격=2.3h, 임계값=1.5h, 개선잠재력=0.8h
+DEBUG: 개선 가능성 계산: 최대간격=2.3h, 임계값=1.5h, 개선잠재력=0.8h
+DEBUG: 개선 가능성 계산: 최대간격=2.7h, 임계값=1.5h, 개선잠재력=1.2h
+DEBUG: 개선 가능성 계산: 최대간격=2.7h, 임계값=1.5h, 개선잠재력=1.2h
+DEBUG: 개선 가능성 계산: 최대간격=3.0h, 임계값=1.5h, 개선잠재력=1.5h
+DEBUG: 개선 가능성 계산: 최대간격=3.3h, 임계값=1.5h, 개선잠재력=1.8h
+DEBUG: 개선 가능성 계산: 최대간격=3.3h, 임계값=1.5h, 개선잠재력=1.8h
+DEBUG: 개선 가능성 계산: 최대간격=3.7h, 임계값=1.5h, 개선잠재력=2.2h
+DEBUG: 개선 가능성 계산: 최대간격=3.7h, 임계값=1.5h, 개선잠재력=2.2h
+DEBUG: 개선 가능성 계산: 최대간격=4.0h, 임계값=1.5h, 개선잠재력=2.5h
+DEBUG: 개선 가능성 계산: 최대간격=4.0h, 임계값=1.5h, 개선잠재력=2.5h
+DEBUG: 개선 가능성 계산: 최대간격=4.3h, 임계값=1.5h, 개선잠재력=2.8h
+DEBUG: 개선 가능성 계산: 최대간격=4.3h, 임계값=1.5h, 개선잠재력=2.8h
+DEBUG: 개선 가능성 계산: 최대간격=4.7h, 임계값=1.5h, 개선잠재력=3.2h
+DEBUG: 개선 가능성 계산: 최대간격=4.7h, 임계값=1.5h, 개선잠재력=3.2h
+INFO: 체류시간 분석 완료: 40명
+INFO: \U0001f4ca 체류시간 통계 및 리스크 분석:
+INFO:    평균=2.4h, 중간값=2.2h, 표준편차=1.8h
+INFO:    상위30%=3.5h, 통계적임계값=3.3h
+INFO:    최종 동적임계값=3.3h
+INFO:    권장임계값=3.5h
+INFO: \U0001f4c8 기준별 대상자 수:
+INFO:    3시간 기준: 15명 (37.5%)
+INFO:    4시간 기준: 10명 (25.0%)
+INFO: \U0001f4ca 최종 임계값: 3.5시간 (동적=3.3h, 상위30%=3.5h)
+INFO: 문제 케이스 13개 식별
+INFO: 이동 후보 그룹: 3개
+INFO: 최적 이동 선택: 3개
+INFO: 그룹 JOB02_G004 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G004 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G004 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G004 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G004 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G003 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G003 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G003 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G003 이동: 10:20:00 → 13:00:00
+INFO: 그룹 JOB02_G003 이동: 10:20:00 → 13:00:00
+WARNING: \u26a0\ufe0f 그룹 JOB02_G001 시간-방 충돌, 이동 건너뜀: 토론면접실B 13:00:00
+INFO: Level 4 후처리 조정 완료: 0.01초, 28.8시간 개선
+INFO: 2025-07-15: 성공 - 40명 스케줄링
+INFO: 그룹 최적화 시작 (V2): 30명 지원자
+INFO: JOB01: 15명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 15명 → 0명 더미 추가 → 15명 → 3개 그룹
+INFO: JOB02: 15명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 15명 → 0명 더미 추가 → 15명 → 3개 그룹
+INFO: 그룹 최적화 완료 (V2): 6개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 4
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_010 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 20
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 30
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+INFO: \u2705 휴리스틱 방식 성공
+INFO: Level 4 후처리 조정 시작
+DEBUG: 개선 가능성 계산: 최대간격=1.7h, 임계값=1.5h, 개선잠재력=0.2h
+DEBUG: 개선 가능성 계산: 최대간격=2.0h, 임계값=1.5h, 개선잠재력=0.5h
+DEBUG: 개선 가능성 계산: 최대간격=1.7h, 임계값=1.5h, 개선잠재력=0.2h
+DEBUG: 개선 가능성 계산: 최대간격=2.3h, 임계값=1.5h, 개선잠재력=0.8h
+DEBUG: 개선 가능성 계산: 최대간격=2.0h, 임계값=1.5h, 개선잠재력=0.5h
+DEBUG: 개선 가능성 계산: 최대간격=2.7h, 임계값=1.5h, 개선잠재력=1.2h
+DEBUG: 개선 가능성 계산: 최대간격=2.3h, 임계값=1.5h, 개선잠재력=0.8h
+DEBUG: 개선 가능성 계산: 최대간격=3.0h, 임계값=1.5h, 개선잠재력=1.5h
+DEBUG: 개선 가능성 계산: 최대간격=2.7h, 임계값=1.5h, 개선잠재력=1.2h
+INFO: 체류시간 분석 완료: 30명
+INFO: \U0001f4ca 체류시간 통계 및 리스크 분석:
+INFO:    평균=1.6h, 중간값=1.5h, 표준편차=1.2h
+INFO:    상위30%=2.2h, 통계적임계값=2.2h
+INFO:    최종 동적임계값=3.0h
+INFO:    권장임계값=3.0h
+INFO: \U0001f4c8 기준별 대상자 수:
+INFO:    3시간 기준: 5명 (16.7%)
+INFO:    4시간 기준: 0명 (0.0%)
+WARNING: \u26a0\ufe0f 3시간 기준 시 대상자가 5명 증가 - 성능 주의 필요
+INFO: \U0001f4ca 최종 임계값: 3.0시간 (동적=3.0h, 상위30%=2.2h)
+INFO: 문제 케이스 5개 식별
+INFO: 이동 후보 그룹: 2개
+INFO: 최적 이동 선택: 2개
+INFO: 그룹 JOB02_G002 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G002 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G002 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G002 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G002 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G001 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G001 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G001 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G001 이동: 9:40:00 → 13:00:00
+INFO: 그룹 JOB02_G001 이동: 9:40:00 → 13:00:00
+INFO: Level 4 후처리 조정 완료: 0.00초, 5.5시간 개선
+INFO: 2025-07-16: 성공 - 30명 스케줄링
+INFO: 1단계 완료: 120개 스케줄 생성
+INFO: 2단계: 체류시간 분석 및 하드 제약 산출
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_010): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_010): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_010): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_010): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_011): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_011): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_012): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_012): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_016): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_016): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_017): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_017): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_018): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_018): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_019): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_019): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_020): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_020): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_001): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_002): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_003): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_004): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_005): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_013): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_013): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_014): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_014): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_015): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB01_015): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_011): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_011): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_011): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_012): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_012): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_012): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_013): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_013): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_013): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_014): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_014): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_014): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_015): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_015): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_015): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_016): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_016): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_017): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_017): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_018): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_018): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_019): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_019): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_020): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_020): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_006): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_007): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_008): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_009): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_010): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_010): 'Timedelta' object has no attribute 'hour'
+DEBUG: 시간 파싱 오류 (applicant_id: JOB02_010): 'Timedelta' object has no attribute 'hour'
+ERROR: 2단계 스케줄링 중 예외 발생
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\solver\api.py", line 889, in solve_for_days_two_phase
+    result = scheduler.run_two_phase_scheduling(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\solver\hard_constraint_scheduler.py", line 77, in run_two_phase_scheduling
+    constraint_analysis = self.analyzer.analyze_stay_times_by_date(df1)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\solver\hard_constraint_analyzer.py", line 43, in analyze_stay_times_by_date
+    if not stay_times:
+  File "C:\git\interview-scheduler\.venv\Lib\site-packages\pandas\core\generic.py", line 1577, in __nonzero__
+    raise ValueError(
+ValueError: The truth value of a DataFrame is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
+[2단계 하드 제약 스케줄링 테스트]
+============================================================
+1. 테스트 설정 구성...
+2. 설정 구성...
+3. 2단계 스케줄링 실행...
+   - 1단계: 초기 스케줄링 (소프트 제약)
+   - 2단계: 체류시간 분석 및 하드 제약 산출
+   - 3단계: 하드 제약 적용 2차 스케줄링
+
+4. 결과 분석
+============================================================
+스케줄링 상태: ERROR
+일일 처리 한계: 0명
+최종 스케줄 항목: 0개
+2단계 스케줄링 실패
+오류: 예외 발생: The truth value of a DataFrame is ambiguous. Use a.empty, a.bool(), a.item(), a.any() or a.all().
+
+============================================================
+테스트 완료!
