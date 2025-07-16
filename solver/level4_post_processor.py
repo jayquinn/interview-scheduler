@@ -518,14 +518,18 @@ class Level4PostProcessor:
             used_time_rooms.add(room_time_key)
             
             for item in group_items:
-                # 새로운 시간으로 업데이트
+                # 새로운 시간으로 업데이트 (min_gap_min 제약 적용)
+                new_start_time, new_end_time = self._apply_min_gap_constraint(
+                    item.start_time + time_delta, item.end_time + time_delta, 5
+                )
+                
                 new_item = ScheduleItem(
                     applicant_id=item.applicant_id,
                     job_code=item.job_code,
                     activity_name=item.activity_name,
                     room_name=item.room_name,
-                    start_time=item.start_time + time_delta,
-                    end_time=item.end_time + time_delta,
+                    start_time=new_start_time,
+                    end_time=new_end_time,
                     group_id=item.group_id
                 )
                 
@@ -549,15 +553,15 @@ class Level4PostProcessor:
         # 🔧 CRITICAL FIX: 모든 그룹을 14:00로 보내는 버그 수정
         # 현재 시간보다 늦은 시간대로만 이동 (오후로 이동)
         
-        # 오후 시간대 후보들 (30분 간격)
+        # 오후 시간대 후보들 (5분 단위로 라운딩)
         afternoon_slots = [
-            timedelta(hours=13, minutes=0),
-            timedelta(hours=13, minutes=30), 
-            timedelta(hours=14, minutes=0),
-            timedelta(hours=14, minutes=30),
-            timedelta(hours=15, minutes=0),
-            timedelta(hours=15, minutes=30),
-            timedelta(hours=16, minutes=0)
+            self._round_to_5min(timedelta(hours=13, minutes=0)),
+            self._round_to_5min(timedelta(hours=13, minutes=30)), 
+            self._round_to_5min(timedelta(hours=14, minutes=0)),
+            self._round_to_5min(timedelta(hours=14, minutes=30)),
+            self._round_to_5min(timedelta(hours=15, minutes=0)),
+            self._round_to_5min(timedelta(hours=15, minutes=30)),
+            self._round_to_5min(timedelta(hours=16, minutes=0))
         ]
         
         # 현재 시간보다 늦은 시간대 중 가장 가까운 것 선택
@@ -573,6 +577,44 @@ class Level4PostProcessor:
                 return target
             else:
                 return current_start  # 이동하지 않음
+    
+    def _apply_min_gap_constraint(self, start_time: timedelta, end_time: timedelta, global_gap_min: int = 5) -> Tuple[timedelta, timedelta]:
+        """
+        min_gap_min 제약을 적용하여 시간을 5분 단위로 조정
+        
+        Args:
+            start_time: 시작 시간
+            end_time: 종료 시간
+            global_gap_min: 최소 간격 (분)
+            
+        Returns:
+            Tuple[timedelta, timedelta]: 조정된 시작/종료 시간
+        """
+        # 시작 시간을 5분 단위로 조정
+        start_minutes = start_time.total_seconds() / 60
+        adjusted_start_minutes = round(start_minutes / global_gap_min) * global_gap_min
+        adjusted_start = timedelta(minutes=adjusted_start_minutes)
+        
+        # 종료 시간을 5분 단위로 조정
+        end_minutes = end_time.total_seconds() / 60
+        adjusted_end_minutes = round(end_minutes / global_gap_min) * global_gap_min
+        adjusted_end = timedelta(minutes=adjusted_end_minutes)
+        
+        return adjusted_start, adjusted_end
+    
+    def _round_to_5min(self, time_delta: timedelta) -> timedelta:
+        """
+        timedelta를 5분 단위로 반올림 (하위 호환성)
+        
+        Args:
+            time_delta: 반올림할 시간
+            
+        Returns:
+            timedelta: 5분 단위로 반올림된 시간
+        """
+        total_minutes = time_delta.total_seconds() / 60
+        rounded_minutes = round(total_minutes / 5) * 5
+        return timedelta(minutes=rounded_minutes)
     
     def _check_time_conflicts(self, candidate: GroupMoveCandidate, config: DateConfig) -> bool:
         """시간 충돌 체크 (단순화된 버전)"""

@@ -1,0 +1,135 @@
+INFO: 멀티 날짜 스케줄링 시작: 2개 날짜
+INFO: 그룹 최적화 시작 (V2): 20명 지원자
+INFO: JOB01: 10명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 10명 → 0명 더미 추가 → 10명 → 2개 그룹
+INFO: JOB02: 10명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 10명 → 0명 더미 추가 → 10명 → 2개 그룹
+INFO: 그룹 최적화 완료 (V2): 4개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 3
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_010 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 15
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 20
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+INFO: \u2705 휴리스틱 방식 성공
+INFO: Level 4 후처리 조정 시작
+DEBUG: 개선 가능성 계산: 최대간격=1.7h, 임계값=1.5h, 개선잠재력=0.2h
+DEBUG: 개선 가능성 계산: 최대간격=1.7h, 임계값=1.5h, 개선잠재력=0.2h
+DEBUG: 개선 가능성 계산: 최대간격=2.0h, 임계값=1.5h, 개선잠재력=0.5h
+DEBUG: 개선 가능성 계산: 최대간격=2.0h, 임계값=1.5h, 개선잠재력=0.5h
+INFO: 체류시간 분석 완료: 20명
+INFO: \U0001f4ca 체류시간 통계 및 리스크 분석:
+INFO:    평균=1.5h, 중간값=1.5h, 표준편차=0.9h
+INFO:    상위30%=2.2h, 통계적임계값=1.9h
+INFO:    최종 동적임계값=3.0h
+INFO:    권장임계값=3.0h
+INFO: \U0001f4c8 기준별 대상자 수:
+INFO:    3시간 기준: 0명 (0.0%)
+INFO:    4시간 기준: 0명 (0.0%)
+INFO: \U0001f4ca 최종 임계값: 3.0시간 (동적=3.0h, 상위30%=2.2h)
+INFO: 문제 케이스 0개 식별
+INFO: 체류시간 개선이 필요한 케이스가 없습니다
+INFO: 2024-01-15: 성공 - 20명 스케줄링
+INFO: 그룹 최적화 시작 (V2): 16명 지원자
+INFO: JOB01: 8명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 8명 → 0명 더미 추가 → 8명 → 2개 그룹
+INFO: JOB02: 8명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 8명 → 0명 더미 추가 → 8명 → 2개 그룹
+INFO: 그룹 최적화 완료 (V2): 4개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 3
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 4, 실제 지원자: 4
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 4, 실제 지원자: 4
+DEBUG:   - 지원자 1: JOB01_005 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_008 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G002, 크기: 4, 실제 지원자: 4
+DEBUG:   - 지원자 1: JOB02_005 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_006 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_007 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_008 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 12
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 16
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+INFO: \u2705 휴리스틱 방식 성공
+INFO: Level 4 후처리 조정 시작
+INFO: 체류시간 분석 완료: 16명
+INFO: \U0001f4ca 체류시간 통계 및 리스크 분석:
+INFO:    평균=1.2h, 중간값=1.3h, 표준편차=0.7h
+INFO:    상위30%=1.8h, 통계적임계값=1.6h
+INFO:    최종 동적임계값=3.0h
+INFO:    권장임계값=3.0h
+INFO: \U0001f4c8 기준별 대상자 수:
+INFO:    3시간 기준: 0명 (0.0%)
+INFO:    4시간 기준: 0명 (0.0%)
+INFO: \U0001f4ca 최종 임계값: 3.0시간 (동적=3.0h, 상위30%=1.8h)
+INFO: 문제 케이스 0개 식별
+INFO: 체류시간 개선이 필요한 케이스가 없습니다
+INFO: 2024-01-16: 성공 - 16명 스케줄링
+내부 테스트 - 날짜별 최대 체류 응시자 분석
+============================================================
+1. 간단한 테스트 설정...
+테스트 설정 완료
+
+2. 기본 스케줄링 실행...
+스케줄링 상태: SUCCESS
+스케줄 생성 완료: 63개 항목
+
+3. 체류시간 분석...
+데이터프레임 컬럼: ['interview_date', 'applicant_id', 'job_code', 'activity_name', 'room_name', 'start_time', 'end_time', 'duration_min']
+데이터프레임 샘플:
+  interview_date applicant_id  ...        end_time duration_min
+0     2024-01-15    JOB01_001  ... 0 days 09:30:00           30
+1     2024-01-15    JOB01_002  ... 0 days 09:30:00           30
+2     2024-01-15    JOB01_003  ... 0 days 09:30:00           30
+3     2024-01-15    JOB01_004  ... 0 days 09:30:00           30
+4     2024-01-15    JOB01_005  ... 0 days 09:30:00           30
+
+[5 rows x 8 columns]
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_internal_analysis.py", line 193, in test_internal_analysis
+    stay_times = calculate_stay_times(final_df)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_internal_analysis.py", line 45, in calculate_stay_times
+    print("\u274c 지원자 컬럼을 찾을 수 없습니다")
+UnicodeEncodeError: 'cp949' codec can't encode character '\u274c' in position 0: illegal multibyte sequence
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_internal_analysis.py", line 245, in <module>
+    success = test_internal_analysis()
+              ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_internal_analysis.py", line 239, in test_internal_analysis
+    print(f"\u274c 예외 발생: {e}")
+UnicodeEncodeError: 'cp949' codec can't encode character '\u274c' in position 0: illegal multibyte sequence

@@ -301,6 +301,11 @@ def solve_for_days_v2(
         # UI 데이터 변환
         date_plans, global_config, rooms, activities = _convert_ui_data(cfg_ui_optimized, logs_buffer)
         
+        # params의 max_stay_hours가 있으면 global_config에 적용
+        if params and 'max_stay_hours' in params:
+            global_config.max_stay_hours = params['max_stay_hours']
+            logs_buffer.append(f"제약 적용: max_stay_hours = {params['max_stay_hours']}시간")
+        
         if not date_plans:
             return "FAILED", pd.DataFrame(), "날짜별 계획이 없습니다.", 0
         
@@ -670,7 +675,7 @@ def _convert_result_to_ui_format(result, logs_buffer: List[str]) -> pd.DataFrame
                 "room_name": item.room_name,
                 "start_time": item.start_time,
                 "end_time": item.end_time,
-                "duration_min": int((item.end_time - item.start_time).total_seconds() / 60)
+                "duration_min": int(round((item.end_time - item.start_time).total_seconds() / 60 / 5) * 5)
             })
     
     if not schedule_data:
@@ -940,4 +945,204 @@ def solve_for_days_two_phase(
     
     except Exception as e:
         logger.exception("2단계 하드 제약 스케줄링 중 예외 발생")
-        return "ERROR", pd.DataFrame(), f"예외 발생: {str(e)}", 0, {} 
+        return "ERROR", pd.DataFrame(), f"예외 발생: {str(e)}", 0, {}
+
+
+def solve_for_days_three_phase(
+    cfg_ui: dict, 
+    params: dict = None, 
+    debug: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
+    initial_percentile: float = 90.0,
+    final_percentile: float = 95.0,
+    max_iterations: int = 3
+) -> Tuple[str, pd.DataFrame, str, int, Dict[str, pd.DataFrame]]:
+    """
+    3단계 하드 제약 스케줄링 (점진적 분위수 조정)
+    
+    Args:
+        cfg_ui: UI 설정 딕셔너리
+        params: 추가 파라미터
+        debug: 디버그 모드
+        progress_callback: 실시간 진행 상황 콜백 함수
+        initial_percentile: 초기 하드 제약 계산용 분위수 (기본값: 90.0)
+        final_percentile: 최종 하드 제약 계산용 분위수 (기본값: 95.0)
+        max_iterations: 최대 반복 횟수 (기본값: 3)
+    
+    Returns:
+        (status, final_wide_df, logs, daily_limit, reports)
+    """
+    try:
+        # 로깅 설정
+        log_level = logging.DEBUG if debug else logging.WARNING
+        logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+        logger = logging.getLogger(__name__)
+        
+        logs_buffer = []
+        logs_buffer.append(f"=== 3단계 하드 제약 스케줄링 시작 ===")
+        logs_buffer.append(f"초기 분위수: {initial_percentile}%, 최종 분위수: {final_percentile}%")
+        logs_buffer.append(f"최대 반복 횟수: {max_iterations}")
+        
+        # 1단계: 초기 스케줄링 (소프트 제약만 적용)
+        logs_buffer.append("\n1단계: 초기 스케줄링 (소프트 제약)")
+        
+        from .api import solve_for_days_v2
+        phase1_params = params.copy() if params else {}
+        phase1_params['max_stay_hours'] = 12  # 충분히 큰 값으로 설정
+        
+        status1, df1, logs1, limit1 = solve_for_days_v2(
+            cfg_ui, 
+            phase1_params, 
+            debug, 
+            progress_callback
+        )
+        
+        if status1 != "SUCCESS":
+            logs_buffer.append(f"1단계 스케줄링 실패: {status1}")
+            return "FAILED", pd.DataFrame(), "\n".join(logs_buffer), 0, {}
+        
+        logs_buffer.append(f"1단계 완료: {len(df1)}개 스케줄 생성")
+        
+        # 2단계: 점진적 하드 제약 적용
+        current_df = df1
+        current_percentile = initial_percentile
+        iteration_results = []
+        
+        for iteration in range(1, max_iterations + 1):
+            logs_buffer.append(f"\n{iteration + 1}단계: {current_percentile}% 분위수 하드 제약 적용")
+            
+            # 현재 결과에서 체류시간 분석
+            from .hard_constraint_analyzer import HardConstraintAnalyzer
+            analyzer = HardConstraintAnalyzer(percentile=current_percentile)
+            constraint_analysis = analyzer.analyze_stay_times_by_date(current_df)
+            
+            if not constraint_analysis:
+                logs_buffer.append(f"{iteration + 1}단계: 체류시간 분석 실패")
+                break
+            
+            # 하드 제약값 추출
+            hard_constraints = analyzer.get_hard_constraints(constraint_analysis)
+            
+            logs_buffer.append(f"하드 제약 산출: {len(hard_constraints)}개 날짜")
+            for date, constraint in hard_constraints.items():
+                logs_buffer.append(f"  {date}: {constraint:.1f}시간")
+            
+            # 하드 제약을 적용한 스케줄링
+            from .hard_constraint_scheduler import HardConstraintScheduler
+            scheduler = HardConstraintScheduler(percentile=current_percentile)
+            
+            phase_result = scheduler._apply_hard_constraints(
+                cfg_ui, hard_constraints, params, debug, progress_callback
+            )
+            
+            if phase_result['status'] != "SUCCESS":
+                logs_buffer.append(f"{iteration + 1}단계 스케줄링 실패: {phase_result.get('error', 'Unknown error')}")
+                break
+            
+            # 결과 저장
+            iteration_results.append({
+                'iteration': iteration + 1,
+                'percentile': current_percentile,
+                'schedule': phase_result['schedule'],
+                'constraint_analysis': constraint_analysis,
+                'hard_constraints': hard_constraints,
+                'exceed_analysis': phase_result['exceed_analysis']
+            })
+            
+            # 제약 위반 분석
+            exceed_analysis = phase_result['exceed_analysis']
+            total_violations = exceed_analysis.get('total_violations', 0)
+            violation_rate = exceed_analysis.get('overall_violation_rate', 0)
+            
+            logs_buffer.append(f"제약 위반: {total_violations}명 ({violation_rate:.1f}%)")
+            
+            # 제약 위반이 없거나 허용 범위 내면 종료
+            if total_violations == 0 or violation_rate <= 5.0:
+                logs_buffer.append(f"✅ 목표 달성: 제약 위반률 {violation_rate:.1f}%")
+                break
+            
+            # 다음 반복을 위해 분위수 조정
+            if iteration < max_iterations:
+                # 점진적으로 분위수를 높임 (90% → 95% → 98%)
+                current_percentile = min(final_percentile, current_percentile + (final_percentile - initial_percentile) / (max_iterations - 1))
+                current_df = phase_result['schedule']
+                logs_buffer.append(f"다음 반복 분위수: {current_percentile:.1f}%")
+            else:
+                logs_buffer.append(f"최대 반복 횟수 도달: {max_iterations}회")
+        
+        # 최종 결과 결정
+        if iteration_results:
+            final_result = iteration_results[-1]
+            final_df = final_result['schedule']
+            final_percentile_used = final_result['percentile']
+            
+            logs_buffer.append(f"\n최종 결과: {final_percentile_used:.1f}% 분위수 적용")
+            
+            # 일일 처리 가능 인원 계산
+            if not final_df.empty:
+                daily_limit = final_df.groupby('interview_date')['applicant_id'].nunique().max()
+            else:
+                daily_limit = 0
+            
+            # 종합 리포트 생성
+            reports = _generate_three_phase_report(iteration_results, final_result)
+            
+            return "SUCCESS", final_df, "\n".join(logs_buffer), daily_limit, reports
+        else:
+            logs_buffer.append("모든 단계 실패")
+            return "FAILED", pd.DataFrame(), "\n".join(logs_buffer), 0, {}
+    
+    except Exception as e:
+        logger.exception("3단계 하드 제약 스케줄링 중 예외 발생")
+        return "ERROR", pd.DataFrame(), f"예외 발생: {str(e)}", 0, {}
+
+
+def _generate_three_phase_report(iteration_results: List[Dict], final_result: Dict) -> Dict[str, pd.DataFrame]:
+    """3단계 스케줄링 종합 리포트 생성"""
+    reports = {}
+    
+    # 1. 각 단계별 비교 리포트
+    comparison_data = []
+    for result in iteration_results:
+        exceed_analysis = result['exceed_analysis']
+        comparison_data.append({
+            'phase': f"{result['iteration']}단계",
+            'percentile': result['percentile'],
+            'total_applicants': exceed_analysis.get('total_applicants', 0),
+            'total_violations': exceed_analysis.get('total_violations', 0),
+            'violation_rate': exceed_analysis.get('overall_violation_rate', 0),
+            'status': '성공' if exceed_analysis.get('total_violations', 0) == 0 else '부분 성공'
+        })
+    
+    if comparison_data:
+        reports['phase_comparison'] = pd.DataFrame(comparison_data)
+    
+    # 2. 최종 제약 분석 리포트
+    if 'constraint_analysis' in final_result:
+        from .hard_constraint_analyzer import HardConstraintAnalyzer
+        analyzer = HardConstraintAnalyzer(percentile=final_result['percentile'])
+        constraint_report = analyzer.generate_constraint_report(final_result['constraint_analysis'])
+        reports['final_constraint_analysis'] = constraint_report
+    
+    # 3. 최종 제약 위반 리포트
+    if 'exceed_analysis' in final_result:
+        exceed_analysis = final_result['exceed_analysis']
+        if 'date_violations' in exceed_analysis:
+            violation_data = []
+            for date_str, violation_info in exceed_analysis['date_violations'].items():
+                violation_data.append({
+                    'interview_date': date_str,
+                    'constraint_hours': violation_info['constraint_hours'],
+                    'total_applicants': violation_info['total_count'],
+                    'violator_count': violation_info['violator_count'],
+                    'violation_rate': violation_info['violation_rate'],
+                    'status': '위반 있음' if violation_info['violator_count'] > 0 else '정상'
+                })
+            
+            if violation_data:
+                violation_df = pd.DataFrame(violation_data)
+                violation_df['interview_date'] = pd.to_datetime(violation_df['interview_date'])
+                violation_df = violation_df.sort_values('interview_date')
+                reports['final_violations'] = violation_df
+    
+    return reports 

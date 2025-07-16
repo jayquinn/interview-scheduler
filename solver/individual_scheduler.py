@@ -404,14 +404,18 @@ class IndividualScheduler:
     ):
         """그룹 스케줄 실행"""
         
+        # 5분 단위로 라운딩
+        pred_start_rounded = self._round_to_5min(pred_start)
+        pred_end_rounded = self._round_to_5min(pred_end)
+        
         # 발표준비 스케줄 생성
         pred_slot = TimeSlot(
             activity_name=pred_activity.name,
-            start_time=pred_start,
-            end_time=pred_end,
+            start_time=pred_start_rounded,
+            end_time=pred_end_rounded,
             room_name=pred_room.name,
             applicant_id=group[0].id if group else None,  # 그룹의 첫 번째 지원자 ID 사용
-            group_id=f"group_{pred_activity.name}_{pred_start.total_seconds()}"
+            group_id=f"group_{pred_activity.name}_{pred_start_rounded.total_seconds()}"
         )
         
         # 발표준비 저장
@@ -424,8 +428,12 @@ class IndividualScheduler:
         
         # 방 가용성 업데이트
         self._update_availability(
-            room_availability[pred_room.name], pred_start, pred_end
+            room_availability[pred_room.name], pred_start_rounded, pred_end_rounded
         )
+        
+        # 5분 단위로 라운딩
+        succ_start_rounded = self._round_to_5min(succ_start)
+        succ_end_rounded = self._round_to_5min(succ_end)
         
         # 발표면접 스케줄 생성
         for i, applicant in enumerate(group):
@@ -434,8 +442,8 @@ class IndividualScheduler:
                 
                 succ_slot = TimeSlot(
                     activity_name=succ_activity.name,
-                    start_time=succ_start,
-                    end_time=succ_end,
+                    start_time=succ_start_rounded,
+                    end_time=succ_end_rounded,
                     room_name=succ_room.name,
                     applicant_id=applicant.id
                 )
@@ -447,10 +455,10 @@ class IndividualScheduler:
                 
                 # 방 가용성 업데이트
                 self._update_availability(
-                    room_availability[succ_room.name], succ_start, succ_end
+                    room_availability[succ_room.name], succ_start_rounded, succ_end_rounded
                 )
                 
-                logger.info(f"✅ {applicant.id}: {pred_activity.name} {pred_start}~{pred_end} → {succ_activity.name} {succ_start}~{succ_end}")
+                logger.info(f"✅ {applicant.id}: {pred_activity.name} {pred_start_rounded}~{pred_end_rounded} → {succ_activity.name} {succ_start_rounded}~{succ_end_rounded}")
         
         logger.info(f"✅ 그룹 스케줄링 완료: {len(group)}명")
     
@@ -611,11 +619,16 @@ class IndividualScheduler:
                                         # 🎯 후속 활동 즉시 예약
                                         logger.info(f"🎉 연속배치 성공: {applicant.id} {activity.name} → {successor_reservation['activity']}")
                                         
+                                        # 후속 활동 시간 조정
+                                        adjusted_succ_start, adjusted_succ_end = self._apply_min_gap_constraint(
+                                            successor_start, successor_end, global_gap_min
+                                        )
+                                        
                                         # 후속 활동 스케줄 생성
                                         successor_slot = TimeSlot(
                                             activity_name=successor_reservation['activity'],
-                                            start_time=successor_start,
-                                            end_time=successor_end,
+                                            start_time=adjusted_succ_start,
+                                            end_time=adjusted_succ_end,
                                             room_name=successor_room_name,
                                             applicant_id=applicant.id
                                         )
@@ -633,11 +646,16 @@ class IndividualScheduler:
                                             successor_end
                                         )
                                 
+                                # min_gap_min 제약 적용하여 시간 조정
+                                adjusted_start, adjusted_end = self._apply_min_gap_constraint(
+                                    overlap_start, current_end, global_gap_min
+                                )
+                                
                                 # 스케줄 생성
                                 time_slot = TimeSlot(
                                     activity_name=activity.name,
-                                    start_time=overlap_start,
-                                    end_time=current_end,
+                                    start_time=adjusted_start,
+                                    end_time=adjusted_end,
                                     room_name=room.name,
                                     applicant_id=applicant.id
                                 )
@@ -839,14 +857,14 @@ class IndividualScheduler:
                         # 현재 활동 스케줄 생성
                         self._create_parallel_schedule(
                             activity, group, room, current_start, current_end,
-                            assignments, schedule_by_applicant, schedule_by_room, date_str
+                            assignments, schedule_by_applicant, schedule_by_room, date_str, global_gap_min
                         )
                         
                         # 후속 활동 스케줄 생성
                         self._create_successor_schedules(
                             group, successor_info['name'], successor_start, successor_end,
                             successor_rooms_available, assignments, schedule_by_applicant,
-                            schedule_by_room, date_str
+                            schedule_by_room, date_str, global_gap_min
                         )
                         
                         # 방 가용성 업데이트
@@ -900,15 +918,21 @@ class IndividualScheduler:
         assignments: Dict[str, TimeSlot],
         schedule_by_applicant: Dict[str, List[TimeSlot]],
         schedule_by_room: Dict[str, List[TimeSlot]],
-        date_str: str
+        date_str: str,
+        global_gap_min: int = 5
     ):
         """Parallel 활동 스케줄 생성"""
+        # min_gap_min 제약 적용하여 시간 조정
+        adjusted_start, adjusted_end = self._apply_min_gap_constraint(
+            start_time, end_time, global_gap_min
+        )
+        
         # 개별 지원자 스케줄
         for applicant in group:
             time_slot = TimeSlot(
                 activity_name=activity.name,
-                start_time=start_time,
-                end_time=end_time,
+                start_time=adjusted_start,
+                end_time=adjusted_end,
                 room_name=room.name,
                 applicant_id=applicant.id
             )
@@ -920,11 +944,11 @@ class IndividualScheduler:
         # 방 스케줄 - 그룹 스케줄링의 경우 group_id 사용
         room_slot = TimeSlot(
             activity_name=activity.name,
-            start_time=start_time,
-            end_time=end_time,
+            start_time=adjusted_start,
+            end_time=adjusted_end,
             room_name=room.name,
             applicant_id=group[0].id if group else None,  # 그룹의 첫 번째 지원자 ID
-            group_id=f"group_{activity.name}_{start_time.total_seconds()}"
+            group_id=f"group_{activity.name}_{adjusted_start.total_seconds()}"
         )
         schedule_by_room[room.name].append(room_slot)
     
@@ -938,9 +962,15 @@ class IndividualScheduler:
         assignments: Dict[str, TimeSlot],
         schedule_by_applicant: Dict[str, List[TimeSlot]],
         schedule_by_room: Dict[str, List[TimeSlot]],
-        date_str: str
+        date_str: str,
+        global_gap_min: int = 5
     ):
         """후속 활동 스케줄 생성 - 🔧 중복 배치 방지"""
+        
+        # min_gap_min 제약 적용하여 시간 조정
+        adjusted_start, adjusted_end = self._apply_min_gap_constraint(
+            start_time, end_time, global_gap_min
+        )
         
         # 방 부족 시 처리
         if len(available_rooms) < len(group):
@@ -954,8 +984,8 @@ class IndividualScheduler:
                 
                 time_slot = TimeSlot(
                     activity_name=successor_name,
-                    start_time=start_time,
-                    end_time=end_time,
+                    start_time=adjusted_start,
+                    end_time=adjusted_end,
                     room_name=room_name,
                     applicant_id=applicant.id
                 )
@@ -965,7 +995,7 @@ class IndividualScheduler:
                 schedule_by_applicant[applicant.id].append(time_slot)
                 schedule_by_room[room_name].append(time_slot)
                 
-                logger.debug(f"후속 활동 배치: {applicant.id} → {room_name} ({start_time} ~ {end_time})")
+                logger.debug(f"후속 활동 배치: {applicant.id} → {room_name} ({adjusted_start} ~ {adjusted_end})")
             else:
                 logger.warning(f"후속 활동 배치 실패: {applicant.id} (방 부족)")
     
@@ -1014,7 +1044,7 @@ class IndividualScheduler:
                             # 스케줄 생성
                             self._create_parallel_schedule(
                                 activity, group, room, slot_start, slot_start + activity.duration,
-                                assignments, schedule_by_applicant, schedule_by_room, date_str
+                                assignments, schedule_by_applicant, schedule_by_room, date_str, 5
                             )
                             
                             # 방 가용성 업데이트
@@ -1051,8 +1081,9 @@ class IndividualScheduler:
         
         model = cp_model.CpModel()
         
-        # 시간 범위를 분 단위로 변환
-        horizon = int((end_time - start_time).total_seconds() / 60)
+        # 시간 범위를 분 단위로 변환 (5분 단위로 라운딩)
+        horizon_minutes = (end_time - start_time).total_seconds() / 60
+        horizon = int(round(horizon_minutes / 5) * 5)
         
         # 변수 생성
         intervals = {}
@@ -1314,10 +1345,14 @@ class IndividualScheduler:
                         break
                         
                 if assigned_room:
+                    # 5분 단위로 라운딩
+                    start_time = self._round_to_5min(timedelta(minutes=start_min))
+                    end_time = self._round_to_5min(timedelta(minutes=end_min))
+                    
                     time_slot = TimeSlot(
                         activity_name=activity_name,
-                        start_time=timedelta(minutes=start_min),
-                        end_time=timedelta(minutes=end_min),
+                        start_time=start_time,
+                        end_time=end_time,
                         room_name=assigned_room,
                         applicant_id=applicant_id
                     )
@@ -1526,6 +1561,44 @@ class IndividualScheduler:
                 schedule_by_room, date_str, start_time, end_time,
                 precedence_rules, global_gap_min
             )
+    
+    def _round_to_5min(self, time_delta: timedelta) -> timedelta:
+        """
+        timedelta를 5분 단위로 반올림
+        
+        Args:
+            time_delta: 반올림할 시간
+            
+        Returns:
+            timedelta: 5분 단위로 반올림된 시간
+        """
+        total_minutes = time_delta.total_seconds() / 60
+        rounded_minutes = round(total_minutes / 5) * 5
+        return timedelta(minutes=rounded_minutes)
+    
+    def _apply_min_gap_constraint(self, start_time: timedelta, end_time: timedelta, global_gap_min: int) -> Tuple[timedelta, timedelta]:
+        """
+        min_gap_min 제약을 적용하여 시간을 5분 단위로 조정
+        
+        Args:
+            start_time: 시작 시간
+            end_time: 종료 시간
+            global_gap_min: 최소 간격 (분)
+            
+        Returns:
+            Tuple[timedelta, timedelta]: 조정된 시작/종료 시간
+        """
+        # 시작 시간을 5분 단위로 조정
+        start_minutes = start_time.total_seconds() / 60
+        adjusted_start_minutes = round(start_minutes / global_gap_min) * global_gap_min
+        adjusted_start = timedelta(minutes=adjusted_start_minutes)
+        
+        # 종료 시간을 5분 단위로 조정
+        end_minutes = end_time.total_seconds() / 60
+        adjusted_end_minutes = round(end_minutes / global_gap_min) * global_gap_min
+        adjusted_end = timedelta(minutes=adjusted_end_minutes)
+        
+        return adjusted_start, adjusted_end
     
     def _get_successor_room_count(
         self, 

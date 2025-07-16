@@ -7,9 +7,17 @@ from collections import defaultdict
 import logging
 import time
 
+def parse_job_code(member_id: str) -> str:
+    """ID에서 직무코드 추출 (예: DUMMY_JOB01_001 → JOB01)"""
+    parts = member_id.split("_")
+    for part in parts:
+        if part.startswith("JOB"):
+            return part
+    return ""
+
 from .types import (
     Applicant, Group, Activity, ActivityMode, Level1Result,
-    calculate_group_count, parse_job_code
+    calculate_group_count
 )
 
 

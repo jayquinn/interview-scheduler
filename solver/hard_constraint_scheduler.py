@@ -368,9 +368,12 @@ class HardConstraintScheduler:
         for i in range(start_idx, len(applicant_schedule)):
             activity_row = applicant_schedule.iloc[i]
             
-            # 새로운 시작/종료 시간 계산
-            new_start = activity_row['start_time'] - timedelta(minutes=shift_minutes)
-            new_end = activity_row['end_time'] - timedelta(minutes=shift_minutes)
+            # 새로운 시작/종료 시간 계산 (min_gap_min 제약 적용)
+            new_start, new_end = self._apply_min_gap_constraint(
+                activity_row['start_time'] - timedelta(minutes=shift_minutes),
+                activity_row['end_time'] - timedelta(minutes=shift_minutes),
+                5
+            )
             
             # 시간 충돌 검사
             if self._check_time_conflict(
@@ -437,6 +440,44 @@ class HardConstraintScheduler:
         ]
         
         return not applicant_conflicts.empty
+    
+    def _apply_min_gap_constraint(self, start_time: timedelta, end_time: timedelta, global_gap_min: int = 5) -> Tuple[timedelta, timedelta]:
+        """
+        min_gap_min 제약을 적용하여 시간을 5분 단위로 조정
+        
+        Args:
+            start_time: 시작 시간
+            end_time: 종료 시간
+            global_gap_min: 최소 간격 (분)
+            
+        Returns:
+            Tuple[timedelta, timedelta]: 조정된 시작/종료 시간
+        """
+        # 시작 시간을 5분 단위로 조정
+        start_minutes = start_time.total_seconds() / 60
+        adjusted_start_minutes = round(start_minutes / global_gap_min) * global_gap_min
+        adjusted_start = timedelta(minutes=adjusted_start_minutes)
+        
+        # 종료 시간을 5분 단위로 조정
+        end_minutes = end_time.total_seconds() / 60
+        adjusted_end_minutes = round(end_minutes / global_gap_min) * global_gap_min
+        adjusted_end = timedelta(minutes=adjusted_end_minutes)
+        
+        return adjusted_start, adjusted_end
+    
+    def _round_to_5min(self, time_delta: timedelta) -> timedelta:
+        """
+        timedelta를 5분 단위로 반올림 (하위 호환성)
+        
+        Args:
+            time_delta: 반올림할 시간
+            
+        Returns:
+            timedelta: 5분 단위로 반올림된 시간
+        """
+        total_minutes = time_delta.total_seconds() / 60
+        rounded_minutes = round(total_minutes / 5) * 5
+        return timedelta(minutes=rounded_minutes)
     
     def _analyze_constraint_violations(self, 
                                      schedule_df: pd.DataFrame,

@@ -1,0 +1,286 @@
+INFO: 멀티 날짜 스케줄링 시작: 2개 날짜
+INFO: 그룹 최적화 시작 (V2): 50명 지원자
+INFO: JOB01: 25명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 25명 → 0명 더미 추가 → 25명 → 5개 그룹
+INFO: JOB02: 25명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 25명 → 0명 더미 추가 → 25명 → 5개 그룹
+INFO: 그룹 최적화 완료 (V2): 10개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 7
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_020 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G005, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_021 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_022 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_023 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_024 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_025 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G003, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_011 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_012 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_013 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_014 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_015 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G005, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_021 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_022 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_023 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_024 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_025 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 35
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 50
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+WARNING: 지원자 JOB02_001의 발표준비+발표면접 스케줄링 실패
+WARNING: 백트래킹 스케줄링 실패, 기본 방식으로 재시도
+WARNING: 지원자 JOB02_001의 발표준비+발표면접 스케줄링 실패
+WARNING: 활동 발표준비+발표면접 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+DEBUG: Applicants 수: 50
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+WARNING: 지원자 JOB02_001의 발표준비+발표면접 스케줄링 실패
+WARNING: 백트래킹 스케줄링 실패, 기본 방식으로 재시도
+WARNING: 지원자 JOB02_001의 발표준비+발표면접 스케줄링 실패
+WARNING: 활동 발표준비+발표면접 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+INFO: 그룹 최적화 시작 (V2): 50명 지원자
+INFO: JOB01: 25명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 25명 → 0명 더미 추가 → 25명 → 5개 그룹
+INFO: JOB02: 25명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 25명 → 0명 더미 추가 → 25명 → 5개 그룹
+INFO: 그룹 최적화 완료 (V2): 10개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 7
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_020 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G005, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_021 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_022 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_023 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_024 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_025 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G003, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_011 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_012 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_013 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_014 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_015 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G005, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_021 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_022 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_023 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_024 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_025 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 35
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 50
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+WARNING: 지원자 JOB02_001의 발표준비+발표면접 스케줄링 실패
+WARNING: 백트래킹 스케줄링 실패, 기본 방식으로 재시도
+WARNING: 지원자 JOB02_001의 발표준비+발표면접 스케줄링 실패
+WARNING: 활동 발표준비+발표면접 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+ERROR: 2024-01-15: 실패 - Level 3 실패: 50명 스케줄링 불가
+INFO: 그룹 최적화 시작 (V2): 40명 지원자
+INFO: JOB01: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 20명 → 0명 더미 추가 → 20명 → 4개 그룹
+INFO: JOB02: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 20명 → 0명 더미 추가 → 20명 → 4개 그룹
+INFO: 그룹 최적화 완료 (V2): 8개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 6
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_020 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G003, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_011 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_012 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_013 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_014 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_015 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_020 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 30
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 40
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+WARNING: 지원자 JOB02_006의 발표준비+발표면접 스케줄링 실패
+WARNING: 백트래킹 스케줄링 실패, 기본 방식으로 재시도
+WARNING: 지원자 JOB02_006의 발표준비+발표면접 스케줄링 실패
+WARNING: 활동 발표준비+발표면접 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+DEBUG: Applicants 수: 40
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+WARNING: 지원자 JOB02_006의 발표준비+발표면접 스케줄링 실패
+WARNING: 백트래킹 스케줄링 실패, 기본 방식으로 재시도
+WARNING: 지원자 JOB02_006의 발표준비+발표면접 스케줄링 실패
+WARNING: 활동 발표준비+발표면접 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+INFO: 그룹 최적화 시작 (V2): 40명 지원자
+INFO: JOB01: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB01: 20명 → 0명 더미 추가 → 20명 → 4개 그룹
+INFO: JOB02: 20명, 그룹 크기 4~6 (활동: ['토론면접'])
+INFO: JOB02: 20명 → 0명 더미 추가 → 20명 → 4개 그룹
+INFO: 그룹 최적화 완료 (V2): 8개 그룹, 0명 더미
+INFO: Batched 활동 스케줄링 시작
+INFO: \U0001f50d 처리할 활동 결과: 토론면접, 배정 수: 6
+INFO: \U0001f50d 그룹 처리: JOB01_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G002, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_006 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_007 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_008 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_009 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_010 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB01_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB01_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB01_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB01_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB01_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB01_020 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G001, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_001 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_002 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_003 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_004 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_005 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G003, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_011 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_012 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_013 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_014 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_015 → ScheduleItem 생성
+INFO: \U0001f50d 그룹 처리: JOB02_G004, 크기: 5, 실제 지원자: 5
+DEBUG:   - 지원자 1: JOB02_016 → ScheduleItem 생성
+DEBUG:   - 지원자 2: JOB02_017 → ScheduleItem 생성
+DEBUG:   - 지원자 3: JOB02_018 → ScheduleItem 생성
+DEBUG:   - 지원자 4: JOB02_019 → ScheduleItem 생성
+DEBUG:   - 지원자 5: JOB02_020 → ScheduleItem 생성
+INFO: \U0001f50d 총 생성된 ScheduleItem 수: 30
+INFO: Batched 스케줄링 완료: 0.0초
+DEBUG: Applicants 수: 40
+DEBUG: 첫 번째 applicant 타입: <class 'solver.types.Applicant'>
+DEBUG: 첫 번째 applicant: Applicant(id='JOB01_001', job_code='JOB01', required_activities=['토론면접', '발표준비+발표면접'], is_dummy=False)
+INFO: 휴리스틱 방식으로 Individual 스케줄링 시도...
+INFO: 최적화된 활동 순서: ['발표준비+발표면접']
+WARNING: 지원자 JOB02_006의 발표준비+발표면접 스케줄링 실패
+WARNING: 백트래킹 스케줄링 실패, 기본 방식으로 재시도
+WARNING: 지원자 JOB02_006의 발표준비+발표면접 스케줄링 실패
+WARNING: 활동 발표준비+발표면접 스케줄링 실패
+WARNING: 휴리스틱 실패, CP-SAT 방식 시도...
+INFO: \u2705 CP-SAT 방식 성공
+ERROR: 2024-01-16: 실패 - Level 3 실패: 40명 스케줄링 불가
+3단계 하드 제약 스케줄링 테스트
+============================================================
+1. 테스트 설정 구성...
+테스트 설정 완료
+
+2. 3단계 하드 제약 스케줄링 실행...
+3단계 스케줄링 완료: FAILED
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_three_phase_scheduling.py", line 240, in test_three_phase_scheduling
+    print(f"\u274c 스케줄링 실패: {status}")
+UnicodeEncodeError: 'cp949' codec can't encode character '\u274c' in position 0: illegal multibyte sequence
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_three_phase_scheduling.py", line 284, in <module>
+    success = test_three_phase_scheduling()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\git\interview-scheduler\test_three_phase_scheduling.py", line 245, in test_three_phase_scheduling
+    print(f"\u274c 예외 발생: {e}")
+UnicodeEncodeError: 'cp949' codec can't encode character '\u274c' in position 0: illegal multibyte sequence

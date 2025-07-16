@@ -152,7 +152,9 @@ class HardConstraintAnalyzer:
                 # 전체 체류시간 = 첫 번째 활동 시작 ~ 마지막 활동 종료
                 total_start = min(all_start_times)
                 total_end = max(all_end_times)
-                stay_duration_hours = (total_end - total_start).total_seconds() / 3600
+                # 5분 단위로 라운딩
+                stay_duration_minutes = (total_end - total_start).total_seconds() / 60
+                stay_duration_hours = round(stay_duration_minutes / 5) * 5 / 60
                 
                 # 메타 정보
                 interview_date = applicant_data['interview_date'].iloc[0]

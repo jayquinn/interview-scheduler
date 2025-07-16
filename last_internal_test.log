@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+"""
+내부 테스트 - 날짜별 최대 체류 응시자와 체류 시간 분석
+"""
+
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import sys
+import os
+
+# 프로젝트 루트를 Python 경로에 추가
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from solver.api import solve_for_days_v2
+import core
+
+def calculate_stay_times(schedule_df):
+    """스케줄에서 체류시간 계산"""
+    if schedule_df is None or schedule_df.empty:
+        return pd.DataFrame()
+    
+    # 데이터프레임 구조 확인
+    print(f"데이터프레임 컬럼: {schedule_df.columns.tolist()}")
+    print(f"데이터프레임 샘플:")
+    print(schedule_df.head())
+    
+    # 날짜 컬럼명 확인
+    date_col = None
+    if 'date' in schedule_df.columns:
+        date_col = 'date'
+    elif 'interview_date' in schedule_df.columns:
+        date_col = 'interview_date'
+    else:
+        print("❌ 날짜 컬럼을 찾을 수 없습니다")
+        return pd.DataFrame()
+    
+    # 지원자 컬럼명 확인
+    applicant_col = None
+    if 'applicant' in schedule_df.columns:
+        applicant_col = 'applicant'
+    elif 'candidate' in schedule_df.columns:
+        applicant_col = 'candidate'
+    else:
+        print("❌ 지원자 컬럼을 찾을 수 없습니다")
+        return pd.DataFrame()
+    
+    # 날짜별로 그룹화
+    stay_times = []
+    
+    for date in schedule_df[date_col].unique():
+        date_schedule = schedule_df[schedule_df[date_col] == date]
+        
+        # 지원자별로 그룹화
+        for applicant in date_schedule[applicant_col].unique():
+            applicant_schedule = date_schedule[date_schedule[applicant_col] == applicant]
+            
+            if len(applicant_schedule) > 0:
+                # 시작 시간과 종료 시간 찾기
+                start_time = applicant_schedule['start_time'].min()
+                end_time = applicant_schedule['end_time'].max()
+                
+                # 체류시간 계산 (시간 단위)
+                stay_hours = (end_time - start_time).total_seconds() / 3600
+                
+                stay_times.append({
+                    'date': date,
+                    'applicant': applicant,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'stay_hours': stay_hours
+                })
+    
+    return pd.DataFrame(stay_times)
+
+def test_internal_analysis():
+    """내부 테스트 - 날짜별 최대 체류 응시자 분석"""
+    
+    print("내부 테스트 - 날짜별 최대 체류 응시자 분석")
+    print("=" * 60)
+    
+    # 1. 간단한 테스트 설정
+    print("1. 간단한 테스트 설정...")
+    
+    # 세션 상태 초기화
+    import streamlit as st
+    
+    # 기본 활동 템플릿 (간단한 설정)
+    default_activities = pd.DataFrame({
+        "use": [True, True, True],
+        "activity": ["토론면접", "발표준비", "발표면접"],
+        "mode": ["batched", "parallel", "individual"],
+        "duration_min": [30, 5, 15],
+        "room_type": ["토론면접실", "발표준비실", "발표면접실"],
+        "min_cap": [4, 1, 1],
+        "max_cap": [6, 2, 1],
+    })
+    
+    # 간단한 직무 매핑 (10명씩)
+    job_data = {"code": ["JOB01", "JOB02"], "count": [10, 10]}
+    for act in default_activities.query("use == True")["activity"].tolist():
+        job_data[act] = True
+    job_acts_map = pd.DataFrame(job_data)
+    
+    # 기본 선후행 제약
+    precedence = pd.DataFrame([
+        {"predecessor": "발표준비", "successor": "발표면접", "gap_min": 0, "adjacent": True}
+    ])
+    
+    # 운영 시간
+    oper_start_time = datetime.strptime("09:00", "%H:%M").time()
+    oper_end_time = datetime.strptime("17:30", "%H:%M").time()
+    
+    # 충분한 방 설정
+    room_template = {
+        "토론면접실": {"count": 2, "cap": 6},
+        "발표준비실": {"count": 2, "cap": 2},
+        "발표면접실": {"count": 2, "cap": 1}
+    }
+    
+    # 방 계획 생성
+    room_plan_data = {}
+    for room_type, config in room_template.items():
+        room_plan_data[f"{room_type}_count"] = [config["count"]]
+        room_plan_data[f"{room_type}_cap"] = [config["cap"]]
+    room_plan = pd.DataFrame(room_plan_data)
+    
+    # 운영 시간 창
+    oper_window = pd.DataFrame({
+        "start_time": ["09:00"],
+        "end_time": ["17:30"]
+    })
+    
+    # 멀티 날짜 계획 (2일)
+    multidate_plans = {
+        "2024-01-15": {
+            "enabled": True,
+            "date": "2024-01-15",
+            "jobs": [
+                {"code": "JOB01", "count": 10},
+                {"code": "JOB02", "count": 10}
+            ]
+        },
+        "2024-01-16": {
+            "enabled": True,
+            "date": "2024-01-16", 
+            "jobs": [
+                {"code": "JOB01", "count": 8},
+                {"code": "JOB02", "count": 8}
+            ]
+        }
+    }
+    
+    # UI 설정 구성
+    cfg = {
+        "activities": default_activities,
+        "job_acts_map": job_acts_map,
+        "precedence": precedence,
+        "room_plan": room_plan,
+        "oper_window": oper_window,
+        "multidate_plans": multidate_plans,
+        "global_gap_min": 5,
+        "max_stay_hours": 12
+    }
+    
+    print("테스트 설정 완료")
+    
+    # 2. 기본 스케줄링 실행
+    print("\n2. 기본 스케줄링 실행...")
+    
+    try:
+        params = {
+            "min_gap_min": 5,
+            "time_limit_sec": 120,
+            "max_stay_hours": 12
+        }
+        
+        status, final_df, logs, limit = solve_for_days_v2(
+            cfg, 
+            params, 
+            debug=True,
+            progress_callback=None
+        )
+        
+        print(f"스케줄링 상태: {status}")
+        
+        if status == "SUCCESS" and final_df is not None:
+            print(f"스케줄 생성 완료: {len(final_df)}개 항목")
+            
+            # 3. 체류시간 분석
+            print("\n3. 체류시간 분석...")
+            
+            stay_times = calculate_stay_times(final_df)
+            
+            if not stay_times.empty:
+                print(f"체류시간 분석 완료: {len(stay_times)}개 지원자")
+                
+                # 날짜별 최대 체류 응시자 분석
+                print("\n날짜별 최대 체류 응시자 분석:")
+                print("-" * 50)
+                
+                for date in stay_times['date'].unique():
+                    date_stay = stay_times[stay_times['date'] == date]
+                    
+                    # 최대 체류시간 찾기
+                    max_stay = date_stay.loc[date_stay['stay_hours'].idxmax()]
+                    
+                    print(f"📅 {date}:")
+                    print(f"   최대 체류 응시자: {max_stay['applicant']}")
+                    print(f"   체류 시간: {max_stay['stay_hours']:.2f}시간")
+                    print(f"   시작 시간: {max_stay['start_time'].strftime('%H:%M')}")
+                    print(f"   종료 시간: {max_stay['end_time'].strftime('%H:%M')}")
+                    print(f"   총 지원자: {len(date_stay)}명")
+                    print(f"   평균 체류시간: {date_stay['stay_hours'].mean():.2f}시간")
+                    print(f"   중간값 체류시간: {date_stay['stay_hours'].median():.2f}시간")
+                    print()
+                
+                # 전체 통계
+                print("전체 통계:")
+                print("-" * 30)
+                print(f"전체 최대 체류시간: {stay_times['stay_hours'].max():.2f}시간")
+                print(f"전체 평균 체류시간: {stay_times['stay_hours'].mean():.2f}시간")
+                print(f"전체 중간값 체류시간: {stay_times['stay_hours'].median():.2f}시간")
+                
+                # 90% 분위수 계산
+                percentile_90 = stay_times['stay_hours'].quantile(0.9)
+                print(f"90% 분위수 체류시간: {percentile_90:.2f}시간")
+                
+                return True
+            else:
+                print("❌ 체류시간 계산 실패")
+                return False
+        else:
+            print(f"❌ 스케줄링 실패: {status}")
+            print(f"로그: {logs}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ 예외 발생: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+if __name__ == "__main__":
+    success = test_internal_analysis()
+    if success:
+        print("\n✅ 내부 테스트 성공!")
+    else:
+        print("\n❌ 내부 테스트 실패!")
+    
+    sys.exit(0 if success else 1) 

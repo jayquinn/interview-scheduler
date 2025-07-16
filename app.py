@@ -18,6 +18,7 @@ import core
 from solver.solver import solve_for_days
 from solver.api import solve_for_days_v2, solve_for_days_two_phase, get_scheduler_comparison
 from solver.types import ProgressInfo
+from test_internal_analysis import run_multi_date_scheduling
 
 # 진행 상황 콜백 함수
 def progress_callback(info: ProgressInfo):
@@ -215,8 +216,8 @@ col1, col2 = st.columns([2, 1])
 with col1:
     scheduler_choice = st.selectbox(
         "사용할 스케줄러를 선택하세요:",
-        ["계층적 스케줄러 v2 (권장) - 2단계 하드 제약 포함", "OR-Tools 스케줄러 (기존)"],
-        help="계층적 v2는 대규모 처리에 최적화되어 있으며, 2단계 하드 제약 스케줄링을 기본으로 포함합니다."
+        ["계층적 스케줄러 v2 (권장) - 2단계 하드 제약 포함", "OR-Tools 스케줄러 (기존)", "3단계 스케줄러 (새로 추가)"],
+        help="계층적 v2는 대규모 처리에 최적화되어 있으며, 2단계 하드 제약 스케줄링을 기본으로 포함합니다. 3단계는 새로 추가된 스케줄러입니다."
     )
 
 with col2:
@@ -231,7 +232,11 @@ with col2:
            "• 처리량: ~100명/초\n"
            "• 500명: ~5초\n"
            "• Individual만 지원\n"
-           "• 최적해 보장")
+           "• 최적해 보장\n\n"
+           "**3단계 스케줄러:**\n"
+           "• 처리량: ~1,000명/초\n"
+           "• 500명: ~1초\n"
+           "• 3단계 하드 제약 스케줄링 지원")
 
 # 고급 옵션 (계층적 v2 선택시)
 if "계층적" in scheduler_choice:
@@ -611,8 +616,62 @@ def df_to_excel(df: pd.DataFrame, stream=None) -> None:
     
     # ===== 2) 데이터 분석 시트들 추가 =====
     
+    # 3단계 스케줄링 결과가 있는 경우 우선 처리
+    if hasattr(st.session_state, 'three_phase_reports') and st.session_state.three_phase_reports:
+        three_phase_reports = st.session_state['three_phase_reports']
+        
+        # 3단계 결과 분석 시트 추가
+        if 'phase3' in three_phase_reports and three_phase_reports['phase3']['df'] is not None:
+            ws_phase3 = wb.create_sheet('3단계_스케줄링_결과')
+            phase3_df = three_phase_reports['phase3']['df']
+            
+            # 3단계 결과를 UI 형식으로 변환
+            phase3_display = phase3_df.copy()
+            if 'interview_date' in phase3_display.columns:
+                phase3_display['interview_date'] = pd.to_datetime(phase3_display['interview_date']).dt.strftime('%Y-%m-%d')
+            
+            for r in dataframe_to_rows(phase3_display, index=False, header=True):
+                ws_phase3.append(r)
+            
+            # 헤더 스타일링
+            for cell in ws_phase3[1]:
+                cell.fill = PatternFill('solid', fgColor='E8F5E9')
+                cell.font = Font(bold=True)
+        
+        # 3단계 체류시간 분석 시트 추가
+        if 'phase3' in three_phase_reports and three_phase_reports['phase3']['df'] is not None:
+            ws_phase3_analysis = wb.create_sheet('3단계_체류시간_분석')
+            
+            # 3단계 결과에서 체류시간 계산
+            phase3_df = three_phase_reports['phase3']['df']
+            phase3_df['interview_date'] = pd.to_datetime(phase3_df['interview_date'])
+            
+            stay_time_data = []
+            for date_str in phase3_df['interview_date'].dt.strftime('%Y-%m-%d').unique():
+                date_df = phase3_df[phase3_df['interview_date'].dt.strftime('%Y-%m-%d') == date_str]
+                for applicant_id in date_df['applicant_id'].unique():
+                    applicant_df = date_df[date_df['applicant_id'] == applicant_id]
+                    start_time = applicant_df['start_time'].min()
+                    end_time = applicant_df['end_time'].max()
+                    stay_hours = (end_time - start_time).total_seconds() / 3600
+                    stay_time_data.append({
+                        '날짜': date_str,
+                        '응시자ID': applicant_id,
+                        '체류시간(시간)': round(stay_hours, 2)
+                    })
+            
+            if stay_time_data:
+                stay_time_df = pd.DataFrame(stay_time_data)
+                for r in dataframe_to_rows(stay_time_df, index=False, header=True):
+                    ws_phase3_analysis.append(r)
+                
+                # 헤더 스타일링
+                for cell in ws_phase3_analysis[1]:
+                    cell.fill = PatternFill('solid', fgColor='E8F5E9')
+                    cell.font = Font(bold=True)
+    
     # 하드 제약 분석 시트 추가 (2단계 스케줄링 결과가 있는 경우)
-    if hasattr(st.session_state, 'two_phase_reports') and st.session_state.two_phase_reports:
+    elif hasattr(st.session_state, 'two_phase_reports') and st.session_state.two_phase_reports:
         reports = st.session_state.two_phase_reports
         
         # 제약 분석 리포트
@@ -1211,6 +1270,7 @@ def reset_run_state():
     st.session_state['solver_status'] = "미실행"
     st.session_state['daily_limit'] = 0
     st.session_state['two_phase_reports'] = {}
+    st.session_state['three_phase_reports'] = None
 
 # 기본 파라미터 설정 (하드코딩)
 params = {
@@ -1353,8 +1413,9 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
                 
                 # 스케줄링 모드에 따라 실행
                 use_new_scheduler = "계층적" in scheduler_choice
+                use_three_phase = "3단계" in scheduler_choice
                 
-                if use_new_scheduler:
+                if use_new_scheduler and not use_three_phase:
                     # 계층적 스케줄러 v2 선택 시 자동으로 2단계 스케줄링 적용
                     st.info("🚀 계층적 스케줄러 v2로 2단계 하드 제약 스케줄링을 실행합니다...")
                     
@@ -1370,6 +1431,7 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
                     
                     # 2단계 스케줄링 결과 저장
                     st.session_state['two_phase_reports'] = reports
+                    st.session_state['three_phase_reports'] = None
                     
                     # 상태 변환
                     if status == "SUCCESS":
@@ -1377,12 +1439,54 @@ if st.button("🚀 운영일정추정 시작", type="primary", use_container_wid
                     elif status in ["PARTIAL", "FAILED"]:
                         status = "FAILED"
                         
-                else:
+                elif use_three_phase:
+                    # 3단계 스케줄링 실행
+                    st.info("🚀 3단계 스케줄링 시스템을 실행합니다...")
+                    st.info("1단계: 기본 스케줄링 → 2단계: 90% 백분위수 → 3단계: 2단계 결과의 90% 재조정")
+                    
+                    # 3단계 스케줄링 실행 (내부 테스트에서 구현한 로직 사용)
+                    results = run_multi_date_scheduling()
+                    
+                    if results and results['phase3']['status'] == "SUCCESS":
+                        final_wide = results['phase3']['df']
+                        status = "OK"
+                        logs = "3단계 스케줄링 성공"
+                        limit = len(final_wide) if not final_wide.empty else 0
+                        
+                        # 3단계 결과 저장
+                        st.session_state['three_phase_reports'] = {
+                            'phase1': results['phase1'],
+                            'phase2': results['phase2'], 
+                            'phase3': results['phase3']
+                        }
+                        st.session_state['two_phase_reports'] = None
+                        
+                        # 3단계 결과를 final_schedule에도 저장 (중요!)
+                        st.session_state['final_schedule'] = final_wide
+                    else:
+                        status = "FAILED"
+                        final_wide = None
+                        logs = "3단계 스케줄링 실패"
+                        limit = 0
+                        st.session_state['three_phase_reports'] = None
+                        st.session_state['two_phase_reports'] = None
+                        st.session_state['final_schedule'] = None
+                elif "OR-Tools" in scheduler_choice:
                     # OR-Tools 스케줄러 선택 시
                     st.info("📊 OR-Tools 스케줄러로 실행 중...")
                     if has_batched:
                         st.warning("⚠️ OR-Tools 스케줄러는 Batched 활동을 완전히 지원하지 않을 수 있습니다.")
                     status, final_wide, logs, limit = solve_for_days(cfg, params, debug=False)
+                    st.session_state['two_phase_reports'] = None
+                    st.session_state['three_phase_reports'] = None
+                else:
+                    status = "FAILED"
+                    final_wide = None
+                    logs = "스케줄러 선택 오류"
+                    limit = 0
+                    st.session_state['three_phase_reports'] = None
+                    st.session_state['two_phase_reports'] = None
+                    st.session_state['final_schedule'] = None
                 
                 st.session_state['last_solve_logs'] = logs
                 st.session_state['solver_status'] = status
@@ -1417,8 +1521,79 @@ final_schedule = st.session_state.get('final_schedule')
 if final_schedule is not None and not final_schedule.empty:
     st.success("🎉 운영일정 추정이 완료되었습니다!")
     
-    # 2단계 스케줄링 결과 표시 (계층적 스케줄러 v2 사용 시)
-    if "계층적" in scheduler_choice and st.session_state.get('two_phase_reports'):
+    # 3단계 스케줄링 결과 표시 (우선순위)
+    if st.session_state.get('three_phase_reports'):
+        st.subheader("🔧 3단계 하드 제약 스케줄링 결과")
+        
+        three_phase_reports = st.session_state['three_phase_reports']
+        
+        # 3단계 결과 요약
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            phase1_count = len(three_phase_reports['phase1']['df']) if three_phase_reports['phase1']['df'] is not None else 0
+            st.info(f"📊 **1단계 스케줄**: {phase1_count}개")
+        with col2:
+            phase2_count = len(three_phase_reports['phase2']['df']) if three_phase_reports['phase2']['df'] is not None else 0
+            st.info(f"📊 **2단계 스케줄**: {phase2_count}개")
+        with col3:
+            phase3_count = len(three_phase_reports['phase3']['df']) if three_phase_reports['phase3']['df'] is not None else 0
+            st.info(f"📊 **3단계 스케줄**: {phase3_count}개")
+        
+        # 체류시간 개선 효과 표시
+        if (three_phase_reports['phase1']['df'] is not None and 
+            three_phase_reports['phase2']['df'] is not None and 
+            three_phase_reports['phase3']['df'] is not None):
+            
+            # 각 단계별 최대 체류시간 계산
+            def calculate_max_stay_time(df):
+                if df.empty:
+                    return 0
+                df_temp = df.copy()
+                df_temp['interview_date'] = pd.to_datetime(df_temp['interview_date'])
+                max_stay = 0
+                for date_str in df_temp['interview_date'].dt.strftime('%Y-%m-%d').unique():
+                    date_df = df_temp[df_temp['interview_date'].dt.strftime('%Y-%m-%d') == date_str]
+                    for applicant_id in date_df['applicant_id'].unique():
+                        applicant_df = date_df[date_df['applicant_id'] == applicant_id]
+                        start_time = applicant_df['start_time'].min()
+                        end_time = applicant_df['end_time'].max()
+                        stay_hours = (end_time - start_time).total_seconds() / 3600
+                        max_stay = max(max_stay, stay_hours)
+                return max_stay
+            
+            phase1_max = calculate_max_stay_time(three_phase_reports['phase1']['df'])
+            phase2_max = calculate_max_stay_time(three_phase_reports['phase2']['df'])
+            phase3_max = calculate_max_stay_time(three_phase_reports['phase3']['df'])
+            
+            st.markdown("**📈 3단계 체류시간 개선 효과**")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                improvement_2 = phase1_max - phase2_max
+                improvement_2_pct = (improvement_2 / phase1_max * 100) if phase1_max > 0 else 0
+                st.success(f"**1단계 → 2단계**: {improvement_2:.2f}시간 ({improvement_2_pct:.1f}%)")
+            with col2:
+                improvement_3 = phase1_max - phase3_max
+                improvement_3_pct = (improvement_3 / phase1_max * 100) if phase1_max > 0 else 0
+                st.success(f"**1단계 → 3단계**: {improvement_3:.2f}시간 ({improvement_3_pct:.1f}%)")
+            with col3:
+                additional_improvement = phase2_max - phase3_max
+                additional_pct = (additional_improvement / phase1_max * 100) if phase1_max > 0 else 0
+                st.success(f"**2단계 → 3단계**: {additional_improvement:.2f}시간 ({additional_pct:.1f}%)")
+            
+            # 상세 비교 테이블
+            comparison_data = {
+                '단계': ['1단계 (기본)', '2단계 (90% 백분위수)', '3단계 (2단계 90% 재조정)'],
+                '최대 체류시간': [f"{phase1_max:.2f}시간", f"{phase2_max:.2f}시간", f"{phase3_max:.2f}시간"],
+                '개선 효과': ['-', f"{improvement_2:.2f}시간", f"{improvement_3:.2f}시간"],
+                '개선률': ['-', f"{improvement_2_pct:.1f}%", f"{improvement_3_pct:.1f}%"]
+            }
+            comparison_df = pd.DataFrame(comparison_data)
+            st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+        
+        st.success("✅ 3단계 스케줄링이 성공적으로 완료되었습니다!")
+    
+    # 2단계 스케줄링 결과 표시 (3단계가 없을 때만)
+    elif "계층적" in scheduler_choice and st.session_state.get('two_phase_reports'):
         st.subheader("🔧 2단계 하드 제약 스케줄링 결과")
         
         reports = st.session_state['two_phase_reports']
@@ -1607,8 +1782,25 @@ if final_schedule is not None and not final_schedule.empty:
         
         return pd.DataFrame(job_stats), stats_df, pd.DataFrame(date_stats)
     
+    # 3단계 결과가 있으면 3단계 결과를 사용, 없으면 기본 결과 사용
+    analysis_df = None
+    if st.session_state.get('three_phase_reports'):
+        # 3단계 결과 사용
+        three_phase_reports = st.session_state['three_phase_reports']
+        if three_phase_reports['phase3']['df'] is not None:
+            analysis_df = three_phase_reports['phase3']['df']
+            st.info("📊 **3단계 스케줄링 결과**를 기준으로 체류시간을 분석합니다.")
+    else:
+        # 기본 결과 사용
+        analysis_df = final_schedule
+        st.info("📊 **기본 스케줄링 결과**를 기준으로 체류시간을 분석합니다.")
+    
+    if analysis_df is None or analysis_df.empty:
+        st.warning("⚠️ 분석할 스케줄 데이터가 없습니다.")
+        st.stop()
+    
     try:
-        job_stats_df, individual_stats_df, date_stats_df = calculate_stay_duration_stats(final_schedule)
+        job_stats_df, individual_stats_df, date_stats_df = calculate_stay_duration_stats(analysis_df)
         
         # 디버깅 정보 출력
         st.write(f"🔍 **디버깅 정보**:")

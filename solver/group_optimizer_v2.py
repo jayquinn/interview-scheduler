@@ -52,8 +52,7 @@ class GroupOptimizerV2:
             return Level1Result(
                 groups={},
                 applicants=applicants,
-                dummy_count=0,
-                group_count=0
+                dummy_count=0
             )
         
         # 직무별로 지원자 분류

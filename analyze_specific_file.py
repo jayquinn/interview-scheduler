@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-생성된 엑셀 파일 분석
+특정 엑셀 파일 분석
 """
 
 import pandas as pd
 import numpy as np
 
-def analyze_excel_file(filename):
-    """엑셀 파일 분석"""
+def analyze_specific_file(filename):
+    """특정 엑셀 파일 분석"""
     
     print(f"=== 엑셀 파일 분석: {filename} ===")
     
@@ -47,24 +47,14 @@ def analyze_excel_file(filename):
     except Exception as e:
         print(f"오류 발생: {str(e)}")
 
-def compare_phases():
+def compare_phases_specific(filename):
     """단계별 비교 분석"""
     
-    print("\n=== 단계별 비교 분석 ===")
-    
-    # 최신 파일 찾기
-    import glob
-    files = glob.glob("direct_three_phase_test_*.xlsx")
-    if not files:
-        print("분석할 파일이 없습니다.")
-        return
-    
-    latest_file = max(files)
-    print(f"분석 파일: {latest_file}")
+    print(f"\n=== 단계별 비교 분석: {filename} ===")
     
     try:
         # 단계별 비교 시트 읽기
-        comparison_df = pd.read_excel(latest_file, sheet_name='단계별_비교')
+        comparison_df = pd.read_excel(filename, sheet_name='단계별_비교')
         
         print("\n단계별 체류시간 비교:")
         print(comparison_df.to_string(index=False))
@@ -83,6 +73,12 @@ def compare_phases():
             # 4.5시간 문제 확인
             if phase3_max > 4.0:
                 print(f"\n⚠️ 3단계에서 여전히 높은 체류시간 발견: {phase3_max:.2f}시간")
+                print(f"🔍 원인 분석:")
+                if phase3_max == phase1_max:
+                    print(f"  - 3단계가 1단계와 동일한 결과 (fallback 발생 가능성)")
+                if phase3_max > phase2_max:
+                    print(f"  - 3단계가 2단계보다 악화됨 (제약 미적용)")
+                print(f"  - 하드 제약 후처리가 제대로 동작하지 않았을 가능성")
             else:
                 print(f"\n✅ 3단계 체류시간 개선됨: {phase3_max:.2f}시간")
         
@@ -90,12 +86,6 @@ def compare_phases():
         print(f"비교 분석 오류: {str(e)}")
 
 if __name__ == "__main__":
-    # 최신 파일 분석
-    import glob
-    files = glob.glob("direct_three_phase_test_*.xlsx")
-    if files:
-        latest_file = max(files)
-        analyze_excel_file(latest_file)
-        compare_phases()
-    else:
-        print("분석할 파일이 없습니다.") 
+    filename = "interview_schedule_20250716_145718.xlsx"
+    analyze_specific_file(filename)
+    compare_phases_specific(filename) 
