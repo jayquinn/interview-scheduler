@@ -1,0 +1,199 @@
+{
+  "timestamp": "2025-07-21T12:16:26.318307",
+  "activities": [
+    {
+      "use": true,
+      "activity": "심층면접",
+      "mode": "individual",
+      "duration": 20,
+      "room_type": "심층면접실",
+      "group_size": 1,
+      "max_group_size": 1
+    },
+    {
+      "use": true,
+      "activity": "발표준비",
+      "mode": "individual",
+      "duration": 15,
+      "room_type": "발표준비실",
+      "group_size": 1,
+      "max_group_size": 1
+    },
+    {
+      "use": true,
+      "activity": "발표면접",
+      "mode": "individual",
+      "duration": 15,
+      "room_type": "발표면접실",
+      "group_size": 1,
+      "max_group_size": 1
+    }
+  ],
+  "multidate_plans": {
+    "2025-07-21": {
+      "date": "2025-07-21",
+      "enabled": true,
+      "jobs": [
+        {
+          "code": "JOB01",
+          "count": 5
+        },
+        {
+          "code": "JOB02",
+          "count": 18
+        },
+        {
+          "code": "JOB03",
+          "count": 11
+        }
+      ]
+    },
+    "2025-07-22": {
+      "date": "2025-07-22",
+      "enabled": true,
+      "jobs": [
+        {
+          "code": "JOB04",
+          "count": 19
+        },
+        {
+          "code": "JOB05",
+          "count": 16
+        }
+      ]
+    },
+    "2025-07-23": {
+      "date": "2025-07-23",
+      "enabled": true,
+      "jobs": [
+        {
+          "code": "JOB06",
+          "count": 16
+        },
+        {
+          "code": "JOB07",
+          "count": 16
+        }
+      ]
+    },
+    "2025-07-24": {
+      "date": "2025-07-24",
+      "enabled": true,
+      "jobs": [
+        {
+          "code": "JOB08",
+          "count": 8
+        },
+        {
+          "code": "JOB09",
+          "count": 3
+        },
+        {
+          "code": "JOB10",
+          "count": 5
+        },
+        {
+          "code": "JOB11",
+          "count": 5
+        }
+      ]
+    }
+  },
+  "room_template": {
+    "심층면접실": {
+      "count": 2,
+      "cap": 1
+    },
+    "발표준비실": {
+      "count": 2,
+      "cap": 1
+    },
+    "발표면접실": {
+      "count": 2,
+      "cap": 1
+    }
+  },
+  "job_acts_map": [
+    {
+      "job_code": "JOB01",
+      "applicant_count": 5,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB02",
+      "applicant_count": 18,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB03",
+      "applicant_count": 11,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB04",
+      "applicant_count": 19,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB05",
+      "applicant_count": 16,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB06",
+      "applicant_count": 16,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB08",
+      "applicant_count": 8,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB09",
+      "applicant_count": 3,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB10",
+      "applicant_count": 5,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB11",
+      "applicant_count": 5,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    },
+    {
+      "job_code": "JOB07",
+      "applicant_count": 16,
+      "심층면접": true,
+      "발표준비": true,
+      "발표면접": true
+    }
+  ],
+  "oper_start_time": "09:00:00",
+  "oper_end_time": "17:45:00",
+  "global_gap_min": 5,
+  "max_stay_hours": 5
+}
