@@ -261,7 +261,7 @@ def validate_config(cfg: dict) -> Tuple[bool, str]:
     activities = cfg.get("activities", pd.DataFrame())
     if activities.empty:
         errors.append("활동이 정의되지 않았습니다")
-    elif not (activities.get("use", True) == True).any():
+    elif "use" in activities.columns and not (activities["use"] == True).any():
         errors.append("사용 가능한 활동이 없습니다")
     
     # 2. 지원자 검증

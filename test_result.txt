@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "C:\git\interview-scheduler\test_simple_standalone.py", line 158, in <module>
+    print("\U0001f3af Simple Interview Scheduler - Standalone Test")
+UnicodeEncodeError: 'cp949' codec can't encode character '\U0001f3af' in position 0: illegal multibyte sequence

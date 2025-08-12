@@ -194,7 +194,11 @@ class SimpleInterviewScheduler:
             # 각 시간대에서 그룹 번호 부여
             for time_key, group_members in time_groups.items():
                 group_size = len(group_members)
-                group_number = f"{activity.name}-{time_key.hours:02d}{time_key.minutes:02d}"
+                # timedelta에서 시간과 분 추출
+                total_seconds = int(time_key.total_seconds())
+                hours = total_seconds // 3600
+                minutes = (total_seconds % 3600) // 60
+                group_number = f"{activity.name}-{hours:02d}{minutes:02d}"
                 
                 for result in group_members:
                     result.group_number = group_number
